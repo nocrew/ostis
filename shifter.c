@@ -179,7 +179,7 @@ static void shifter_gen_picture(long rasterpos)
   int i;
   int left,mid,right;
 
-  if((rasterpos - lastrasterpos) < 300000) {
+  if((rasterpos - lastrasterpos) < 30) {
     //    printf("DEBUG: raster: %ld - %d == %ld\n", rasterpos, lastrasterpos,
     //	   rasterpos - lastrasterpos);
     for(i=lastrasterpos; i<=rasterpos; i++) {
@@ -189,11 +189,11 @@ static void shifter_gen_picture(long rasterpos)
     return;
   }
 
-  left = 15-(lastrasterpos%16);
+  left = (16-(lastrasterpos%16))%16;
   right = rasterpos%16;
   mid = ((rasterpos-right-left)-((lastrasterpos+16)&0xfffffff0))/16;
 
-  for(i=0;i<=(15-left);i++) {
+  for(i=0;i<left;i++) {
     shifter_gen_pixel(i+lastrasterpos);
   }
   lastrasterpos += i;

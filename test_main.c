@@ -43,6 +43,7 @@ int main( void )
   ram_init();
   rom_init();
   cpu_init();
+  cpu->no_exceptions = 1;
 
   int c;
   for( c = 0 ; c < sizeof(tests) / sizeof(TestCase) ; c++ ) {

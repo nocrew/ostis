@@ -663,6 +663,7 @@ void cpu_init()
   eor_init((void *)instr, (void *)instr_print);
   eori_init((void *)instr, (void *)instr_print);
   eori_to_sr_init((void *)instr, (void *)instr_print); /* overlaps eori_init */
+  eori_to_ccr_init((void *)instr, (void *)instr_print);
 
   cmp_init((void *)instr, (void *)instr_print); /* overlaps eor_init */
   cmpm_init((void *)instr, (void *)instr_print);
@@ -687,4 +688,5 @@ void cpu_init()
 
   not_init((void *)instr, (void *)instr_print);
   neg_init((void *)instr, (void *)instr_print);
+  negx_init((void *)instr, (void *)instr_print);
 }

@@ -70,7 +70,12 @@ static int ram_state_collect(struct mmu_state *state)
 
 static void ram_state_restore(struct mmu_state *state)
 {
-  memcpy(memory, state->data, state->size);
+  long size;
+
+  size = state->size;
+  if(state->size > (RAM_PHYSMAX+1-RAMBASE))
+    size = RAM_PHYSMAX+1-RAMBASE;
+  memcpy(memory, state->data, size);
 }
 
 void ram_clear(void)

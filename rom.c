@@ -67,10 +67,16 @@ static int rom_state_collect(struct mmu_state *state)
 
 static void rom_state_restore(struct mmu_state *state)
 {
-  if(!strcmp("ROM0", state->id))
-    memcpy(memory, state->data, state->size);
-  else
-    memcpy(memory2, state->data, state->size);
+  long size;
+  
+  size = state->size;
+  if(!strcmp("ROM0", state->id)) {
+    if(state->size > ROMSIZE) size = ROMSIZE;
+    memcpy(memory, state->data, size);
+  } else {
+    if(state->size > ROMSIZE2) size = ROMSIZE2;
+    memcpy(memory2, state->data, size);
+  }
 }
 
 void rom_init()

@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "common.h"
 #include "cpu.h"
 #include "mfp.h"
@@ -15,6 +17,8 @@ static LONG scraddr;
 static LONG scrptr;
 static BYTE syncreg;
 static BYTE resolution;
+
+static int ppmout;
 
 static long lastcpucnt;
 static long vsync;
@@ -136,6 +140,9 @@ void shifter_init()
   shifter->write_long = shifter_write_long;
 
   mmu_register(shifter);
+
+  //  ppmout = open("out.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0664);
+  ppmout = 1; /* send everything to stdout if running... */
 }
 
 static long build_color(int pnum)
@@ -189,6 +196,45 @@ void shifter_build_image(int dbg)
   }
 }
 
+void shifter_build_ppm_16pxl(int wcnt, WORD d[], char *image)
+{
+  int i,c;
+  int x,y;
+  long col;
+
+  y = wcnt/80;
+  x = 16*((wcnt%80)/4);
+  
+  for(i=15;i>=0;i--) {
+    c = ((((d[0]>>i)&1)<<3)|
+         (((d[1]>>i)&1)<<2)|
+         (((d[2]>>i)&1)<<1)|
+         (((d[3]>>i)&1)));
+    col = build_color(c);
+    image[((15-i)*3)+0] = (col&0xff0000)>>16;
+    image[((15-i)*3)+1] = (col&0xff00)>>8;
+    image[((15-i)*3)+2] = (col&0xff);
+  }
+}
+
+void shifter_build_ppm()
+{
+  int i;
+  WORD d[4];
+  static char image[192000];
+  
+  write(ppmout, "P6\n320 200\n255\n", 15);
+
+  for(i=0;i<16000;i+=4) {
+    d[3] = mmu_read_word(scraddr+i*2);
+    d[2] = mmu_read_word(scraddr+i*2+2);
+    d[1] = mmu_read_word(scraddr+i*2+4);
+    d[0] = mmu_read_word(scraddr+i*2+6);
+    shifter_build_ppm_16pxl(i, d, &image[4*3*i]);
+  }
+  write(ppmout, image, 192000);
+}
+
 void shifter_do_interrupts(struct cpu *cpu)
 {
   long tmpcpu;
@@ -204,6 +250,7 @@ void shifter_do_interrupts(struct cpu *cpu)
     hline = 0;
     scrptr = scraddr;
     shifter_build_image(0);
+    //    shifter_build_ppm();
     screen_swap();
     if(IPL < 4)
       cpu_set_exception(28);

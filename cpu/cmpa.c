@@ -19,7 +19,7 @@ static void cmpa(struct cpu *cpu, WORD op)
     if(s&0x8000) s |= 0xffff0000;
   }
   r = d-s;
-  cpu_set_flags_sub(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
+  cpu_set_flags_cmp(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
 }
 
 static struct cprint *cmpa_print(LONG addr, WORD op)

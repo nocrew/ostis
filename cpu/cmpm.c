@@ -17,7 +17,7 @@ static void cmpm_b(struct cpu *cpu, WORD op)
   r = d-s;
   
   ADD_CYCLE(12);
-  cpu_set_flags_sub(cpu, s&0x80, d&0x80, r&0x80, r);
+  cpu_set_flags_cmp(cpu, s&0x80, d&0x80, r&0x80, r);
 }
 
 static void cmpm_w(struct cpu *cpu, WORD op)
@@ -35,7 +35,7 @@ static void cmpm_w(struct cpu *cpu, WORD op)
   r = d-s;
   
   ADD_CYCLE(12);
-  cpu_set_flags_sub(cpu, s&0x8000, d&0x8000, r&0x8000, r);
+  cpu_set_flags_cmp(cpu, s&0x8000, d&0x8000, r&0x8000, r);
 }
 
 static void cmpm_l(struct cpu *cpu, WORD op)
@@ -53,7 +53,7 @@ static void cmpm_l(struct cpu *cpu, WORD op)
   r = d-s;
   
   ADD_CYCLE(20);
-  cpu_set_flags_sub(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
+  cpu_set_flags_cmp(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
 }
 
 static void cmpm(struct cpu *cpu, WORD op)

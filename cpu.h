@@ -133,8 +133,16 @@ static void cpu_set_flags_general(struct cpu *cpu, int mask,
   if(mask&MSKZ) { if(!r) SETZ; else CLRZ; }
 }
 
-/* SUB, SUBI, SUBQ, CAS, CAS2, CMP, CMPI, CMPM */
+/* SUB, SUBI, SUBQ */
 static void cpu_set_flags_sub(struct cpu *cpu, int sm, int dm, int rm, int r)
+{
+  if((!sm && dm && !rm) || (sm && !dm && rm)) SETV; else CLRV;
+  if((sm && !dm) || (rm && !dm) || (sm && rm)) SETC; else CLRC;
+  cpu_set_flags_general(cpu, MSKN | MSKZ | MSKX, rm, r);
+}
+
+/* CAS, CAS2, CMP, CMPI, CMPM */
+static void cpu_set_flags_cmp(struct cpu *cpu, int sm, int dm, int rm, int r)
 {
   if((!sm && dm && !rm) || (sm && !dm && rm)) SETV; else CLRV;
   if((sm && !dm) || (rm && !dm) || (sm && rm)) SETC; else CLRC;

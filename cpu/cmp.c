@@ -11,7 +11,7 @@ static void cmp_b(struct cpu *cpu, int reg, int mode)
   s = ea_read_byte(cpu, mode, 0);
   d = cpu->d[reg]&0xff;
   r = d-s;
-  cpu_set_flags_sub(cpu, s&0x80, d&0x80, r&0x80, r);
+  cpu_set_flags_cmp(cpu, s&0x80, d&0x80, r&0x80, r);
 }
 
 static void cmp_w(struct cpu *cpu, int reg, int mode)
@@ -22,7 +22,7 @@ static void cmp_w(struct cpu *cpu, int reg, int mode)
   s = ea_read_word(cpu, mode, 0);
   d = cpu->d[reg]&0xffff;
   r = d-s;
-  cpu_set_flags_sub(cpu, s&0x8000, d&0x8000, r&0x8000, r);
+  cpu_set_flags_cmp(cpu, s&0x8000, d&0x8000, r&0x8000, r);
 }
 
 static void cmp_l(struct cpu *cpu, int reg, int mode)
@@ -33,7 +33,7 @@ static void cmp_l(struct cpu *cpu, int reg, int mode)
   s = ea_read_long(cpu, mode, 0);
   d = cpu->d[reg];
   r = d-s;
-  cpu_set_flags_sub(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
+  cpu_set_flags_cmp(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
 }
 
 static void cmp(struct cpu *cpu, WORD op)

@@ -13,7 +13,7 @@ static void cmpi_b(struct cpu *cpu, int mode)
   e = ea_read_byte(cpu, mode, 0);
 
   r = e-i;
-  cpu_set_flags_sub(cpu, i&0x80, e&0x80, r&0x80, r);
+  cpu_set_flags_cmp(cpu, i&0x80, e&0x80, r&0x80, r);
 }
 
 static void cmpi_w(struct cpu *cpu, int mode)
@@ -26,7 +26,7 @@ static void cmpi_w(struct cpu *cpu, int mode)
   e = ea_read_word(cpu, mode, 0);
 
   r = e-i;
-  cpu_set_flags_sub(cpu, i&0x8000, e&0x8000, r&0x8000, r);
+  cpu_set_flags_cmp(cpu, i&0x8000, e&0x8000, r&0x8000, r);
 }
 
 static void cmpi_l(struct cpu *cpu, int mode)
@@ -41,7 +41,7 @@ static void cmpi_l(struct cpu *cpu, int mode)
   e = ea_read_long(cpu, mode, 0);
   
   r = e-i;
-  cpu_set_flags_sub(cpu, i&0x80000000, e&0x80000000, r&0x80000000, r);
+  cpu_set_flags_cmp(cpu, i&0x80000000, e&0x80000000, r&0x80000000, r);
 }
 
 static void cmpi(struct cpu *cpu, WORD op)

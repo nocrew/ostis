@@ -49,15 +49,19 @@
 
 static BYTE psgreg[16];
 static int psgactive = 0;
-static int psg_periodcnt[3];
+static int psg_periodcnt[3] = { -1, -1, -1 };
 static int psg_volume[3];
-static int psg_noisecnt;
+static int psg_noisecnt = -1;
 static int psg_noise;
 
+#define DIV(x) ((((x/10)*65535)/25000))
+
 /* Fixed point volume levels, voltage*100000 */
-static int psg_volume_voltage[32] = {
-  0, 611, 978, 1710, 2200, 3300, 4400, 6360, 
-  8800, 12500, 17600, 25200, 35500, 50400, 70300, 100000,
+static signed long psg_volume_voltage[32] = {
+  DIV(0), DIV(611), DIV(978), DIV(1710), 
+  DIV(2200), DIV(3300), DIV(4400), DIV(6360), 
+  DIV(8800), DIV(12500), DIV(17600), DIV(25200), 
+  DIV(35500), DIV(50400), DIV(70300), DIV(100000),
   /* second half to secure that there are enough values */
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
@@ -65,11 +69,12 @@ static int psg_register_mask[16] = {
   0xff, 0xf, 0xff, 0xf, 0xff, 0xf, 0x1f, 0xff,
   0x1f, 0x1f, 0x1f, 0xff, 0xff, 0xf, 0xff, 0xff
 };
-static int psg_presample[PSG_PRESAMPLESIZE][3];
+static signed long psg_presample[PSG_PRESAMPLESIZE][3];
 static int psg_presamplepos = 0; /* circular buffer */
 static int psg_presamplestart = 0;
 static long lastcpucnt = 0;
 static int snd_fd;
+static int psg_running = 0;
 
 static int psg_set_period(int channel)
 {
@@ -84,18 +89,14 @@ static void psg_set_register(BYTE data)
   switch(psgactive) {
   case PSG_APERL:
   case PSG_APERH:
-    psg_periodcnt[PSG_CHA] = psg_set_period(PSG_CHA);
     break;
   case PSG_BPERL:
   case PSG_BPERH:
-    psg_periodcnt[PSG_CHB] = psg_set_period(PSG_CHB);
     break;
   case PSG_CPERL:
   case PSG_CPERH:
-    psg_periodcnt[PSG_CHC] = psg_set_period(PSG_CHC);
     break;
   case PSG_NOISE:
-    psg_noisecnt = PSG_PERIODDIV*psgreg[PSG_NOISE];
   case PSG_MIXER:
     break;
   case PSG_AVOL:
@@ -143,6 +144,7 @@ static LONG psg_read_long(LONG addr)
 
 static void psg_write_byte(LONG addr, BYTE data)
 {
+  if(addr&1) return;
   addr &= 2;
 
   switch(addr) {
@@ -224,7 +226,7 @@ static void psg_generate_presamples(long cycles)
 
     psg_noisecnt--;
     if(psg_noisecnt < 0) {
-      psg_noisecnt = psgreg[PSG_NOISE];
+      psg_noisecnt = PSG_PERIODDIV*psgreg[PSG_NOISE];
       psg_noise |= ((psg_noise^(psg_noise>>2))&1)<<17;
     }
     noise = psg_noise&1;
@@ -233,6 +235,7 @@ static void psg_generate_presamples(long cycles)
       tonemask = (psgreg[PSG_MIXER]>>c)&1;
       noisemask = (psgreg[PSG_MIXER]>>(c+3))&1;
       out = (tone[c]|tonemask)&(noise|noisemask);
+      out = (out<<1)-1;
       psg_presample[(psg_presamplepos)%PSG_PRESAMPLESIZE][c] = 
 	out * psg_volume[c];
     }
@@ -246,7 +249,8 @@ static void psg_generate_samples()
 {
   int presamples,pos;
   int i,c;
-  long out;
+  signed long out;
+  signed short outsign;
 
   if(psg_presamplepos < psg_presamplestart) {
     pos = psg_presamplepos + PSG_PRESAMPLESIZE;
@@ -266,9 +270,14 @@ static void psg_generate_samples()
 	out += psg_presample[(psg_presamplestart+i)%PSG_PRESAMPLESIZE][c];
       }
     }
-    out = ((out/(PSG_PRESAMPLES_PER_SAMPLE*3))*65535)/100000;
-    out |= out<<16;
-    write(snd_fd, &out, 4);
+    out = (out/(PSG_PRESAMPLES_PER_SAMPLE*3));
+    outsign = out&0xffff;
+    if(!psg_running && (out != 0))
+      psg_running = 1;
+    if(psg_running) {
+      write(snd_fd, &outsign, 2);
+      write(snd_fd, &outsign, 2);
+    }
     psg_presamplestart += PSG_PRESAMPLES_PER_SAMPLE;
     if(psg_presamplestart > (PSG_PRESAMPLESIZE-1)) {
       psg_presamplestart -= PSG_PRESAMPLESIZE;

@@ -73,7 +73,7 @@ nbcd
 *rte
 rtr
 *rts
-sbcd
+*sbcd
 *scc
 *stop
 *sub

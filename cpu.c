@@ -668,6 +668,8 @@ void cpu_init()
   for(i=0;i<65536;i++) {
     instr[i] = default_instr;
     instr_print[i] = default_instr_print;
+    //    instr[i] = illegal_instr;
+    //    instr_print[i] = illegal_instr_print;
   }
 
   for(i=0;i<8;i++) {
@@ -683,6 +685,7 @@ void cpu_init()
   subq_init((void *)instr, (void *)instr_print);
   subi_init((void *)instr, (void *)instr_print);
   subx_init((void *)instr, (void *)instr_print);
+  sbcd_init((void *)instr, (void *)instr_print);
 
   lea_init((void *)instr, (void *)instr_print);
   pea_init((void *)instr, (void *)instr_print);

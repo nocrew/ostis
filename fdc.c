@@ -68,7 +68,7 @@
 #define FDC_STEP_IN 1
 #define FDC_STEP_OUT -1
 
-#define FDC_PENDTIME 100000;
+#define FDC_PENDTIME 512
 
 static int fdc_reg[6];
 static int fdc_reg_active;
@@ -218,11 +218,12 @@ static void fdc_do_instr()
 	   fdc_dmaaddr, 1);
 #endif
     fdc_dmastatus = 0x3; /* Sector count != 0, No error */
-    if(floppy_read_sector(fdc_dmaaddr, 1) == FLOPPY_ERROR) {
+    if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
       fdc_dmastatus = 0x0; /* Error */
     } else {
-      fdc_dmastatus = 0x1;
-    }
+      fdc_dmastatus = 0x1; 
+      fdc_dmaaddr += 512; /* Advance one sector */
+   }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_READSEC && FDCI_MULTSEC) {
 #if 1
@@ -242,6 +243,7 @@ static void fdc_do_instr()
       fdc_dmastatus = 0x0; /* Error */
     } else {
       fdc_dmastatus = 0x1;
+      fdc_dmaaddr += 512*fdc_reg[FDC_DMASEC]; /* Advance multiple sectors */
     }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_WRITESEC) {
@@ -396,8 +398,9 @@ void fdc_do_interrupts(struct cpu *cpu)
 
   if(motorcnt > 0) {
     motorcnt -= tmpcpu;
-    //    printf("DEBUG: left on motor: %d\n", motorcnt);
   }
+  if(cpu->debug)
+    printf("DEBUG: left on motor: %d\n", motorcnt);
   if(motorcnt <= 0) {
     motorcnt = 0;
     motoron = 0;
@@ -406,11 +409,15 @@ void fdc_do_interrupts(struct cpu *cpu)
     fdc_reg[FDC_STATUS] &= ~(1<<7);
   }
 
-  if(abortpending > 0)
+  if(abortpending > 0) {
     abortpending -= tmpcpu;
+  }
+  if(cpu->debug)
+    printf("DEBUG: left on abort: %d\n", abortpending);
 
-  if(abortpending <= 0) {
-    abortpending = 0;
+  if(abortpending != -1 && (abortpending <= 0)) {
+    //    abortpending = FDC_PENDTIME;
+    abortpending = -1;
     mfp_clr_GPIP(5);
     mfp_do_interrupt(cpu, 7);
   }

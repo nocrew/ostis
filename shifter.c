@@ -28,7 +28,7 @@
 
 
 static long linenum = 0;
-static long linecnt = HBLSIZE-80; /* Cycle count per line, for timer-b event */
+static long linecnt = HBLSIZE-160; /* Cycle count per line, for timer-b event */
 static long vsynccnt = VBLSIZE*HBLSIZE; /* 160256 cycles in one screen */
 static long hsynccnt = HBLSIZE+160; /* Offset for first hbl interrupt */
 static long lastrasterpos = 0;
@@ -345,8 +345,8 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   linecnt -= tmpcpu;
   
   /* VBL Interrupt */
-  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
   if(vsynccnt < 0) {
+    shifter_gen_picture(VBLSIZE*HBLSIZE);
     scrptr = curaddr = scraddr;
     vsynccnt += VBLSIZE*HBLSIZE;
     linenum = 0;
@@ -360,6 +360,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 
   /* HBL Interrupt */
   if(hsynccnt < 0) {
+    shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
     hsynccnt += HBLSIZE;
     if(!noint && (IPL < 2))
       cpu_set_exception(26); /* This _should_ work, but probably won't */
@@ -369,7 +370,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   /* Line Interrupt */
   if(linecnt < 0) {
     linecnt += HBLSIZE;
-    if((linenum >= VBLPRE) && (linenum < (VBLPRE+VBLSCR)))
+    if((linenum >= VBLPRE) && (linenum <= (VBLPRE+VBLSCR)))
       mfp_do_timerb_event(cpu);
     linenum++;
   }

@@ -322,7 +322,7 @@ static long state_uncompress_rle(unsigned char *rle, long size, char **output)
     if(i < (size-4) && (rle[i] == rle[i+1])) {
       cnt = (rle[i+2]<<8)|rle[i+3];
       if((ucnt+cnt) > usize) {
-	fprintf("ERROR! Illegal RLE data\n");
+	fprintf(stderr, "ERROR! Illegal RLE data\n");
 	free(*output);
 	*output = NULL;
 	return 0;
@@ -333,7 +333,7 @@ static long state_uncompress_rle(unsigned char *rle, long size, char **output)
     } else {
       *output[ucnt++] = rle[i];
       if(ucnt > usize) {
-	fprintf("ERROR! Illegal RLE data\n");
+	fprintf(stderr, "ERROR! Illegal RLE data\n");
 	free(*output);
 	*output = NULL;
 	return 0;
@@ -341,7 +341,7 @@ static long state_uncompress_rle(unsigned char *rle, long size, char **output)
     }
   }
   if(ucnt != usize) {
-    fprintf("ERROR! Illegal RLE data\n");
+    fprintf(stderr, "ERROR! Illegal RLE data\n");
     free(*output);
     *output = NULL;
     return 0;
@@ -357,6 +357,8 @@ struct state *state_decode_delta(struct state *state, struct state *ref)
   int i;
   long usize;
   
+  return NULL;
+
   new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
   tmp = (char *)malloc(ref->cpu_state->size);
@@ -366,22 +368,23 @@ struct state *state_decode_delta(struct state *state, struct state *ref)
 			       state->cpu_state->size,
 			       &unrle);
   if(usize == 0) {
-    fprintf("ERROR! RLE uncompression failed.\n");
+    fprintf(stderr, "ERROR! RLE uncompression failed.\n");
     return NULL;
   }
 
   if(usize != ref->cpu_state->size) {
     free(unrle);
-    fprintf("ERROR! State sizes conflict\n");
+    fprintf(stderr, "ERROR! State sizes conflict\n");
     return NULL;
   }
 
   for(i=0;i<usize;i++) {
-    tmp[i] = unrle[i]^ref->cpu_data->data[i];
+    tmp[i] = unrle[i]^ref->cpu_state->data[i];
   }
   
   new->cpu_state = state->cpu_state;
   
+  return NULL;
 }
 
 struct state *state_unpack_delta(struct state *state)

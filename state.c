@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <SDL.h>
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
@@ -123,6 +124,15 @@ static void state_clear_mmu(struct mmu_state *state)
   }
 }
 
+static void state_clear(struct state *state)
+{
+  if(state == NULL) return;
+
+  if(state->cpu_state) free(state->cpu_state->data);
+  if(state->mmu_state) state_clear_mmu(state->mmu_state);
+  free(state);
+}
+
 static long state_get_mmu_size(struct mmu_state *state)
 {
   long size = 0;
@@ -138,6 +148,9 @@ struct state *state_collect()
 {
   struct state *new;
   struct state_list *new_list;
+  long before;
+
+  before = SDL_GetTicks();
 
   new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
@@ -167,6 +180,8 @@ struct state *state_collect()
   new_list->next = list;
   new_list->state = new;
   list = new_list;
+
+  printf("Time to save: %ld ticks\n", SDL_GetTicks()-before);
 
   return new;
 }
@@ -315,12 +330,22 @@ struct state *state_unpack_delta(struct state *state)
 struct state *state_pack_delta(struct state *state, struct state *ref)
 {
   struct state *tmp, *new;
+  struct state_list *new_list;
 
   tmp = state_unpack_delta(ref);
   new = state_encode_delta(state, tmp);
   if(tmp->delta == -1)
     state_clear(tmp);
-  state_clear(state);
+  state_remove(state);
+  new_list = (struct state_list *)malloc(sizeof(struct state_list));
+  if(new_list == NULL) {
+    state_clear(new);
+    return NULL;
+  }
+  new_list->state = new;
+  new_list->next = list;
+  list = new_list;
+  
   return new;
 }
 
@@ -335,13 +360,31 @@ void state_restore(struct state *state)
   mmu_state_restore(state->mmu_state);
 }
 
-void state_clear(struct state *state)
+void state_remove(struct state *state)
 {
-  if(state == NULL) return;
+  struct state_list *t,*tmp;
 
-  if(state->cpu_state) free(state->cpu_state->data);
-  if(state->mmu_state) state_clear_mmu(state->mmu_state);
-  free(state);
+  t = list;
+  if(t == NULL) return;
+  if(t->state == state) {
+    state_clear(t->state);
+    list = t->next;
+    free(t);
+    return;
+  }
+  
+  while(t) {
+    if(t->next != NULL) {
+      if(t->next->state == state) {
+	state_clear(state);
+	tmp = t->next->next;
+	free(t->next);
+	t->next = tmp;
+	return;
+      }
+    }
+    t = t->next;
+  }
 }
 
 void state_save(char *filename, struct state *state)

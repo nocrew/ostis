@@ -27,7 +27,7 @@ struct state_list {
 
 struct state *state_collect();
 void state_restore(struct state *);
-void state_clear(struct state *);
+void state_remove(struct state *);
 void state_save(char *, struct state *);
 struct state *state_load(char *);
 int state_valid_id(char *);

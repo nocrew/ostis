@@ -109,8 +109,10 @@ void dbcc(struct cpu *cpu, WORD op)
   if(cpu->d[r]&0xffff) {
     cpu->d[r]=(cpu->d[r]&0xffff0000)|((cpu->d[r]-1)&0xffff);
     cpu->pc += o;
+    ADD_CYCLE(12);
   } else {
     cpu->d[r] |= 0xffff;
+    ADD_CYCLE(14);
   }
 }
 

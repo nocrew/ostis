@@ -177,6 +177,8 @@ static void psg_write_byte(LONG addr, BYTE data)
   if(addr&1) return;
   addr &= 2;
 
+  ADD_CYCLE(2);
+
   switch(addr) {
   case 0:
     psgactive = data&0xf;

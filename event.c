@@ -27,6 +27,20 @@ static int event_key(SDL_KeyboardEvent key, int state)
   } else if(k.sym == SDLK_F12) {
     if(state == EVENT_RELEASE)
       printf("DEBUG: cpu->pc == %08x\n", cpu->pc);
+  } else if(k.sym == SDLK_LALT) {
+    ikbd_queue_key(SCAN_ALT, state);
+  } else if(k.sym == SDLK_UP) {
+    ikbd_queue_key(SCAN_UP, state);
+  } else if(k.sym == SDLK_DOWN) {
+    ikbd_queue_key(SCAN_DOWN, state);
+  } else if(k.sym == SDLK_LEFT) {
+    ikbd_queue_key(SCAN_LEFT, state);
+  } else if(k.sym == SDLK_RIGHT) {
+    ikbd_queue_key(SCAN_RIGHT, state);
+  } else if(k.sym == SDLK_END) {
+    ikbd_queue_key(SCAN_INSERT, state);
+  } else if(k.sym == SDLK_PAGEDOWN) {
+    ikbd_queue_key(SCAN_DELETE, state);
   } else {
     printf("Unimplemented key: %d\n", k.sym);
   }

@@ -44,5 +44,12 @@ static int scancode[256] = {
 };
 
 #define SCAN_F1 0x3b
+#define SCAN_ALT 0x38
+#define SCAN_UP 0x48
+#define SCAN_DOWN 0x50
+#define SCAN_LEFT 0x4b
+#define SCAN_RIGHT 0x4d
+#define SCAN_INSERT 0x52
+#define SCAN_DELETE 0x53
 
 #endif

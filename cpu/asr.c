@@ -14,7 +14,7 @@ static void asr_r(struct cpu *cpu, WORD op)
   r = (op&7);
   mask = 0;
 
-  ADD_CYCLE(6+c);
+  ADD_CYCLE(6+c*2);
 
   switch((op&0xc0)>>6) {
   case 0:
@@ -52,7 +52,7 @@ static void asr_i(struct cpu *cpu, WORD op)
   r = (op&7);
   mask = 0;
   
-  ADD_CYCLE(6+c);
+  ADD_CYCLE(6+c*2);
 
   switch((op&0xc0)>>6) {
   case 0:

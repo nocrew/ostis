@@ -13,7 +13,7 @@ static void roxr_r(struct cpu *cpu, WORD op)
   r = (op&7);
   if(CHKX) x = 1; else x = 0;
 
-  ADD_CYCLE(6+c);
+  ADD_CYCLE(6+c*2);
 
   switch((op&0xc0)>>6) {
   case 0:
@@ -47,7 +47,7 @@ static void roxr_i(struct cpu *cpu, WORD op)
   r = (op&7);
   if(CHKX) x = 1; else x = 0;
 
-  ADD_CYCLE(6+c);
+  ADD_CYCLE(6+c*2);
 
   switch((op&0xc0)>>6) {
   case 0:

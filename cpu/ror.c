@@ -12,7 +12,7 @@ static void ror_r(struct cpu *cpu, WORD op)
   c = cpu->d[(op&0xe00)>>9]&63;
   r = (op&7);
 
-  ADD_CYCLE(6+c);
+  ADD_CYCLE(6+c*2);
 
   switch((op&0xc0)>>6) {
   case 0:
@@ -45,7 +45,7 @@ static void ror_i(struct cpu *cpu, WORD op)
   if(c == 0) c = 8;
   r = (op&7);
   
-  ADD_CYCLE(6+c);
+  ADD_CYCLE(6+c*2);
 
   switch((op&0xc0)>>6) {
   case 0:

@@ -11,9 +11,11 @@ static void movep(struct cpu *cpu, WORD op)
 
   ar = op&0x7;
   dr = (op&0xe00)>>9;
-  a = mmu_read_word(cpu->pc)+cpu->a[ar];
+  a = mmu_read_word(cpu->pc);
+  if(a&0x8000) a |= 0xffff0000;
+  a += cpu->a[ar];
   cpu->pc += 2;
-  
+    
   switch((op&0xc0)>>6) {
   case 0:
     d = (mmu_read_byte(a)<<8)|mmu_read_byte(a+2);

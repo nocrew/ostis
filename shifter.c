@@ -12,7 +12,22 @@
 #define SHIFTERSIZE 256
 #define SHIFTERBASE 0xff8200
 
+#define LEFTBORDER 96
+#define RIGHTBORDER (512-LEFTBORDER)
+#define TOPBORDER 57
+#define LOWERBORDER (313-TOPBORDER)
+
+#define BEFOREGFX (LEFTBORDER+(TOPBORDER-1)*512+256)
+
+/* 
+   Rastersize is 512 cycles/scanline, 313 scanlines, 3 bytes/pixel 
+   Only low resolution supported right now.
+ */
+static unsigned char rgbimage[512*314*3];
+static int lastrasterpos = 0;
+
 static WORD palette[16];
+static LONG curaddr;
 static LONG scraddr;
 static LONG scrptr;
 static BYTE syncreg;
@@ -25,6 +40,187 @@ static long vsync;
 static long hsync;
 static long hline;
 
+static long build_color(int pnum)
+{
+  int c,r,g,b;
+  
+
+  if(pnum > 15) exit(-4);
+  c = palette[pnum];
+
+  r = (c&0xf00)>>7;
+  g = (c&0xf0)>>3;
+  b = (c&0xf)<<1;
+
+  r = (r<<4)|r;
+  g = (g<<4)|g;
+  b = (b<<4)|b;
+
+  return (r<<16)|(g<<8)|b;
+}
+
+static void set_pixel(int rasterpos, int pnum)
+{
+  int c;
+  int r,g,b;
+
+  if(pnum > 15) exit(-4);
+  c = palette[pnum];
+
+  r = (c&0xf00)>>7;
+  g = (c&0xf0)>>3;
+  b = (c&0xf)<<1;
+
+  r = (r<<4)|r;
+  g = (g<<4)|g;
+  b = (b<<4)|b;
+
+  rgbimage[rasterpos*3+0] = r;
+  rgbimage[rasterpos*3+1] = g;
+  rgbimage[rasterpos*3+2] = b;
+}
+
+static void fill_16pxl(int rasterpos, int col)
+{
+  int i;
+
+  for(i=0;i<16;i++) {
+    set_pixel(rasterpos+i, col);
+  }
+}
+
+static int get_pixel(int vmemoff, int pxl)
+{
+  int c;
+  WORD d[4];
+  
+  d[3] = mmu_read_word_print(curaddr+vmemoff*2+0);
+  d[2] = mmu_read_word_print(curaddr+vmemoff*2+2);
+  d[1] = mmu_read_word_print(curaddr+vmemoff*2+4);
+  d[0] = mmu_read_word_print(curaddr+vmemoff*2+6);
+  
+  c = ((((d[0]>>(15-pxl))&1)<<3)|
+       (((d[1]>>(15-pxl))&1)<<2)|
+       (((d[2]>>(15-pxl))&1)<<1)|
+       (((d[3]>>(15-pxl))&1)));
+  return c;
+}
+
+static void set_16pxl(int rasterpos, int vmemoff)
+{
+  int i,c;
+  WORD d[4];
+
+  d[3] = mmu_read_word_print(curaddr+vmemoff*2+0);
+  d[2] = mmu_read_word_print(curaddr+vmemoff*2+2);
+  d[1] = mmu_read_word_print(curaddr+vmemoff*2+4);
+  d[0] = mmu_read_word_print(curaddr+vmemoff*2+6);
+  
+  for(i=15;i>=0;i--) {
+    c = ((((d[0]>>i)&1)<<3)|
+	 (((d[1]>>i)&1)<<2)|
+	 (((d[2]>>i)&1)<<1)|
+	 (((d[3]>>i)&1)));
+    set_pixel(rasterpos+(15-i), c);
+  }
+}
+
+static void gen_scrptr(int rasterpos)
+{
+  int vmemoff,scan,scanpos;
+
+  scan = 1+((rasterpos-256)/512);
+  scanpos = (rasterpos+256)%512;
+
+  if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
+     (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
+    return;
+  }
+  vmemoff = (scan-TOPBORDER)*80;
+  vmemoff += ((scanpos-LEFTBORDER)/16)*4;
+  scrptr = curaddr + vmemoff*2;
+}
+
+static void shifter_gen_pixel(int rasterpos)
+{
+  int vmemoff,scan,scanpos;
+
+  scan = 1+((rasterpos-256)/512);
+  scanpos = (rasterpos+256)%512;
+
+  if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
+     (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
+    set_pixel(rasterpos+256, 0);
+  } else {
+    vmemoff = (scan-TOPBORDER)*80;
+    vmemoff += ((scanpos-LEFTBORDER)/16)*4;
+    set_pixel(rasterpos+256, get_pixel(vmemoff, (scanpos-LEFTBORDER)&15));
+  }
+}
+
+static void shifter_gen_16pxl(int rasterpos)
+{
+  int vmemoff,scan,scanpos;
+  scan = 1+((rasterpos-256)/512);
+  scanpos = (rasterpos+256)%512;
+    
+  if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
+     (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
+    fill_16pxl(rasterpos+256, 0);
+  } else {
+    vmemoff = (scan-TOPBORDER)*80;
+    vmemoff += ((scanpos-LEFTBORDER)/16)*4;
+    set_16pxl(rasterpos+256, vmemoff);
+  }
+}
+
+static void shifter_gen_picture(long rasterpos)
+{
+  int i;
+  int left,mid,right;
+
+  if((rasterpos - lastrasterpos) < 30) {
+    //    printf("DEBUG: raster: %ld - %d == %ld\n", rasterpos, lastrasterpos,
+    //	   rasterpos - lastrasterpos);
+    for(i=lastrasterpos; i<=rasterpos; i++) {
+      shifter_gen_pixel(i);
+    }
+    lastrasterpos = i;
+    return;
+  }
+
+  left = 15-(lastrasterpos%16);
+  right = rasterpos%16;
+  mid = ((rasterpos-right-left)-((lastrasterpos+16)&0xfffffff0))/16;
+  if(left == 15) {
+    mid += 1;
+  }
+
+  if(left != 15) {
+    for(i=0;i<=(15-left);i++) {
+      shifter_gen_pixel(i+lastrasterpos);
+    }
+    lastrasterpos += i;
+  }
+
+  for(i=0;i<mid;i++) {
+    shifter_gen_16pxl(i*16+lastrasterpos);
+  }
+  lastrasterpos += i*16;
+
+  if(right) {
+    for(i=0;i<right;i++) {
+      shifter_gen_pixel(i+lastrasterpos);
+    } 
+    lastrasterpos += i;
+  }
+}
+
+void shifter_build_image()
+{
+  screen_copyimage(rgbimage);
+}
+
 static BYTE shifter_read_byte(LONG addr)
 {
   switch(addr) {
@@ -33,10 +229,13 @@ static BYTE shifter_read_byte(LONG addr)
   case 0xff8203:
     return (scraddr&0xff00)>>8;
   case 0xff8205:
+    gen_scrptr(vsync);
     return (scrptr&0xff0000)>>16;
   case 0xff8207:
+    gen_scrptr(vsync);
     return (scrptr&0xff00)>>8;
   case 0xff8209:
+    gen_scrptr(vsync);
     return scrptr&0xff;
   case 0xff820a:
     return syncreg;
@@ -95,6 +294,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
 	tmp = palette[(addr-0xff8240)>>1];
 	palette[(addr-0xff8240)>>1] = (tmp&0xff)|(data<<8);
       }
+      shifter_gen_picture(160256-vsync);
       return;
     } else {
       return;
@@ -145,26 +345,7 @@ void shifter_init()
   ppmout = 1; /* send everything to stdout if running... */
 }
 
-static long build_color(int pnum)
-{
-  int c,r,g,b;
-  
-
-  if(pnum > 15) exit(-4);
-  c = palette[pnum];
-
-  r = (c&0xf00)>>7;
-  g = (c&0xf0)>>3;
-  b = (c&0xf)<<1;
-
-  r = (r<<4)|r;
-  g = (g<<4)|g;
-  b = (b<<4)|b;
-
-  return (r<<16)|(g<<8)|b;
-}
-
-static void build_16pxl(int wcnt, WORD d[], int dbg)
+static void build_16pxl(int wcnt, WORD d[])
 {
   int i,c;
   int x,y;
@@ -178,11 +359,11 @@ static void build_16pxl(int wcnt, WORD d[], int dbg)
 	 (((d[2]>>i)&1)<<1)|
 	 (((d[3]>>i)&1)));
     //    if(dbg) printf("DEBUG: running screen_putpixel(%d, %d, %06lx (%d), 1)\n", x+(15-i), y, build_color(c), c);
-    screen_putpixel(x+(15-i), y, build_color(c), dbg);
+    screen_putpixel(x+(15-i), y, build_color(c));
   }
 }
 
-void shifter_build_image(int dbg)
+void shifter_build_image_old()
 {
   int i;
   WORD d[4];
@@ -192,7 +373,7 @@ void shifter_build_image(int dbg)
     d[2] = mmu_read_word(scraddr+i*2+2);
     d[1] = mmu_read_word(scraddr+i*2+4);
     d[0] = mmu_read_word(scraddr+i*2+6);
-    build_16pxl(i, d, dbg);
+    build_16pxl(i, d);
   }
 }
 
@@ -246,10 +427,13 @@ void shifter_do_interrupts(struct cpu *cpu)
   vsync -= tmpcpu;
   if(vsync < 0) {
     /* vsync_interrupt */
+    shifter_gen_picture(160256-vsync);
     vsync += MAX_CYCLE/((syncreg&2)?50:60);
+    //    printf("DEBUG: vsync == %ld\n", vsync);
     hline = 0;
-    scrptr = scraddr;
-    shifter_build_image(0);
+    scrptr = curaddr = scraddr;
+    shifter_build_image();
+    lastrasterpos = 0;
     //    shifter_build_ppm();
     screen_swap();
     if(IPL < 4)
@@ -258,7 +442,7 @@ void shifter_do_interrupts(struct cpu *cpu)
   hsync -= tmpcpu;
   if(hsync < 0) {
     /* hsync_interrupt */
-    if(hline >= 29)
+    if(hline >= TOPBORDER)
       mfp_do_timerb_event(cpu);
     hsync += 512;
     hline++;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <SDL/SDL.h>
 
 #include "screen.h"
@@ -21,12 +22,18 @@ void screen_init()
   atexit(SDL_Quit);
 #endif
 
-  screen = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
-                            400 + BORDER_SIZE * 2,
-                            24, SDL_SWSURFACE|SDL_DOUBLEBUF);
+  screen = SDL_SetVideoMode(640, 400, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
 }
 
-void screen_putpixel(int x, int y, long c, int dbg)
+void screen_copyimage(unsigned char *src)
+{
+  int i;
+  for(i=0;i<314;i++) {
+    memcpy(PADDR(0, i), src+512*3*i, 512*3);
+  }
+}
+
+void screen_putpixel(int x, int y, long c)
 {
   unsigned char *p;
 

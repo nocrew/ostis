@@ -82,7 +82,7 @@ rtr
 *subq
 *subx
 *swap
-tas
+*tas
 *trap
 trapv
 *tst

@@ -754,6 +754,7 @@ void cpu_init()
   trap_init((void *)instr, (void *)instr_print);
 
   tst_init((void *)instr, (void *)instr_print);
+  tas_init((void *)instr, (void *)instr_print);
 
   mulu_init((void *)instr, (void *)instr_print);
   muls_init((void *)instr, (void *)instr_print);

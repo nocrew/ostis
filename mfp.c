@@ -100,25 +100,21 @@ static void mfp_write_byte(LONG addr, BYTE data)
   case TACR:
     if(!(mfpreg[TACR]&0xf) && data&0x7) {
       if(data > 7) printf("DEBUG: MFP not fully implemented.\n");
-      precnt[0] = divider[data&0x7]*313;
-      //      precnt[0] = MFPFREQ/divider[data&0x7];
+      precnt[0] = 313*divider[data&0x7];
     }
     break;
   case TBCR:
     if(!(mfpreg[TBCR]&0xf) && data&0x7) {
       if(data > 7) printf("DEBUG: MFP not fully implemented.\n");
-      precnt[1] = divider[data&0x7]*313;
-      //      precnt[1] = MFPFREQ/divider[data&0x7];
+      precnt[1] = 313*divider[data&0x7];
     }
     break;
   case TCDCR:
-    if(!(mfpreg[TCDCR]&0x7) && data&0x70) {
-      precnt[2] = MFPFREQ/divider[(data&0x70)>>4]*313;
-      //      precnt[2] = MFPFREQ/divider[(data&0x70)>>4];
+    if(!(mfpreg[TCDCR]&0x70) && data&0x70) {
+      precnt[2] = 313*divider[(data&0x70)>>4];
     }
     if(!(mfpreg[TCDCR]&0x7) && data&0x7) {
-      precnt[3] = MFPFREQ/divider[data&0x7]*313;
-      //      precnt[3] = MFPFREQ/divider[data&0x7];
+      precnt[3] = 313*divider[data&0x7];
     }
     break;
   case TADR:
@@ -229,7 +225,6 @@ static void update_timer(int tnum, long cycles)
   precnt[tnum] -= cycles;
   if(precnt[tnum] < 0) {
     precnt[tnum] += d*313;
-    //    precnt[tnum] += MFPFREQ/d;
     timercnt[tnum]--;
     if(!timercnt[tnum]) {
       timercnt[tnum] = mfpreg[TADR+tnum];

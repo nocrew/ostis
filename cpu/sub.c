@@ -21,7 +21,7 @@ static void sub_b(struct cpu *cpu, WORD op)
     ADD_CYCLE(4);
     r = (cpu->d[reg]&0xff)-d;
     cpu_set_flags_sub(cpu, d&0x80, cpu->d[reg]&0x80, r&0x80, r);
-    cpu->d[reg] = r;
+    cpu->d[reg] = (cpu->d[reg]&0xffffff00)|r;
   }
 }
 
@@ -44,7 +44,7 @@ static void sub_w(struct cpu *cpu, WORD op)
     ADD_CYCLE(4);
     r = (cpu->d[reg]&0xffff)-d;
     cpu_set_flags_sub(cpu, d&0x8000, cpu->d[reg]&0x8000, r&0x8000, r);
-    cpu->d[reg] = r;
+    cpu->d[reg] = (cpu->d[reg]&0xffff0000)|r;
   }
 }
 

@@ -24,7 +24,7 @@ static void cmpm_w(struct cpu *cpu, WORD op)
 {
   int rx,ry;
   WORD s,d,r;
-  
+
   rx = (op&0xe00)>>9;
   ry = op&0x7;
   
@@ -59,7 +59,7 @@ static void cmpm_l(struct cpu *cpu, WORD op)
 static void cmpm(struct cpu *cpu, WORD op)
 {
   ENTER;
-
+  
   switch((op&0xc0)>>6) {
   case 0:
     cmpm_b(cpu, op);
@@ -109,9 +109,9 @@ void cmpm_init(void *instr[], void *print[])
       instr[0xb108|(rx<<9)|ry] = cmpm;
       instr[0xb148|(rx<<9)|ry] = cmpm;
       instr[0xb188|(rx<<9)|ry] = cmpm;
-      print[0xb100|(rx<<9)|ry] = cmpm_print;
-      print[0xb140|(rx<<9)|ry] = cmpm_print;
-      print[0xb180|(rx<<9)|ry] = cmpm_print;
+      print[0xb108|(rx<<9)|ry] = cmpm_print;
+      print[0xb148|(rx<<9)|ry] = cmpm_print;
+      print[0xb188|(rx<<9)|ry] = cmpm_print;
     }
   }
 

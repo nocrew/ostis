@@ -1,8 +1,9 @@
 CC=gcc
-#CFLAGS=-Os -I. -I.. -mcpu=603 -mtune=603 -Wall -Werror -Wno-unused-function
-#LDFLAGS=-Os
-CFLAGS=-g -I. -I.. -Wall -Werror -Wno-unused-function
-LDFLAGS=-g
+include Makefile.include
+#CFLAGS=-O3 -I. -I.. -Wall -Werror -Wno-unused-function
+#LDFLAGS=-O3
+#CFLAGS=-g -I. -I.. -Wall -Werror -Wno-unused-function
+#LDFLAGS=-g
 YACC=yacc -d
 LEX=lex
 

@@ -1,0 +1,2 @@
+CFLAGS=-g -I. -I.. -Wall -Werror -Wno-unused-function
+LDFLAGS=-g

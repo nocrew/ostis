@@ -430,6 +430,7 @@ int cpu_step_instr(int trace)
     
     cpu->cyclecomp = 0;
     cpu->icycle = 0;
+    cpu->tracedelay = 0;
     
     instr[op](cpu, op);
   } else {
@@ -440,7 +441,7 @@ int cpu_step_instr(int trace)
   if(cpu->exception_pending != -1) {
     cpu_do_exception(cpu->exception_pending);
   }
-  if(CHKT) cpu_do_exception(9);
+  if(CHKT && !cpu->tracedelay) cpu_do_exception(9);
   return CPU_OK;
 }
 
@@ -786,4 +787,7 @@ void cpu_init()
   negx_init((void *)instr, (void *)instr_print);
 
   stop_init((void *)instr, (void *)instr_print);
+
+  instr[0x4afc] = illegal_instr;
+  instr_print[0x4afc] = illegal_instr_print;
 }

@@ -15,6 +15,7 @@ struct cpu {
   int cyclecomp;
   int debug;
   int stopped;
+  int tracedelay;
   int exception_pending;
 };
 

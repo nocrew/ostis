@@ -15,6 +15,7 @@ static void rte(struct cpu *cpu, WORD op)
     cpu->pc = mmu_read_long(cpu->a[7]);
     cpu->a[7] += 4;
     cpu_set_sr(sr);
+    cpu->tracedelay = 1;
   } else {
     cpu_set_exception(8); /* Privilege violation */
   }

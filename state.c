@@ -196,6 +196,8 @@ static struct state *state_find_state_by_id(long id)
     if(id == t->state->id) return t->state;
     t = t->next;
   }
+
+  return NULL;
 }
 
 static long state_compress_rle(char *tmp, long size, char **input)

@@ -42,7 +42,7 @@ void floppy_sector(int sector)
 
 int floppy_seek(int track)
 {
-  if(!floppy[0].fp) return FLOPPY_ERROR;
+  if(!floppy[0].fp) return FLOPPY_OK;
   floppy[0].sel_trk = track;
   if(track < 0)
     floppy[0].sel_trk = 0;

@@ -1,7 +1,7 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include <SDL/SDL.h>
+#include <SDL.h>
 
 #define FONT_SMALL 0
 #define FONT_LARGE 1

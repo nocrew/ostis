@@ -48,6 +48,9 @@ int main(int argc, char *argv[])
     }
   }
 
+  if((prefs.diskimage == NULL) && (argv[optind] != NULL))
+    prefs_set("diskimage", argv[optind]);
+
   mmu_init(); /* Must run before hardware module inits */
   ram_init();
   rom_init();

@@ -19,6 +19,11 @@
 
 #define BEFOREGFX (LEFTBORDER+(TOPBORDER-1)*512+256)
 
+static int leftborder = LEFTBORDER;
+static int rightborder = RIGHTBORDER;
+static int topborder = TOPBORDER;
+static int lowerborder = LOWERBORDER;
+
 /* 
    Rastersize is 512 cycles/scanline, 313 scanlines, 3 bytes/pixel 
    Only low resolution supported right now.
@@ -136,12 +141,12 @@ static void gen_scrptr(int rasterpos)
   scan = 2+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
 
-  if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
-     (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
+  if((scan < topborder) || (scan >= lowerborder) ||
+     (scanpos < leftborder) || (scanpos >= rightborder)) {
     return;
   }
-  vmemoff = (scan-TOPBORDER)*160;
-  vmemoff += ((scanpos-LEFTBORDER+15)>>1)&(~1);
+  vmemoff = (scan-topborder)*160;
+  vmemoff += ((scanpos-leftborder+15)>>1)&(~1);
   scrptr = curaddr + vmemoff;
 }
 
@@ -152,13 +157,13 @@ static void shifter_gen_pixel(int rasterpos)
   scan = 2+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
 
-  if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
-     (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
+  if((scan < topborder) || (scan >= lowerborder) ||
+     (scanpos < leftborder) || (scanpos >= rightborder)) {
     set_pixel(rasterpos+256, 0);
   } else {
-    vmemoff = (scan-TOPBORDER)*80;
-    vmemoff += ((scanpos-LEFTBORDER)/16)*4;
-    set_pixel(rasterpos+256, get_pixel(vmemoff, (scanpos-LEFTBORDER)&15));
+    vmemoff = (scan-topborder)*80;
+    vmemoff += ((scanpos-leftborder)/16)*4;
+    set_pixel(rasterpos+256, get_pixel(vmemoff, (scanpos-leftborder)&15));
   }
 }
 
@@ -168,12 +173,12 @@ static void shifter_gen_16pxl(int rasterpos)
   scan = 2+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
     
-  if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
-     (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
+  if((scan < topborder) || (scan >= lowerborder) ||
+     (scanpos < leftborder) || (scanpos >= rightborder)) {
     fill_16pxl(rasterpos+256, 0);
   } else {
-    vmemoff = (scan-TOPBORDER)*80;
-    vmemoff += ((scanpos-LEFTBORDER)/16)*4;
+    vmemoff = (scan-topborder)*80;
+    vmemoff += ((scanpos-leftborder)/16)*4;
     set_16pxl(rasterpos+256, vmemoff);
   }
 }
@@ -313,6 +318,13 @@ static void shifter_write_byte(LONG addr, BYTE data)
     scraddr = (scraddr&0xff0000)|(data<<8);
     return;
   case 0xff820a:
+    if(shifter_get_vsync() < (TOPBORDER*512)) {
+      topborder = 35;
+    }
+    if(shifter_get_vsync() > ((313-topborder)*512)) {
+      lowerborder = LOWERBORDER+47;
+    }
+    lowerborder = 313;
     syncreg = data;
     return;
   case 0xff8260:
@@ -469,26 +481,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     printf("DEBUG: ERROR!!!! cpu->pc == %08x\n", cpu->pc);
   }
     
-
-  hsync -= tmpcpu;
-  if(hsync < 0) {
-    /* hsync_interrupt */
-    shifter_gen_picture(160256-vsync);
-    if((hline >= (TOPBORDER-1)) && (hline < LOWERBORDER))
-      //    if((hline >= (TOPBORDER-1)))
-      mfp_do_timerb_event(cpu);
-    hsync += 512;
-    //    gen_scrptr(160256-vsync);
-    hline++;
-    //    cpu_set_exception(26);
-#if 1
-    if(!noint && (IPL < 2))
-      cpu_set_exception(26);
-#else
-    cpu_set_exception(26);
-#endif
-  }
-  
   vsync -= tmpcpu;
   
   //  shifter_gen_picture(160256-vsync);
@@ -508,13 +500,33 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     //    shifter_build_ppm();
     screen_swap();
     //    cpu_set_exception(28);
-#if 0
+#if 1
     if(!noint && (IPL < 4))
       cpu_set_exception(28);
 #else
     cpu_set_exception(28);
 #endif
   }
+
+  hsync -= tmpcpu;
+  if(hsync < 0) {
+    /* hsync_interrupt */
+    shifter_gen_picture(160256-vsync);
+    if((hline >= (topborder-1)) && (hline < lowerborder))
+      //    if((hline >= (TOPBORDER-1)))
+      mfp_do_timerb_event(cpu);
+    hsync += 512;
+    //    gen_scrptr(160256-vsync);
+    hline++;
+    //    cpu_set_exception(26);
+#if 1
+    if(!noint && (IPL < 2))
+      cpu_set_exception(26);
+#else
+    cpu_set_exception(26);
+#endif
+  }
+  
   lastcpucnt = cpu->cycle;
 }
 

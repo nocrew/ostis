@@ -36,6 +36,15 @@ struct cprint_label {
   int named;
 };
 
+struct cpu_state {
+  char id[4];
+  long size;
+  char *data;
+};
+
+struct cpu_state *cpu_state_collect();
+void cpu_state_restore(struct cpu_state *);
+
 extern struct cpu *cpu;
 
 #define ADD_CYCLE(x) do { cpu->icycle += x; } while(0);

@@ -15,9 +15,9 @@ YOBJ=y.tab.o
 LOBJ=lex.yy.o
 
 SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
-    midi.c ikbd.c fdc.c rtc.c floppy.c event.c
+    midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c
 OBJ=mmu.o ram.o rom.o cpu.o cartridge.o psg.o mfp.o shifter.o screen.o \
-    midi.o ikbd.o fdc.o rtc.o floppy.o event.o
+    midi.o ikbd.o fdc.o rtc.o floppy.o event.o state.o
 
 EMU_SRC=main.c $(SRC)
 EMU_OBJ=main.o $(OBJ)

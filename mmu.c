@@ -9,6 +9,23 @@
 #include "mmu.h"
 
 static struct mmu *memory[65536];
+static struct mmu_module *modules = NULL;
+
+static struct mmu_module *find_module(struct mmu *data)
+{
+  struct mmu_module *t;
+
+  t = modules;
+
+  while(t) {
+    if((t->module->start == data->start) &&
+       (t->module->size == data->size))
+      return t;
+    t = t->next;
+  }
+
+  return NULL;
+}
 
 static struct mmu *find_entry(struct mmu *data, int block)
 {
@@ -226,11 +243,33 @@ void mmu_write_long(LONG addr, LONG data)
   t->write_long(addr, data);
 }
 
+struct mmu_state *mmu_state_collect()
+{
+  return NULL;
+}
+
+void mmu_state_restore(struct mmu_state *state)
+{
+  
+}
+
 void mmu_register(struct mmu *data)
 {
+  struct mmu_module *new;
   int i,off;
 
   if(!data) return;
+  
+  if(find_module(data) == NULL) {
+    new = (struct mmu_module *)malloc(sizeof(struct mmu_module));
+    if(new == NULL) {
+      fprintf(stderr, "FATAL: Could not allocate module struct\n");
+      exit(-1);
+    }
+    new->module = data;
+    new->next = modules;
+    modules = new;
+  }
   
   for(i=0;i<data->size;i++) {
     off = ((i+data->start)&0xffff00)>>8;
@@ -243,20 +282,18 @@ void mmu_register(struct mmu *data)
 
 void mmu_print_map()
 {
-#if 0 /* Unable to print after dispatch change */
-  struct mmu *t;
+  struct mmu_module *t;
 
-  t = memory;
+  t = modules;
   
   while(t) {
-    printf("Name : %s\n", t->name);
-    printf("Start: 0x%08x\n", t->start);
-    printf("End  : 0x%08x\n", t->start+t->size-1);
-    printf("Size : %d\n", t->size);
+    printf("Name : %s\n", t->module->name);
+    printf("Start: 0x%08x\n", t->module->start);
+    printf("End  : 0x%08x\n", t->module->start+t->module->size-1);
+    printf("Size : %d\n", t->module->size);
     printf("\n");
     t = t->next;
   }
-#endif
 }
 
 void mmu_do_interrupts(struct cpu *cpu)

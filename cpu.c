@@ -41,6 +41,15 @@ static instr_t *instr[65536];
 typedef struct cprint *instr_print_t(LONG, WORD);
 static instr_print_t *instr_print[65536];
 
+struct cpu_state *cpu_state_collect()
+{
+  return NULL;
+}
+
+void cpu_state_restore(struct cpu_state *state)
+{
+}
+
 static void default_instr(struct cpu *cpu, WORD op)
 {
   printf("DEBUG: unknown opcode 0x%04x at 0x%08x\n", op, cpu->pc-2);

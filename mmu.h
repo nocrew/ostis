@@ -6,6 +6,7 @@
 
 struct mmu {
   struct mmu *next;
+  char id[4];
   char *name;
   LONG start;
   LONG size;
@@ -16,6 +17,21 @@ struct mmu {
   void (*write_word)(LONG, WORD);
   void (*write_long)(LONG, LONG);
 };
+
+struct mmu_module {
+  struct mmu_module *next;
+  struct mmu *module;
+};
+
+struct mmu_state {
+  struct mmu_state *next;
+  char id[4];
+  long size;
+  char *data;
+};
+
+struct mmu_state *mmu_state_collect();
+void mmu_state_restore(struct mmu_state *);
 
 void mmu_init();
 void mmu_register(struct mmu *);

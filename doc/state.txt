@@ -1,0 +1,52 @@
+File format
+-----------
+
+Note:
+All integers are in big endian order.
+All long values are aligned to 4 bytes.
+
+
+Sizes used are (signed, unless noted otherwise):
+
+byte: 8 bits
+word: 16 bits
+long: 32 bits
+
+
+Counts used are:
+
+<number>:   simple count
+N:	    variable count
+alignN:	    padding to align data to N bytes
+
+
+size  count	data
+---------------------
+long	1	"STAT"
+long	1	<entire_file_size> - 8
+
+long	1	"STCT"
+long	1	<stct_size>
+long	1	Number of states in file.
+
+...REPEAT <state_count>...
+long	1	"STIN"
+long	1	<STATE_info_size> (Always 20 at the moment)
+long	1	<id_number>
+long	1	<version_number>
+long	1	<state_size> (CPU+MMU)
+long	2	<timestamp>
+long	1	Delta pack reference <id_number>.
+
+long	1	<CPU module id>
+long	1	<cpu_state_size>
+byte	N	<cpu_state_size> bytes of data.
+byte	align4	-
+...REPEAT...
+long	1	<MMU module id>
+long	1	<module_size>
+byte	N	<module_size> bytes of data.
+byte	align4	-
+...ENDREP...
+...ENDREP <state_count>...
+

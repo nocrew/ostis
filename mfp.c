@@ -3,6 +3,7 @@
 #include <string.h>
 #include "common.h"
 #include "mmu.h"
+#include "mfp.h"
 
 #define MFPSIZE 48
 #define MFPBASE 0xfffa00
@@ -47,6 +48,7 @@
 
 static long lastcpucnt;
 static long precnt[4];
+static int intnum[4] = { INT_TIMERA, INT_TIMERB, INT_TIMERC, INT_TIMERD };
 static long divider[8] = { 0, 4, 10, 16, 50, 64, 100, 200 };
 static BYTE mfpreg[24];
 static BYTE timercnt[4];
@@ -183,7 +185,7 @@ void mfp_print_status()
   printf("\n");
 }
 
-static int update_timer(int tnum, long cycles)
+static void update_timer(int tnum, long cycles)
 {
   int d;
   int iermask;
@@ -193,32 +195,32 @@ static int update_timer(int tnum, long cycles)
 
   switch(tnum) {
   case 0:
-    if(!(mfpreg[TACR]&0xf)) return 0;
+    if(!(mfpreg[TACR]&0xf)) return;
     d = divider[(mfpreg[TACR]&0x7)];
     ierreg = 0;
     iermask = 0x20;
     break;
   case 1:
-    if(!(mfpreg[TBCR]&0xf)) return 0;
+    if(!(mfpreg[TBCR]&0xf)) return;
     d = divider[(mfpreg[TBCR]&0x7)];
     ierreg = 0;
     iermask = 0x1;
     break;
   case 2:
-    if(!(mfpreg[TCDCR]&0x70)) return 0;
+    if(!(mfpreg[TCDCR]&0x70)) return;
     d = divider[(mfpreg[TCDCR]&0x70)>>4];
     ierreg = 1;
     iermask = 0x20;
     break;
   case 3:
-    if(!(mfpreg[TCDCR]&0x7)) return 0;
+    if(!(mfpreg[TCDCR]&0x7)) return;
     d = divider[(mfpreg[TCDCR]&0x7)];
     ierreg = 1;
     iermask = 0x10;
     break;
   }
 
-  if(!d) return 0;
+  if(!d) return;
 
   //  printf("DEBUG: Calling update_timer(%d, %ld)\n", tnum, cycles);
 
@@ -229,10 +231,11 @@ static int update_timer(int tnum, long cycles)
     timercnt[tnum]--;
     if(!timercnt[tnum]) {
       timercnt[tnum] = mfpreg[TADR+tnum];
-      if(mfpreg[IERA+ierreg]&iermask) return 1;
+      if(mfpreg[IERA+ierreg]&iermask) {
+	mfp_set_pending(intnum[tnum]);
+      }
     }
   }
-  return 0;
 }
 
 void mfp_set_GPIP(int bnum)
@@ -272,29 +275,63 @@ static void mfp_set_ISR(int inum)
   mfpreg[ISRB] = (t&0xff);
 }
 
+static void mfp_clr_ISR(int inum)
+{
+  int t;
+
+  t = ISR&(~(1<<inum));
+  mfpreg[ISRA] = (t>>8);
+  mfpreg[ISRB] = (t&0xff);
+}
+
 static int mfp_higher_ISR(int inum)
 {
   int t;
 
   t = ~((1<<(inum+1))-1);
 
-  return (ISR & t);
+   return (ISR & t);
 }
 
-void mfp_do_interrupt(struct cpu *cpu, int inum)
+void mfp_set_pending(int inum)
 {
-  int vec;
-
-  if(mfp_higher_ISR(inum)) return;
-  if(!(IER & (1<<inum))) return;
+  if(!(IER & (1<<inum))) {
+    return;
+  }
   mfp_set_IPR(inum);
-  if(!(IMR & (1<<inum))) return;
- 
-  if(IPL >= 6) return;
+}
+
+static void mfp_do_interrupt(int inum)
+{
+  int vec,tmp;
+
+  if(!(IER & (1<<inum))) {
+    mfp_clr_IPR(inum);
+    //    printf("DEBUG: IER not set for %d\n", inum);
+    return;
+  }
+#if 1
+  if((tmp = mfp_higher_ISR(inum))) {
+    //    printf("DEBUG: Higher ISR active for %d (%d higher)\n",
+    //	   inum, tmp);
+    return;
+  }
+#endif
+  if(!(IMR & (1<<inum))) {
+    //    printf("DEBUG: IMR not set for %d\n", inum);
+    return;
+  }
+  if(IPL >= 6) {
+    //    printf("DEBUG: IPL not low enough for %d (IPL == %d)\n", inum, IPL);
+    return;
+  }
 
   vec = (mfpreg[VR]&0xf0);
   vec += inum;
-  mfp_set_ISR(inum);
+  if(mfpreg[VR]&0x08)
+    mfp_set_ISR(inum);
+  else
+    mfp_clr_ISR(inum);
   mfp_clr_IPR(inum);
 
   cpu_set_exception(vec);
@@ -304,6 +341,7 @@ void mfp_do_interrupts(struct cpu *cpu)
 {
   long mfpcycle;
   long tmpcpu;
+  int i;
 
   tmpcpu = cpu->cycle - lastcpucnt;
   if(tmpcpu < 0) {
@@ -312,21 +350,19 @@ void mfp_do_interrupts(struct cpu *cpu)
 
   mfpcycle = (tmpcpu * 96);
 
-  if(update_timer(0, mfpcycle)) {
-    mfp_do_interrupt(cpu, INT_TIMERA);
+  update_timer(0, mfpcycle);
+  update_timer(1, mfpcycle);
+  update_timer(2, mfpcycle);
+  update_timer(3, mfpcycle);
 
-    //    printf("DEBUG: should do interrupt here for Timer A.\n");
+  if(!(IPR&(1<<8)) && (IPR&(1<<6))) {
+    printf("DEBUG: Keyboard pending, but not Timer B\n");
   }
-  if(update_timer(1, mfpcycle)) {
-    mfp_do_interrupt(cpu, INT_TIMERB);
-    //    printf("DEBUG: should do interrupt here for Timer B.\n");
-  }
-  if(update_timer(2, mfpcycle)) {
-    mfp_do_interrupt(cpu, INT_TIMERC);
-  }
-  if(update_timer(3, mfpcycle)) {
-    mfp_do_interrupt(cpu, INT_TIMERD);
-    //    printf("DEBUG: should do interrupt here for Timer D.\n");
+
+  for(i=15;i>=0;i--) {
+    if(IPR&(1<<i)) {
+      mfp_do_interrupt(i);
+    }
   }
 
   lastcpucnt = cpu->cycle;
@@ -339,7 +375,7 @@ void mfp_do_timerb_event(struct cpu *cpu)
     timercnt[1] = mfpreg[TBDR];
     if(mfpreg[IERA]&1) {
       //      printf("DEBUG: should do event-interrupt here for Timer B.\n");
-      mfp_do_interrupt(cpu, INT_TIMERB);
+      mfp_set_pending(INT_TIMERB);
     }
   }
 }

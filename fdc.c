@@ -419,7 +419,7 @@ void fdc_do_interrupts(struct cpu *cpu)
     //    abortpending = FDC_PENDTIME;
     abortpending = -1;
     mfp_clr_GPIP(5);
-    mfp_do_interrupt(cpu, 7);
+    mfp_set_pending(7);
   }
 
   lastcpucnt = cpu->cycle;

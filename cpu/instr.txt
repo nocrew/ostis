@@ -11,7 +11,7 @@ andi_to_ccr
 *asl
 *asr
 *bcc
-bchg
+*bchg
 *bclr
 --bkpt
 *bra
@@ -29,7 +29,7 @@ chk
 *divu
 *eor
 *eori
-eori_to_ccr
+*eori_to_ccr
 *eori_to_sr
 *exg
 *ext
@@ -56,7 +56,7 @@ illegal
 *mulu
 nbcd
 *neg
-negx
+*negx
 *nop
 *not
 *or
@@ -68,7 +68,7 @@ negx
 *rol
 *ror
 *roxl
-roxr
+*roxr
 --rtd
 *rte
 rtr

@@ -386,9 +386,12 @@ void cpu_set_watchpoint(char *left, char *right, int cnt, int mode)
 
 int cpu_step_instr(int trace)
 {
+#if 0
   int i;
+#endif
   WORD op;
 
+#if 1
   if(cpu_dec_breakpoint(cpu->pc, trace)) return CPU_BREAKPOINT;
   if(cpu_dec_watchpoint(trace)) return CPU_WATCHPOINT;
 
@@ -396,23 +399,31 @@ int cpu_step_instr(int trace)
   if(cpu->debug) {
     cpu_print_status();
   }
+#endif
 
   cpu->exception_pending = -1;
+#if 0
   for(i=0;i<8;i++) {
     if(interrupt_pending[i]) {
       cpu->exception_pending = -2;
       break;
     }
   }
+#else
+  if(interrupt_pending[2] || interrupt_pending[4])
+    cpu->exception_pending = -2;
+#endif
 
   //  printf("DEBUG: PC == 0x%x\n", cpu->pc);
 
   op = fetch_instr(cpu);
 
+#if 1
   if(instr[op] == default_instr) {
     cpu->pc -= 2;
     return CPU_BREAKPOINT;
   }
+#endif
 
   cpu->cyclecomp = 0;
   cpu->icycle = 0;

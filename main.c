@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 {
   int i;
 
+  mmu_init(); /* Must run before hardware module inits */
   ram_init();
   rom_init();
   cpu_init();
@@ -39,8 +40,6 @@ int main(int argc, char *argv[])
     floppy_init("");
   }
   debug_init();
-
-  mmu_init(); /* Must be run AFTER all mmu_register sessions are done */
 
   while(!debug_event());
   return 0;

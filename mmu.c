@@ -6,13 +6,13 @@
 #include "fdc.h"
 #include "mmu.h"
 
-static struct mmu *memory = NULL;
+static struct mmu *memory[65536];
 
-static struct mmu *find_entry(struct mmu *data)
+static struct mmu *find_entry(struct mmu *data, int block)
 {
   struct mmu *t;
 
-  t = memory;
+  t = memory[block];
 
   while(t) {
     if((t->start == data->start) &&
@@ -27,14 +27,13 @@ static struct mmu *find_entry(struct mmu *data)
 static struct mmu *dispatch(LONG addr)
 {
   struct mmu *t;
+  int off;
 
-#if 0
-  if((opsize != OPSIZE_BYTE) && (addr&1)) {
-    mmu_send_address_error();
-  }
-#endif
-  
-  t = memory;
+  off = (addr&0xffff00)>>8;
+  if(!memory[off]) return NULL;
+  if(!memory[off]->next) return memory[off];
+
+  t = memory[off];
   
   while(t) {
     if((addr >= t->start) &&
@@ -49,19 +48,11 @@ static struct mmu *dispatch(LONG addr)
 
 void mmu_init()
 {
-#if 0
-  mmu_write_long(0x420, 0x752019f3);
-  mmu_write_long(0x43a, 0x237698aa);
-  mmu_write_long(0x51a, 0x5555aaaa);
-  mmu_write_byte(0x424, 10);
-  mmu_write_byte(0xff8001, 10);
-  mmu_write_long(0x436, 0x400000-0x8000);
-  mmu_write_long(0x42e, 0x400000);
- 
-  mmu_write_word(0x446, 0); /* Boot from A */
-  mmu_write_word(0x4a6, 2); /* A and B drives */
-  mmu_write_long(0x4c2, 0x03); /* only A and B */
-#endif
+  int i;
+  
+  for(i=0;i<65536;i++) {
+    memory[i] = NULL;
+  }
 }
 
 void mmu_send_bus_error(LONG addr)
@@ -229,16 +220,22 @@ void mmu_write_long(LONG addr, LONG data)
 
 void mmu_register(struct mmu *data)
 {
+  int i,off;
+
   if(!data) return;
   
-  if(!find_entry(data)) {
-    data->next = memory;
-    memory = data;
+  for(i=0;i<data->size;i++) {
+    off = ((i+data->start)&0xffff00)>>8;
+    if(find_entry(data, off) != data) {
+      data->next = memory[off];
+      memory[off] = data;
+    }
   }
 }
 
 void mmu_print_map()
 {
+#if 0 /* Unable to print after dispatch change */
   struct mmu *t;
 
   t = memory;
@@ -251,6 +248,7 @@ void mmu_print_map()
     printf("\n");
     t = t->next;
   }
+#endif
 }
 
 void mmu_do_interrupts(struct cpu *cpu)

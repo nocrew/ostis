@@ -96,7 +96,7 @@ void rom_init()
   
   f = fopen("tos.img", "rb");
   if(!f) {
-    perror("fopen");
+    perror("open tos.img");
     exit(-1);
   }
   if(fread(memory, 1, ROMSIZE, f) != ROMSIZE) {

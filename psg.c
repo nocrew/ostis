@@ -386,8 +386,10 @@ void psg_do_interrupts(struct cpu *cpu)
     tmpcpu += MAX_CYCLE;
   }
 
+#if PSGOUTPUT
   psg_generate_presamples(tmpcpu/4);
   psg_generate_samples();
+#endif
 
   lastcpucnt = cpu->cycle;
 }

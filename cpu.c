@@ -704,6 +704,7 @@ void cpu_init()
   ror_init((void *)instr, (void *)instr_print);
   rol_init((void *)instr, (void *)instr_print);
   roxl_init((void *)instr, (void *)instr_print);
+  roxr_init((void *)instr, (void *)instr_print);
 
   add_init((void *)instr, (void *)instr_print);
   adda_init((void *)instr, (void *)instr_print);

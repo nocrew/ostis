@@ -179,7 +179,7 @@ static void shifter_gen_picture(long rasterpos)
   int i;
   int left,mid,right;
 
-  if((rasterpos - lastrasterpos) < 30) {
+  if((rasterpos - lastrasterpos) < 300000) {
     //    printf("DEBUG: raster: %ld - %d == %ld\n", rasterpos, lastrasterpos,
     //	   rasterpos - lastrasterpos);
     for(i=lastrasterpos; i<=rasterpos; i++) {
@@ -192,28 +192,21 @@ static void shifter_gen_picture(long rasterpos)
   left = 15-(lastrasterpos%16);
   right = rasterpos%16;
   mid = ((rasterpos-right-left)-((lastrasterpos+16)&0xfffffff0))/16;
-  if(left == 15) {
-    mid += 1;
-  }
 
-  if(left != 15) {
-    for(i=0;i<=(15-left);i++) {
-      shifter_gen_pixel(i+lastrasterpos);
-    }
-    lastrasterpos += i;
+  for(i=0;i<=(15-left);i++) {
+    shifter_gen_pixel(i+lastrasterpos);
   }
+  lastrasterpos += i;
 
   for(i=0;i<mid;i++) {
     shifter_gen_16pxl(i*16+lastrasterpos);
   }
   lastrasterpos += i*16;
 
-  if(right) {
-    for(i=0;i<right;i++) {
-      shifter_gen_pixel(i+lastrasterpos);
-    } 
-    lastrasterpos += i;
-  }
+  for(i=0;i<right;i++) {
+    shifter_gen_pixel(i+lastrasterpos);
+  } 
+  lastrasterpos += i;
 }
 
 void shifter_build_image()
@@ -286,7 +279,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
     return;
   default:
     if((addr >= 0xff8240) &&
-       (addr <= 0xff825e)) {
+       (addr <= 0xff825f)) {
       if(addr&1) {
 	tmp = palette[(addr-0xff8240)>>1];
 	palette[(addr-0xff8240)>>1] = (tmp&0xff00)|data;
@@ -294,7 +287,6 @@ static void shifter_write_byte(LONG addr, BYTE data)
 	tmp = palette[(addr-0xff8240)>>1];
 	palette[(addr-0xff8240)>>1] = (tmp&0xff)|(data<<8);
       }
-      shifter_gen_picture(160256-vsync);
       return;
     } else {
       return;
@@ -304,12 +296,16 @@ static void shifter_write_byte(LONG addr, BYTE data)
 
 static void shifter_write_word(LONG addr, WORD data)
 {
+  if((addr >= 0xff8240) && (addr <= 0xff825f))
+    shifter_gen_picture(160256-vsync);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
 }
 
 static void shifter_write_long(LONG addr, LONG data)
 {
+  if((addr >= 0xff8240) && (addr <= 0xff825f))
+    shifter_gen_picture(160256-vsync);
   shifter_write_byte(addr, (data&0xff000000)>>24);
   shifter_write_byte(addr+1, (data&0xff0000)>>16);
   shifter_write_byte(addr+2, (data&0xff00)>>8);

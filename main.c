@@ -20,7 +20,7 @@
 int main(int argc, char *argv[])
 {
   int i;
-  struct state *state;
+  struct state *state = NULL;
 
   mmu_init(); /* Must run before hardware module inits */
   ram_init();

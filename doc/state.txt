@@ -31,12 +31,12 @@ long	1	Number of states in file.
 
 ...REPEAT <state_count>...
 long	1	"STIN"
-long	1	<STATE_info_size> (Always 20 at the moment)
+long	1	<STATE_info_size> (Always 24 at the moment)
 long	1	<id_number>
 long	1	<version_number>
-long	1	<state_size> (CPU+MMU)
+long	1	<state_size> (CPU+MMU (both data and headers))
 long	2	<timestamp>
-long	1	Delta pack reference <id_number>.
+long	1	Delta pack reference <id_number> (0 means unpacked).
 
 long	1	<CPU module id>
 long	1	<cpu_state_size>

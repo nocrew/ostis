@@ -469,6 +469,26 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     printf("DEBUG: ERROR!!!! cpu->pc == %08x\n", cpu->pc);
   }
     
+
+  hsync -= tmpcpu;
+  if(hsync < 0) {
+    /* hsync_interrupt */
+    shifter_gen_picture(160256-vsync);
+    if((hline >= (TOPBORDER-1)) && (hline < LOWERBORDER))
+      //    if((hline >= (TOPBORDER-1)))
+      mfp_do_timerb_event(cpu);
+    hsync += 512;
+    //    gen_scrptr(160256-vsync);
+    hline++;
+    //    cpu_set_exception(26);
+#if 1
+    if(!noint && (IPL < 2))
+      cpu_set_exception(26);
+#else
+    cpu_set_exception(26);
+#endif
+  }
+  
   vsync -= tmpcpu;
   
   //  shifter_gen_picture(160256-vsync);
@@ -488,28 +508,13 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     //    shifter_build_ppm();
     screen_swap();
     //    cpu_set_exception(28);
-#if 1
+#if 0
     if(!noint && (IPL < 4))
       cpu_set_exception(28);
+#else
+    cpu_set_exception(28);
 #endif
   }
-  hsync -= tmpcpu;
-  if(hsync < 0) {
-    /* hsync_interrupt */
-    shifter_gen_picture(160256-vsync);
-    if((hline >= (TOPBORDER-1)) && (hline < LOWERBORDER))
-      //    if((hline >= (TOPBORDER-1)))
-      mfp_do_timerb_event(cpu);
-    hsync += 512;
-    //    gen_scrptr(160256-vsync);
-    hline++;
-    //    cpu_set_exception(26);
-#if 1
-    if(!noint && (IPL < 2))
-      cpu_set_exception(26);
-#endif
-  }
-  
   lastcpucnt = cpu->cycle;
 }
 
@@ -532,3 +537,4 @@ int shifter_get_vsync()
 {
   return 160256-vsync;
 }
+

@@ -75,4 +75,4 @@ $(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
 clean:
 	make -C cpu clean
 	make -C debug clean
-	rm -f *.o *~ $(YSRC) $(LSRC) expr.tab.h
+	rm -f *.o *~ $(YSRC) $(LSRC) expr.tab.h $(PRG)

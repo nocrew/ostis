@@ -295,12 +295,14 @@ static void shifter_write_byte(LONG addr, BYTE data)
     if((160256-vsynccnt) < (HBLSIZE*VBLPRE)) {
       vblpre = VBLPRE-BORDERTOP;
       vblscr = VBLSCR+BORDERTOP;
-    }
-    if((160256-vsynccnt) > (HBLSIZE*(vblpre+vblscr))) {
+    } else if((160256-vsynccnt) > ((HBLSIZE*(vblpre+vblscr))-100)) {
       if(vblscr != VBLSCR) {
 	vblscr = BORDERTOP;
       }
       vblscr = VBLSCR+BORDERBOTTOM;
+    } else {
+      printf("DEBUG: Changing sync outside of border: %ld\n",
+	     160256-vsynccnt);
     }
     syncreg = data;
     return;
@@ -457,4 +459,3 @@ int shifter_get_vsync()
 {
   return VBLSIZE*HBLSIZE-vsynccnt;
 }
-

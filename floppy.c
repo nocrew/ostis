@@ -83,7 +83,7 @@ int floppy_read_sector(LONG addr, int count)
   pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
   pos += (floppy[0].sel_sec-1)*512;
   pos += floppy[0].sel_side*floppy[0].sectors*512;
-
+#if 0
   printf("--------\n");
   printf("Read sector:\n");
   printf(" - Track:  %d\n", floppy[0].sel_trk);
@@ -91,7 +91,7 @@ int floppy_read_sector(LONG addr, int count)
   printf(" - Sector: %d\n", floppy[0].sel_sec);
   printf(" = Pos:    %d\n", pos);
   printf("--------\n");
-
+#endif
   fseek(floppy[0].fp, pos, SEEK_SET);
   for(i=0;i<count;i++) {
     if(fread(sector, 512, 1, floppy[0].fp) != 1) return FLOPPY_ERROR;
@@ -120,7 +120,7 @@ void floppy_init(char *filename)
   if((bootsector[11]|(bootsector[12]<<8)) != 512) {
     fclose(floppy[0].fp);
     floppy[0].fp = NULL;
-    printf("Sector size != 512 bytes\n");
+    printf("Sector size != 512 bytes (%d)\n", bootsector[11]|(bootsector[12]<<8));
     return;
   }
 
@@ -129,10 +129,11 @@ void floppy_init(char *filename)
   floppy[0].tracks = ((bootsector[19]|(bootsector[20]<<8))/
 		      (floppy[0].sides+1)/floppy[0].sectors);
 
+#if 0
   printf("---FLOPPY LAYOUT---\n");
   printf(" - Tracks:  %d\n", floppy[0].tracks);
   printf(" - Sides:   %d\n", floppy[0].sides+1);
   printf(" - Sectors: %d\n", floppy[0].sectors);
   printf("--------\n");
-
+#endif
 }

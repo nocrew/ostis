@@ -100,7 +100,9 @@ static void fdc_parse_control()
 #endif
   } else if(FDCC_DMASEC) {
     fdc_reg_active = FDC_DMASEC;
+#if 0
     printf("DEBUG: Selecting sector count register\n");
+#endif
   }
   if(FDCC_READ) {
     if(fdc_rwlast == 1) fdc_dmastatus = 0x1;
@@ -120,18 +122,24 @@ static void fdc_do_instr()
   motoron = 1;
   fdc_reg[FDC_STATUS] = 0x40|(motoron<<7); /* Motor on, Writeprotected */
 
+#if 0
   printf("DEBUG: Running command: %08x\n", fdc_reg[FDC_INSTR]);
+#endif
 
   if(FDCI_SEEK0) {
     if(FDCI_UPDTRK) fdc_reg[FDC_TRACK] = 0;
+#if 0
     printf("DEBUG: FDCI_SEEK0\n");
+#endif
     if(floppy_seek(0) == FLOPPY_ERROR) {
       fdc_reg[FDC_STATUS] |= 0x10;
     } else {
       fdc_reg[FDC_STATUS] |= 0x04;
     }
   } else if(FDCI_SEEK) {
+#if 0
     printf("DEBUG: FDCI_SEEK: %d\n", fdc_reg[FDC_DATA]);
+#endif
     if(floppy_seek(fdc_reg[FDC_DATA]) == FLOPPY_ERROR) {
       fdc_reg[FDC_STATUS] |= 0x10;
     } else {
@@ -142,7 +150,9 @@ static void fdc_do_instr()
 	fdc_reg[FDC_STATUS] |= 0x04;
     }
   } else if(FDCI_STEP) {
+#if 0
     printf("DEBUG: FDCI_STEP: %d\n", fdc_stepdir);
+#endif
     if(floppy_seek_rel(fdc_stepdir) == FLOPPY_ERROR) {
       fdc_reg[FDC_STATUS] |= 0x10;
     } else {
@@ -153,7 +163,9 @@ static void fdc_do_instr()
 	fdc_reg[FDC_STATUS] |= 0x04;
     }
   } else if(FDCI_STEPIN) {
+#if 0
     printf("DEBUG: FDCI_STEPIN\n");
+#endif
     if(floppy_seek(FDC_STEP_IN) == FLOPPY_ERROR) {
       fdc_reg[FDC_STATUS] |= 0x10;
     } else {
@@ -163,7 +175,9 @@ static void fdc_do_instr()
 	fdc_reg[FDC_STATUS] |= 0x04;
     }
   } else if(FDCI_STEPOUT) {
+#if 0
     printf("DEBUG: FDCI_STEPIN\n");
+#endif
     if(floppy_seek(FDC_STEP_OUT) == FLOPPY_ERROR) {
       fdc_reg[FDC_STATUS] |= 0x10;
     } else {
@@ -173,8 +187,10 @@ static void fdc_do_instr()
 	fdc_reg[FDC_STATUS] |= 0x04;
     }
   } else if(FDCI_READSEC && !FDCI_MULTSEC) {
+#if 0
     printf("DEBUG: FDCI_READSEC: 0x%x - %d block\n",
 	   fdc_dmaaddr, 1);
+#endif
     fdc_dmastatus = 0x3; /* Sector count != 0, No error */
     if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
       fdc_dmastatus = 0x0; /* Error */
@@ -182,6 +198,7 @@ static void fdc_do_instr()
       fdc_dmastatus = 0x1;
     }
   } else if(FDCI_READSEC && FDCI_MULTSEC) {
+#if 0
     printf("DEBUG: FDCI_READSEC: 0x%x - %d blocks\n",
 	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
     printf("---FDC---\n");
@@ -192,6 +209,7 @@ static void fdc_do_instr()
     printf(" - Seccnt:  %d\n", fdc_reg[FDC_DMASEC]);
     printf(" - Addr:    %08x\n", fdc_dmaaddr);
     printf("---------\n");
+#endif
     fdc_dmastatus = 0x3; /* Sector count != 0, No error */
     if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
       fdc_dmastatus = 0x0; /* Error */
@@ -227,7 +245,9 @@ static BYTE fdc_read_byte(LONG addr)
 #endif
       return fdc_reg[FDC_STATUS];
     } else {
+#if 0
       printf("DEBUG: Returning Register: %02x\n", fdc_reg[FDC_STATUS]);
+#endif
       return fdc_reg[fdc_reg_active];
     }
   case 0xff8606:
@@ -262,7 +282,9 @@ static void fdc_write_byte(LONG addr, BYTE data)
 {
   switch(addr) {
   case 0xff8605:
+#if 0
     printf("Writing register %d with %02x\n", fdc_reg_active, data);
+#endif
     fdc_reg[fdc_reg_active] = data;
     if(fdc_reg_active == FDC_INSTR)
       fdc_do_instr();
@@ -286,15 +308,21 @@ static void fdc_write_byte(LONG addr, BYTE data)
       fdc_parse_control();
     break;
   case 0xff8609:
+#if 0
     printf("Writing DMA with %02x----\n", data);
+#endif
     fdc_dmaaddr = (fdc_dmaaddr&0xffff)|(data<<16);
     break;
   case 0xff860b:
+#if 0
     printf("Writing DMA with --%02x--\n", data);
+#endif
     fdc_dmaaddr = (fdc_dmaaddr&0xff00ff)|(data<<8);
     break;
   case 0xff860d:
+#if 0
     printf("Writing DMA with ----%02x\n", data);
+#endif
     fdc_dmaaddr = (fdc_dmaaddr&0xffff00)|data;
     break;
   }

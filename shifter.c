@@ -64,7 +64,7 @@ static void set_pixel(int rasterpos, int pnum)
   int c;
   int r,g,b;
 
-  //  pnum = 1;
+  //  pnum = 3;
 
   c = palette[pnum];
 
@@ -132,7 +132,7 @@ static void gen_scrptr(int rasterpos)
 
   rasterpos = 160256-rasterpos;
 
-  scan = 1+((rasterpos-256)/512);
+  scan = 2+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
 
   if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
@@ -148,7 +148,7 @@ static void shifter_gen_pixel(int rasterpos)
 {
   int vmemoff,scan,scanpos;
 
-  scan = 1+((rasterpos-256)/512);
+  scan = 2+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
 
   if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
@@ -164,7 +164,7 @@ static void shifter_gen_pixel(int rasterpos)
 static void shifter_gen_16pxl(int rasterpos)
 {
   int vmemoff,scan,scanpos;
-  scan = 1+((rasterpos-256)/512);
+  scan = 2+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
     
   if((scan < TOPBORDER) || (scan >= LOWERBORDER) ||
@@ -181,6 +181,8 @@ static void shifter_gen_picture(long rasterpos)
 {
   int i;
   int left,mid,right;
+
+  if((rasterpos - lastrasterpos) < 0) return;
 
   if((rasterpos - lastrasterpos) < 30) {
     //    printf("DEBUG: raster: %ld - %d == %ld\n", rasterpos, lastrasterpos,
@@ -332,8 +334,9 @@ static void shifter_write_word(LONG addr, WORD data)
 
 static void shifter_write_long(LONG addr, LONG data)
 {
-  if((addr >= 0xff8240) && (addr <= 0xff825f))
+  if((addr >= 0xff8240) && (addr <= 0xff825f)) {
     shifter_gen_picture(160256-vsync);
+  }
   shifter_write_byte(addr, (data&0xff000000)>>24);
   shifter_write_byte(addr+1, (data&0xff0000)>>16);
   shifter_write_byte(addr+2, (data&0xff00)>>8);
@@ -456,12 +459,13 @@ void shifter_do_interrupts(struct cpu *cpu)
   vsync -= tmpcpu;
   if(vsync < 0) {
     /* vsync_interrupt */
+    scrptr = curaddr = scraddr;
     shifter_gen_picture(160256);
     //vsync += MAX_CYCLE/((syncreg&2)?50:60);
     vsync += 160256;
     //    printf("DEBUG: vsync %d == %ld\n", vcnt++, 160256-vsync);
     hline = 0;
-    scrptr = curaddr = scraddr;
+    hsync = 160;
     shifter_build_image();
     lastrasterpos = 0;
     //    shifter_build_ppm();
@@ -472,7 +476,7 @@ void shifter_do_interrupts(struct cpu *cpu)
   hsync -= tmpcpu;
   if(hsync < 0) {
     /* hsync_interrupt */
-    if(hline >= TOPBORDER)
+    if(hline >= (TOPBORDER-1))
       mfp_do_timerb_event(cpu);
     hsync += 512;
     //    gen_scrptr(160256-vsync);

@@ -103,12 +103,16 @@ static void fill_16pxl(int rasterpos, int pnum)
 static int get_pixel(int videooffset, int pxlnum)
 {
   int c;
-  WORD d[4];
+  static int lastpos = 0;
+  static WORD d[4];
 
-  d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
-  d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
-  d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
-  d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+  if((curaddr+videooffset*2) != lastpos) {
+    d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
+    d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
+    d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
+    d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+    lastpos = curaddr+videooffset*2;
+  }
   
   c = ((((d[0]>>(15-pxlnum))&1)<<3)|
        (((d[1]>>(15-pxlnum))&1)<<2)|

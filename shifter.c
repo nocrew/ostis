@@ -28,9 +28,9 @@
 
 
 static long linenum = 0;
-static long linecnt = HBLSIZE-160; /* Cycle count per line, for timer-b event */
+static long linecnt = HBLSIZE+432; /* Cycle count per line, for timer-b event */
 static long vsynccnt = VBLSIZE*HBLSIZE; /* 160256 cycles in one screen */
-static long hsynccnt = HBLSIZE+160; /* Offset for first hbl interrupt */
+static long hsynccnt = HBLSIZE+16; /* Offset for first hbl interrupt */
 static long lastrasterpos = 0;
 static long lastcpucnt;
 
@@ -362,6 +362,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     scrptr = curaddr = scraddr;
     vsynccnt += VBLSIZE*HBLSIZE;
     linenum = 0;
+    hsynccnt += HBLSIZE;
     //    hsynccnt = HBLSIZE+(160);
     //    linecnt = HBLSIZE-(HBLSIZE-HBLPRE-HBLSCR-HBLPOST);
     lastrasterpos = 0; /* Restart image building from position 0 */

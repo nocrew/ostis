@@ -49,6 +49,12 @@ static LONG scrptr;  /* Actual screen pointer, read only from emulator */
 static BYTE syncreg; /* 50/60Hz + Internal/External Sync flags */
 static BYTE resolution; /* Low, medium or high resolution. Only low now. */
 
+static int vblpre = VBLPRE;
+static int vblscr = VBLSCR;
+static int hblpre = HBLPRE;
+static int hblscr = HBLSCR;
+static int scr_bytes_per_line = SCR_BYTES_PER_LINE;
+
 static int ppm_fd;
 static unsigned char *rgbimage;
 
@@ -137,8 +143,8 @@ int shifter_on_display(int rasterpos)
   line = rasterpos/HBLSIZE;
   linepos = rasterpos%HBLSIZE;
   
-  if((line < VBLPRE) || (line >= (VBLPRE+VBLSCR)) ||
-     (linepos < HBLPRE) || (linepos >= (HBLPRE+HBLSCR))) {
+  if((line < vblpre) || (line >= (vblpre+vblscr)) ||
+     (linepos < hblpre) || (linepos >= (hblpre+hblscr))) {
     return 0;
   }
   return 1;
@@ -151,8 +157,8 @@ static long get_videooffset(int rasterpos)
   line = rasterpos/HBLSIZE;
   linepos = rasterpos%HBLSIZE;
 
-  voff = (line-VBLPRE)*SCR_BYTES_PER_LINE/2;
-  voff += ((linepos-HBLPRE)/16)*4; /* Mainly stolen from hatari */
+  voff = (line-vblpre)*scr_bytes_per_line/2;
+  voff += ((linepos-hblpre)/16)*4; /* Mainly stolen from hatari */
 
   return voff;
 }
@@ -165,19 +171,19 @@ static void gen_scrptr(int rasterpos)
   linepos = rasterpos%HBLSIZE;
 
   if(shifter_on_display(rasterpos)) {
-    voff = (line-VBLPRE)*SCR_BYTES_PER_LINE;
-    voff += ((linepos-HBLPRE+15)>>1)&(~1); /* Mainly stolen from hatari */
+    voff = (line-vblpre)*scr_bytes_per_line;
+    voff += ((linepos-hblpre+15)>>1)&(~1); /* Mainly stolen from hatari */
     scrptr = curaddr + voff;
   } else {
-    if(line < VBLPRE) {
+    if(line < vblpre) {
       scrptr = curaddr;
-    } else if(line >= (VBLPRE+VBLSCR)) {
-      scrptr = curaddr + SCR_BYTES_PER_LINE*VBLSCR;
+    } else if(line >= (vblpre+vblscr)) {
+      scrptr = curaddr + scr_bytes_per_line*vblscr;
     } else {
-      if(linepos < HBLPRE) {
-	scrptr = curaddr + (line-VBLPRE)*SCR_BYTES_PER_LINE;
-      } else if(linepos >= (HBLPRE+HBLSCR)) {
-	scrptr = curaddr + (line-VBLPRE+1)*SCR_BYTES_PER_LINE;
+      if(linepos < hblpre) {
+	scrptr = curaddr + (line-vblpre)*scr_bytes_per_line;
+      } else if(linepos >= (hblpre+hblscr)) {
+	scrptr = curaddr + (line-vblpre+1)*scr_bytes_per_line;
       }
     }
   }
@@ -192,7 +198,7 @@ static void shifter_gen_pixel(int rasterpos)
   if(shifter_on_display(rasterpos)) {
     set_pixel(rasterpos,
 	      get_pixel(get_videooffset(rasterpos),
-			(linepos-HBLPRE)&15));
+			(linepos-hblpre)&15));
   } else {
 #if PPMOUTPUT
     set_pixel(rasterpos, 0); /* Background in border */
@@ -286,6 +292,16 @@ static void shifter_write_byte(LONG addr, BYTE data)
     scraddr = (scraddr&0xff0000)|(data<<8);
     return;
   case 0xff820a:
+    if((160256-vsynccnt) < (HBLSIZE*VBLPRE)) {
+      vblpre = VBLPRE-BORDERTOP;
+      vblscr = VBLSCR+BORDERTOP;
+    }
+    if((160256-vsynccnt) > (HBLSIZE*(vblpre+vblscr))) {
+      if(vblscr != VBLSCR) {
+	vblscr = BORDERTOP;
+      }
+      vblscr = VBLSCR+BORDERBOTTOM;
+    }
     syncreg = data;
     return;
   case 0xff8260:
@@ -392,6 +408,8 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   /* VBL Interrupt */
   shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
   if(vsynccnt < 0) {
+    vblpre = VBLPRE;
+    vblscr = VBLSCR;
     shifter_gen_picture(VBLSIZE*HBLSIZE);
     scrptr = curaddr = scraddr;
     vsynccnt += VBLSIZE*HBLSIZE;
@@ -410,6 +428,8 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 
   /* HBL Interrupt */
   if(hsynccnt < 0) {
+    hblpre = HBLPRE;
+    hblscr = HBLSCR;
     shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
     hsynccnt += HBLSIZE;
     if(!noint && (IPL < 2))
@@ -420,7 +440,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   /* Line Interrupt */
   if(linecnt < 0) {
     linecnt += HBLSIZE;
-    if((linenum >= VBLPRE) && (linenum < (VBLPRE+VBLSCR)))
+    if((linenum >= vblpre) && (linenum < (vblpre+vblscr)))
       mfp_do_timerb_event(cpu);
 #if 0
     rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+0] = 0xff;

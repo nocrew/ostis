@@ -7,12 +7,9 @@ include Makefile.include
 YACC=yacc -d
 LEX=lex
 
-YACCFILE=expr.y
-LEXFILE=expr.l
-YSRC=expr.tab.c
-LSRC=lex.expr.c
-YOBJ=expr.tab.o
-LOBJ=lex.expr.o
+PARSER=expr
+PARSERSRC=expr.tab.c lex.expr.c
+PARSEROBJ=expr.tab.o lex.expr.o
 
 SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
     midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c
@@ -36,7 +33,7 @@ TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
 PRG=ostis
 TEST_PRG=ostistest
 
-.c.o:
+%.o:	%.c
 	$(CC) $(CFLAGS) -c $<
 
 all: $(PRG)
@@ -52,22 +49,26 @@ $(LIBTEST):
 $(LIBDEBUG):
 	make -C debug
 
-$(PRG): $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
-	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(LOBJ) $(YOBJ) $(LIB)
+$(PRG): $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
+	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
 
-y.tab.h: $(YSRC)
+$(PARSEROBJ):	$(PARSER)
 
-$(YSRC): $(YACCFILE)
-	$(YACC) $<
+$(PARSER):
+	$(LEX) $@.l
+	$(YACC) -b $@ $@.y
 
-$(LOBJ): $(LSRC) $(YSRC)
-	$(CC) $(CFLAGS) -c $<
+# $(YSRC): $(YACCFILE)
+#	$(YACC) $<
 
-$(YOBJ): $(YSRC)
-	$(CC) $(CFLAGS) -c $<
+# $(LOBJ): $(LSRC) $(YSRC)
+#	$(CC) $(CFLAGS) -c $<
 
-$(LSRC): $(LEXFILE) y.tab.h
-	$(LEX) $<
+# $(YOBJ): $(YSRC)
+# 	$(CC) $(CFLAGS) -c $<
+
+# $(LSRC): $(LEXFILE) expr.tab.h
+#	$(LEX) $<
 
 $(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
 	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJ) $(LOBJ) $(YOBJ) $(TEST_LIB)

@@ -184,6 +184,15 @@ static void cpu_set_flags_divu(struct cpu *cpu, int rm, int r, int v)
   CLRC;
 }
 
+/* DIVS */
+static void cpu_set_flags_divs(struct cpu *cpu, int rm, int r)
+{
+  if(rm) SETN; else CLRN;
+  if(!r) SETZ; else CLRZ;
+  if(((r&0xffff8000) != 0) && ((r&0xffff8000) != 0xffff8000)) SETV; else CLRV;
+  CLRC;
+}
+
 /* CLR */
 static void cpu_set_flags_clr(struct cpu *cpu)
 {

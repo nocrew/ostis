@@ -55,6 +55,22 @@ static void default_instr(struct cpu *cpu, WORD op)
   if(0) default_instr(cpu, op);
 }
 
+static void illegal_instr(struct cpu *cpu, WORD op)
+{
+  cpu_set_exception(4);
+}
+
+static struct cprint *illegal_instr_print(LONG addr, WORD op)
+{
+  struct cprint *ret;
+  
+  ret = cprint_alloc(addr);
+  strcpy(ret->instr, "ILLEGAL");
+  sprintf(ret->data, "$%04x", op);
+
+  return ret;
+}
+
 static struct cprint *default_instr_print(LONG addr, WORD op)
 {
   struct cprint *ret;
@@ -684,6 +700,7 @@ void cpu_init()
   ext_init((void *)instr, (void *)instr_print); /* overlaps movem_init */
 
   nop_init((void *)instr, (void *)instr_print);
+  linea_init((void *)instr, (void *)instr_print);
   linef_init((void *)instr, (void *)instr_print);
 
   not_init((void *)instr, (void *)instr_print);

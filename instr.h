@@ -74,5 +74,6 @@ void cmpm_init(void *[], void *[]);
 void subx_init(void *[], void *[]);
 void eori_to_ccr_init(void *[], void *[]);
 void negx_init(void *[], void *[]);
+void linea_init(void *[], void *[]);
 
 #endif

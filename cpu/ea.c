@@ -60,6 +60,7 @@ static LONG ea_addr_011(struct cpu *cpu, int reg, int size)
   if(rmw) {
     return cpu->a[reg];
   } else {
+    if((size == 1) && (reg == 7)) size = 2; /* SP should get mad, not even */
     cpu->a[reg]+=size;
     return cpu->a[reg]-size;
   }
@@ -70,6 +71,7 @@ static LONG ea_addr_100(struct cpu *cpu, int reg, int size)
   if(rmw) {
     return cpu->a[reg];
   } else {
+    if((size == 1) && (reg == 7)) size = 2; /* SP should get mad, not even */
     cpu->a[reg]-=size;
     return cpu->a[reg];
   }

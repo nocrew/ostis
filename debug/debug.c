@@ -3,12 +3,17 @@
 #include "win.h"
 #include "edit.h"
 #include "display.h"
+#include "shifter.h"
 #include "debug.h"
 #include "cpu.h"
 #include "mfp.h"
 
+#define VIEW_DISPLAY 0
+#define VIEW_DEBUG   1
+
 static int keymode = KEY_NORMAL;
 static int debugmode = 0;
+static int viewmode = VIEW_DEBUG;
 
 void debug_init()
 {
@@ -148,6 +153,12 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       edit_setup();
       keymode = KEY_EDIT;
     }
+    break; 
+  case SDLK_v:
+    if(viewmode == VIEW_DISPLAY)
+      viewmode = VIEW_DEBUG;
+    else
+      viewmode = VIEW_DISPLAY;
     break;
   case SDLK_l:
     if(k.mod & KMOD_SHIFT) {
@@ -183,7 +194,12 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   default:
     break;
   }
-  display_swap_screen();
+  if(viewmode == VIEW_DISPLAY) {
+    shifter_build_image();
+    screen_swap();
+  } else {
+    display_swap_screen();
+  }
   return 0;
 }
 

@@ -178,10 +178,10 @@ static void cpu_set_flags_divu(struct cpu *cpu, int rm, int r, int v)
 /* CLR */
 static void cpu_set_flags_clr(struct cpu *cpu)
 {
-  SETN;
-  SETV;
-  SETC;
-  CLRZ;
+  CLRN;
+  CLRV;
+  CLRC;
+  SETZ;
 }
 
 /* LSR */
@@ -240,6 +240,15 @@ static void cpu_set_flags_subx(struct cpu *cpu, int sm, int dm, int rm, int r)
   if(r) CLRZ;
   if((!sm && dm && !rm) || (sm && !dm && rm)) SETV; else CLRV;
   if((sm && !dm) || (rm && !dm) || (sm && rm)) SETC; else CLRC;
+  cpu_set_flags_general(cpu, MSKN | MSKX, rm, r);
+}
+
+/* NEGX */
+static void cpu_set_flags_negx(struct cpu *cpu, int dm, int rm, int r)
+{
+  if(dm && rm) SETV; else CLRV;
+  if(dm || rm) SETC; else CLRC;
+  if(r) CLRZ;
   cpu_set_flags_general(cpu, MSKN | MSKX, rm, r);
 }
 

@@ -113,7 +113,7 @@ void display_setup()
 
   scr = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
                          400 + BORDER_SIZE * 2,
-                         24, SDL_SWSURFACE|SDL_DOUBLEBUF);
+                         24, SDL_HWSURFACE|SDL_DOUBLEBUF);
 
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
   SDL_EnableUNICODE(1);

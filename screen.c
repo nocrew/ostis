@@ -22,7 +22,9 @@ void screen_init()
   atexit(SDL_Quit);
 #endif
 
-  screen = SDL_SetVideoMode(640, 400, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
+  screen = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
+                         400 + BORDER_SIZE * 2,
+                         24, SDL_HWSURFACE|SDL_DOUBLEBUF);
 }
 
 void screen_copyimage(unsigned char *src)

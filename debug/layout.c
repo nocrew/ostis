@@ -78,14 +78,15 @@ void layout_draw_info(int lnum, int wnum)
     draw_string(8, 9+8*(font+1)*i, font, text);
     lcnt++;
   }
-  sprintf(text, "SR:%04X      %c%c%c%c%c%c%c", cpu->sr,
+  sprintf(text, "SR:%04X      %c%c%c%c%c%c%c I:%d", cpu->sr,
 	  CHKT?'T':' ',
 	  CHKX?'X':' ',
 	  CHKS?'S':' ',
 	  CHKN?'N':' ',
 	  CHKZ?'Z':' ',
 	  CHKV?'V':' ',
-	  CHKC?'C':' ');
+	  CHKC?'C':' ',
+	  cpu->exception_pending);
   draw_string(8, 9+8*(font+1)*lcnt, font, text);
   sprintf(text, "Raster beam: %d", shifter_get_vsync());
   draw_string(400, 9+8*(font+1)*lcnt, font, text);

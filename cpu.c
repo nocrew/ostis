@@ -34,6 +34,7 @@ static struct cpudbg *dbg = NULL;
 static struct cprint_label *clabel = NULL;
 static struct cpubrk *brk = NULL;
 static struct cpuwatch *watch = NULL;
+static int interrupt_pending[8];
 
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
@@ -106,10 +107,11 @@ static void cpu_debug_check(LONG addr)
 static void cpu_do_exception(int vnum)
 {
   WORD oldsr;
+  int i;
   oldsr = cpu->sr;
   cpu_set_sr((cpu->sr|0x2000)&(~0x8000)); /* set supervisor, clear trace */
   fflush(stdout);
-  
+
   if(vnum == 2) {
     if(cpu->debug) {
       printf("DEBUG: Entering Bus Error\n");
@@ -126,6 +128,30 @@ static void cpu_do_exception(int vnum)
     mmu_write_word(cpu->a[7], oldsr);
     cpu->pc = mmu_read_long(4*vnum);
     cpu_do_cycle(34, 0);
+  } else if(vnum == -2) {
+    for(i=7;i>=0;i--) {
+      if(interrupt_pending[i]) break;
+    }
+    if((i >= 0) && (IPL < i)) {
+      interrupt_pending[i] = 0;
+      cpu->a[7] -= 4;
+      mmu_write_long(cpu->a[7], cpu->pc);
+      cpu->a[7] -= 2;
+      mmu_write_word(cpu->a[7], oldsr);
+      cpu->pc = mmu_read_long(4*(i+24));
+      cpu_do_cycle(48, 0);
+      cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
+    } else {
+      printf("Missed interrupt: %d, IPL == %d\n", i, IPL);
+    }
+  } else if(vnum >= 64) {
+    cpu_set_sr((cpu->sr&0xf0ff)|0x600);
+    cpu->a[7] -= 4;
+    mmu_write_long(cpu->a[7], cpu->pc);
+    cpu->a[7] -= 2;
+    mmu_write_word(cpu->a[7], oldsr);
+    cpu->pc = mmu_read_long(4*vnum);
+    cpu_do_cycle(24, 0); /* From Hatari */
   } else {
     //    if(vnum > 25) return;
     cpu->a[7] -= 4;
@@ -359,6 +385,7 @@ void cpu_set_watchpoint(char *left, char *right, int cnt, int mode)
 
 int cpu_step_instr(int trace)
 {
+  int i;
   WORD op;
 
   if(cpu_dec_breakpoint(cpu->pc, trace)) return CPU_BREAKPOINT;
@@ -368,7 +395,14 @@ int cpu_step_instr(int trace)
   if(cpu->debug) {
     cpu_print_status();
   }
+
   cpu->exception_pending = -1;
+  for(i=0;i<8;i++) {
+    if(interrupt_pending[i]) {
+      cpu->exception_pending = -2;
+      break;
+    }
+  }
 
   //  printf("DEBUG: PC == 0x%x\n", cpu->pc);
 
@@ -443,7 +477,12 @@ void cpu_do_cycle(LONG cnt, int noint)
 
 void cpu_set_exception(int vnum)
 {
-  cpu->exception_pending = vnum;
+  if((vnum >= 25) && (vnum <= 31)) {
+    interrupt_pending[vnum-24] = 1;
+    cpu->exception_pending = -2;
+  } else {
+    cpu->exception_pending = vnum;
+  }
 }
 
 void cpu_set_sr(WORD sr)
@@ -607,10 +646,15 @@ void cpu_init()
   cpu->ssp = cpu->a[7] = mmu_read_long(0);
   cpu->debug = 0;
   cpu->a[5] = 0xdeadbeef;
+  cpu->exception_pending = -1;
 
   for(i=0;i<65536;i++) {
     instr[i] = default_instr;
     instr_print[i] = default_instr_print;
+  }
+
+  for(i=0;i<8;i++) {
+    interrupt_pending[i] = 0;
   }
 
   reset_init((void *)instr, (void *)instr_print);

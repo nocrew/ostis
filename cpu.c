@@ -690,6 +690,7 @@ void cpu_init()
   bclr_init((void *)instr, (void *)instr_print);
   bset_init((void *)instr, (void *)instr_print);
   btst_init((void *)instr, (void *)instr_print);
+  bchg_init((void *)instr, (void *)instr_print);
 
   scc_init((void *)instr, (void *)instr_print);
   dbcc_init((void *)instr, (void *)instr_print);

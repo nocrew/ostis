@@ -76,5 +76,6 @@ void eori_to_ccr_init(void *[], void *[]);
 void negx_init(void *[], void *[]);
 void linea_init(void *[], void *[]);
 void roxr_init(void *[], void *[]);
+void bchg_init(void *[], void *[]);
 
 #endif

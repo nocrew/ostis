@@ -1,5 +1,6 @@
 CC=gcc
 AR=ar
+RANLIB=ranlib
 include ../Makefile.include
 #CFLAGS=-O3 -I.. -Wall -Werror -Wno-unused-function
 #LDFLAGS=-O3
@@ -19,6 +20,7 @@ all: $(LIBDEBUG)
 
 $(LIBDEBUG): $(OBJ)
 	$(AR) cru $@ $(OBJ)
+	$(RANLIB) $@
 
 clean:
 	rm -f *.o *~

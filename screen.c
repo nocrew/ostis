@@ -4,6 +4,7 @@
 #include <SDL/SDL.h>
 
 #include "screen.h"
+#include "shifter.h"
 #include "debug/display.h"
 
 static int disable = 0;
@@ -71,8 +72,13 @@ void screen_clear()
     if((((i/512)&1) && (i&1)) ||
        (!((i/512)&1) && !(i&1)))
       p[i*3+0] = p[i*3+1] = p[i*3+2] = 0;
-    else
-      p[i*3+0] = p[i*3+1] = p[i*3+2] = 0xff;
+    else {
+      if(shifter_on_display(i)) {
+	p[i*3+0] = p[i*3+1] = p[i*3+2] = 0xf0;
+      } else {
+	p[i*3+0] = p[i*3+1] = p[i*3+2] = 0xff;
+      }
+    }
   }
 }
 

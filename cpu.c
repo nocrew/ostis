@@ -46,7 +46,7 @@ static void default_instr(struct cpu *cpu, WORD op)
   printf("DEBUG: unknown opcode 0x%04x at 0x%08x\n", op, cpu->pc-2);
   cpu_print_status();
   mfp_print_status();
-  shifter_print_status();
+  //  shifter_print_status();
   if(!screen_check_disable()) {
     ENDLOOP;
   }

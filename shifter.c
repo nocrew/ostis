@@ -497,8 +497,8 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(hsync < 0) {
     /* hsync_interrupt */
     shifter_gen_picture(160256-vsync);
-    //    if((hline >= (TOPBORDER-1)) && (hline < LOWERBORDER))
-    if((hline >= (TOPBORDER-1)))
+    if((hline >= (TOPBORDER-1)) && (hline < LOWERBORDER))
+      //    if((hline >= (TOPBORDER-1)))
       mfp_do_timerb_event(cpu);
     hsync += 512;
     //    gen_scrptr(160256-vsync);

@@ -496,6 +496,7 @@ void cpu_do_cycle(LONG cnt, int noint)
     cnt = (cnt&0xfffffffc)+4;
   }
   cpu->cycle += cnt;
+  if(cpu->no_exceptions) return;
   shifter_do_interrupts(cpu, noint);
   if(noint) return;
 
@@ -674,6 +675,7 @@ void cpu_init()
   cpu->debug = 0;
   cpu->a[5] = 0xdeadbeef;
   cpu->exception_pending = -1;
+  cpu->no_exceptions = 0;
   cpu->stopped = 0;
 
   for(i=0;i<65536;i++) {

@@ -5,6 +5,7 @@
 #include "mfp.h"
 #include "floppy.h"
 #include "mmu.h"
+#include "state.h"
 
 #define FDCSIZE 16
 #define FDCBASE 0xff8600
@@ -387,6 +388,16 @@ static void fdc_write_long(LONG addr, LONG data)
   fdc_write_word(addr+2, data&0xffff);
 }
 
+static int fdc_state_collect(struct mmu_state *state)
+{
+  state->size = 0;
+  return STATE_VALID;
+}
+
+static void fdc_state_restore(struct mmu_state *state)
+{
+}
+
 void fdc_do_interrupts(struct cpu *cpu)
 {
   long tmpcpu;
@@ -435,6 +446,7 @@ void fdc_init()
   }
   fdc->start = FDCBASE;
   fdc->size = FDCSIZE;
+  strcpy(fdc->id, "FDC0");
   fdc->name = strdup("FDC");
   fdc->read_byte = fdc_read_byte;
   fdc->read_word = fdc_read_word;
@@ -442,9 +454,10 @@ void fdc_init()
   fdc->write_byte = fdc_write_byte;
   fdc->write_word = fdc_write_word;
   fdc->write_long = fdc_write_long;
+  fdc->state_collect = fdc_state_collect;
+  fdc->state_restore = fdc_state_restore;
 
   fdc_reg[FDC_STATUS] = 0xc0;
 
   mmu_register(fdc);
 }
-

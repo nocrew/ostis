@@ -3,6 +3,7 @@
 #include <string.h>
 #include "common.h"
 #include "mmu.h"
+#include "state.h"
 
 #define CARTRIDGESIZE 131072
 #define CARTRIDGEBASE 0xfa0000
@@ -30,6 +31,16 @@ static LONG cartridge_read_long(LONG addr)
        (cartridge_read_byte(addr+1)<<16)|
        (cartridge_read_byte(addr+2)<<8)|
        (cartridge_read_byte(addr+3)));
+}
+
+static int cartridge_state_collect(struct mmu_state *state)
+{
+  state->size = 0;
+  return STATE_VALID;
+}
+
+static void cartridge_state_restore(struct mmu_state *state)
+{
 }
 
 void cartridge_init()
@@ -60,6 +71,7 @@ void cartridge_init()
 
   cartridge->start = CARTRIDGEBASE;
   cartridge->size = CARTRIDGESIZE;
+  strcpy(cartridge->id, "CART");
   cartridge->name = strdup("Cartridge");
   cartridge->read_byte = cartridge_read_byte;
   cartridge->read_word = cartridge_read_word;
@@ -67,6 +79,8 @@ void cartridge_init()
   cartridge->write_byte = NULL;
   cartridge->write_word = NULL;
   cartridge->write_long = NULL;
+  cartridge->state_collect = cartridge_state_collect;
+  cartridge->state_restore = cartridge_state_restore;
 
   mmu_register(cartridge);
 }

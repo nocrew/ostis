@@ -4,6 +4,7 @@
 #include "event.h"
 #include "mmu.h"
 #include "mfp.h"
+#include "state.h"
 
 #define IKBDSIZE 4
 #define IKBDBASE 0xfffc00
@@ -115,6 +116,56 @@ static void ikbd_write_long(LONG addr, LONG data)
   ikbd_write_byte(addr+3, (data&0xff));
 }
 
+static int ikbd_state_collect(struct mmu_state *state)
+{
+  int r;
+
+  /* Size:
+   * 
+   * ikbd_fifocnt  == 4
+   * ikbd_intcnt   == 4
+   * lastcpucnt    == 4
+   * ikbd_fifosize == 4
+   * ikbd_fifo     == 1*fifosize
+   * ikbd_control  == 1
+   * ikbd_status   == 1
+   * ikbd_writereg == 1
+   */
+
+  state->size = 19+IKBDFIFO;
+  state->data = (char *)malloc(state->size);
+  if(state->data == NULL)
+    return STATE_INVALID;
+  state_write_mem_long(&state->data[0], ikbd_fifocnt);
+  state_write_mem_long(&state->data[4], ikbd_intcnt);
+  state_write_mem_long(&state->data[8], lastcpucnt);
+  state_write_mem_long(&state->data[12], IKBDFIFO);
+  for(r=0;r<IKBDFIFO;r++) {
+    state_write_mem_byte(&state->data[16+r], ikbd_fifo[r]);
+  }
+  state_write_mem_byte(&state->data[16+IKBDFIFO], ikbd_control);
+  state_write_mem_byte(&state->data[16+IKBDFIFO+1], ikbd_status);
+  state_write_mem_byte(&state->data[16+IKBDFIFO+2], ikbd_writereg);
+  return STATE_VALID;
+}
+
+static void ikbd_state_restore(struct mmu_state *state)
+{
+  int r;
+  int fifosize;
+
+  ikbd_fifocnt = state_read_mem_long(&state->data[0]);
+  ikbd_intcnt = state_read_mem_long(&state->data[4]);
+  lastcpucnt = state_read_mem_long(&state->data[8]);
+  fifosize = state_read_mem_long(&state->data[12]);
+  for(r=0;r<fifosize;r++) {
+    ikbd_fifo[r] = state_read_mem_byte(&state->data[16+r]);
+  }
+  ikbd_control = state_read_mem_byte(&state->data[16+IKBDFIFO]);
+  ikbd_status = state_read_mem_byte(&state->data[16+IKBDFIFO+1]);
+  ikbd_writereg = state_read_mem_byte(&state->data[16+IKBDFIFO+2]);
+}
+
 void ikbd_queue_key(int key, int state)
 {
   if(state == EVENT_PRESS) {
@@ -134,6 +185,7 @@ void ikbd_init()
   }
   ikbd->start = IKBDBASE;
   ikbd->size = IKBDSIZE;
+  strcpy(ikbd->id, "IKBD");
   ikbd->name = strdup("IKBD");
   ikbd->read_byte = ikbd_read_byte;
   ikbd->read_word = ikbd_read_word;
@@ -141,6 +193,8 @@ void ikbd_init()
   ikbd->write_byte = ikbd_write_byte;
   ikbd->write_word = ikbd_write_word;
   ikbd->write_long = ikbd_write_long;
+  ikbd->state_collect = ikbd_state_collect;
+  ikbd->state_restore = ikbd_state_restore;
 
   mmu_register(ikbd);
 }

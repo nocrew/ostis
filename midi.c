@@ -2,6 +2,7 @@
 #include <string.h>
 #include "common.h"
 #include "mmu.h"
+#include "state.h"
 
 #define MIDISIZE 4
 #define MIDIBASE 0xfffc04
@@ -61,6 +62,16 @@ static void midi_write_long(LONG addr, LONG data)
   midi_write_byte(addr+3, (data&0xff));
 }
 
+static int midi_state_collect(struct mmu_state *state)
+{
+  state->size = 0;
+  return STATE_VALID;
+}
+
+static void midi_state_restore(struct mmu_state *state)
+{
+}
+
 void midi_init()
 {
   struct mmu *midi;
@@ -72,12 +83,15 @@ void midi_init()
   midi->start = MIDIBASE;
   midi->size = MIDISIZE;
   midi->name = strdup("MIDI");
+  strcpy(midi->id, "MIDI");
   midi->read_byte = midi_read_byte;
   midi->read_word = midi_read_word;
   midi->read_long = midi_read_long;
   midi->write_byte = midi_write_byte;
   midi->write_word = midi_write_word;
   midi->write_long = midi_write_long;
+  midi->state_collect = midi_state_collect;
+  midi->state_restore = midi_state_restore;
 
   mmu_register(midi);
 }

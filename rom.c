@@ -3,6 +3,7 @@
 #include <string.h>
 #include "common.h"
 #include "mmu.h"
+#include "state.h"
 
 #define NEWTOS 0
 
@@ -46,6 +47,32 @@ static LONG rom_read_long(LONG addr)
        (rom_read_byte(addr+3)));
 }
 
+static int rom_state_collect(struct mmu_state *state)
+{
+  if(!strcmp("ROM0", state->id)) {
+    state->size = ROMSIZE;
+    state->data = (char *)malloc(state->size);
+    if(state->data == NULL)
+      return STATE_INVALID;
+    memcpy(state->data, memory, state->size);
+  } else {
+    state->size = ROMSIZE2;
+    state->data = (char *)malloc(state->size);
+    if(state->data == NULL)
+      return STATE_INVALID;
+    memcpy(state->data, memory2, state->size);
+  }
+  return STATE_VALID;
+}
+
+static void rom_state_restore(struct mmu_state *state)
+{
+  if(!strcmp("ROM0", state->id))
+    memcpy(memory, state->data, state->size);
+  else
+    memcpy(memory2, state->data, state->size);
+}
+
 void rom_init()
 {
   struct mmu *rom,*rom2;
@@ -74,6 +101,7 @@ void rom_init()
   
   rom->start = ROMBASE;
   rom->size = ROMSIZE;
+  strcpy(rom->id, "ROM0");
   rom->name = strdup("ROM");
   rom->read_byte = rom_read_byte;
   rom->read_word = rom_read_word;
@@ -81,6 +109,8 @@ void rom_init()
   rom->write_byte = NULL;
   rom->write_word = NULL;
   rom->write_long = NULL;
+  rom->state_collect = rom_state_collect;
+  rom->state_restore = rom_state_restore;
 
 #if 0
   memory[0xfc0d60-ROMBASE] = 0x4e;
@@ -118,6 +148,7 @@ void rom_init()
 
   rom2->start = ROMBASE2; /* First 8 bytes of memory is ROM */
   rom2->size = ROMSIZE2;
+  strcpy(rom2->id, "ROM1");
   rom2->name = strdup("First 8 bytes of memory");
   rom2->read_byte = rom_read_byte;
   rom2->read_word = rom_read_word;
@@ -125,6 +156,8 @@ void rom_init()
   rom2->write_byte = NULL;
   rom2->write_word = NULL;
   rom2->write_long = NULL;
+  rom2->state_collect = rom_state_collect;
+  rom2->state_restore = rom_state_restore;
 
   mmu_register(rom2);
 }

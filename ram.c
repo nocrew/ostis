@@ -3,6 +3,7 @@
 #include <string.h>
 #include "common.h"
 #include "mmu.h"
+#include "state.h"
 
 #define RAMSIZE (4*1048576)-8
 #define RAMBASE 8
@@ -56,6 +57,22 @@ static void ram_write_long(LONG addr, LONG data)
   ram_write_byte(addr+3, (data&0xff));
 }
 
+static int ram_state_collect(struct mmu_state *state)
+{
+  state->size = RAM_PHYSMAX+1-RAMBASE;
+  state->data = (char *)malloc(state->size);
+  if(state->data == NULL)
+    return STATE_INVALID;
+  memcpy(state->data, memory, state->size);
+
+  return STATE_VALID;
+}
+
+static void ram_state_restore(struct mmu_state *state)
+{
+  memcpy(memory, state->data, state->size);
+}
+
 void ram_clear(void)
 {
   memset( memory, 0, sizeof(BYTE) * RAMSIZE );
@@ -97,6 +114,8 @@ void ram_init()
   ram->write_byte = ram_write_byte;
   ram->write_word = ram_write_word;
   ram->write_long = ram_write_long;
+  ram->state_collect = ram_state_collect;
+  ram->state_restore = ram_state_restore;
 
 #if 0
   ram_write_long(0x420, 0x752019f3);

@@ -4,6 +4,7 @@
 #include "common.h"
 #include "mmu.h"
 #include "mfp.h"
+#include "state.h"
 
 #define MFPSIZE 48
 #define MFPBASE 0xfffa00
@@ -151,6 +152,54 @@ static void mfp_write_long(LONG addr, LONG data)
   mfp_write_byte(addr+3, (data&0xff));
 }
 
+static int mfp_state_collect(struct mmu_state *state)
+{
+  int r;
+
+  /* Size:
+   * 
+   * mfpreg[24]  == 24
+   * precnt[4]   == 4*4
+   * lastcpucnt  == 4
+   * timercnt[4] == 4
+   * ------------------
+   * sum:           48
+   */
+
+  state->size = 48;
+  state->data = (char *)malloc(state->size);
+  if(state->data == NULL) {
+    return STATE_INVALID;
+  }
+  for(r=0;r<24;r++) {
+    state_write_mem_byte(&state->data[r], mfpreg[r]);
+  }
+  for(r=0;r<4;r++) {
+    state_write_mem_long(&state->data[24+r*4], precnt[r]);
+  }
+  state_write_mem_long(&state->data[24+4*4], lastcpucnt);
+  for(r=0;r<4;r++) {
+    state_write_mem_byte(&state->data[24+4*4+4+r], timercnt[r]);
+  }
+  return STATE_VALID;
+}
+
+static void mfp_state_restore(struct mmu_state *state)
+{
+  int r;
+  
+  for(r=0;r<24;r++) {
+    mfpreg[r] = state_read_mem_byte(&state->data[r]);
+  }
+  for(r=0;r<4;r++) {
+    precnt[r] = state_read_mem_long(&state->data[24+r*4]);
+  }
+  lastcpucnt = state_read_mem_long(&state->data[24+4*4]);
+  for(r=0;r<4;r++) {
+    timercnt[r] = state_read_mem_byte(&state->data[24+4*4+4+r]);
+  }
+}
+
 void mfp_init()
 {
   struct mmu *mfp;
@@ -162,6 +211,7 @@ void mfp_init()
 
   mfp->start = MFPBASE;
   mfp->size = MFPSIZE;
+  strcpy(mfp->id, "MFP0");
   mfp->name = strdup("MFP");
   mfp->read_byte = mfp_read_byte;
   mfp->read_word = mfp_read_word;
@@ -169,6 +219,8 @@ void mfp_init()
   mfp->write_byte = mfp_write_byte;
   mfp->write_word = mfp_write_word;
   mfp->write_long = mfp_write_long;
+  mfp->state_collect = mfp_state_collect;
+  mfp->state_restore = mfp_state_restore;
 
   mmu_register(mfp);
 }

@@ -9,6 +9,7 @@
 #include "shifter.h"
 #include "mmu.h"
 #include "instr.h"
+#include "state.h"
 
 struct cpu *cpu;
 
@@ -41,13 +42,86 @@ static instr_t *instr[65536];
 typedef struct cprint *instr_print_t(LONG, WORD);
 static instr_print_t *instr_print[65536];
 
+#define STATE_AREG    (0)
+#define STATE_DREG    (STATE_AREG+4*8)
+#define STATE_USP     (STATE_DREG+4*8)
+#define STATE_SSP     (STATE_USP+4)
+#define STATE_PC      (STATE_SSP+4)
+#define STATE_SR      (STATE_PC+4)
+#define STATE_CYCLE   (STATE_SR+2)
+#define STATE_STOPPED (STATE_CYCLE+4)
+#define STATE_INTPEND (STATE_STOPPED+4)
+#define STATE_END     (STATE_INTPEND+4*8)
+
 struct cpu_state *cpu_state_collect()
 {
-  return NULL;
+  struct cpu_state *new;
+  int r;
+
+  new = (struct cpu_state *)malloc(sizeof(struct cpu_state));
+  if(new == NULL) return NULL;
+
+  strcpy(new->id, "CPU0");
+  /* 
+   * CPU state size:
+   *
+   * a[8]     == 4*8
+   * d[8]     == 4*8
+   * usp      == 4
+   * ssp      == 4
+   * pc       == 4
+   * sr       == 2
+   * cycle    == 4 (possibly 8)
+   * stopped  == 4
+   * int[8]   == 4*8 (pending interrupts)
+   * ----------------
+   * sum         
+   * 
+   */
+  new->size = STATE_END;
+  new->data = (char *)malloc(new->size);
+  if(new->data == NULL) {
+    free(new);
+    return NULL;
+  }
+  for(r=0;r<8;r++) {
+    state_write_mem_long(&new->data[STATE_AREG+r*4], cpu->a[r]);
+  }
+  for(r=0;r<8;r++) {
+    state_write_mem_long(&new->data[STATE_DREG+r*4], cpu->d[r]);
+  }
+  state_write_mem_long(&new->data[STATE_USP], cpu->usp);
+  state_write_mem_long(&new->data[STATE_SSP], cpu->ssp);
+  state_write_mem_long(&new->data[STATE_PC], cpu->pc);
+  state_write_mem_word(&new->data[STATE_SR], cpu->sr);
+  state_write_mem_long(&new->data[STATE_CYCLE], cpu->cycle);
+  state_write_mem_long(&new->data[STATE_STOPPED], cpu->stopped);
+  for(r=0;r<8;r++) {
+    state_write_mem_long(&new->data[STATE_INTPEND+r*4], interrupt_pending[r]);
+  }
+
+  return new;
 }
 
 void cpu_state_restore(struct cpu_state *state)
 {
+  int r;
+  
+  for(r=0;r<8;r++) {
+    cpu->a[r] = state_read_mem_long(&state->data[STATE_AREG+r*4]);
+  }
+  for(r=0;r<8;r++) {
+    cpu->d[r] = state_read_mem_long(&state->data[STATE_DREG+r*4]);
+  }
+  cpu->usp = state_read_mem_long(&state->data[STATE_USP]);
+  cpu->ssp = state_read_mem_long(&state->data[STATE_SSP]);
+  cpu->pc = state_read_mem_long(&state->data[STATE_PC]);
+  cpu->sr = state_read_mem_word(&state->data[STATE_SR]);
+  cpu->cycle = state_read_mem_long(&state->data[STATE_CYCLE]);
+  cpu->stopped = state_read_mem_long(&state->data[STATE_STOPPED]);
+  for(r=0;r<8;r++) {
+    interrupt_pending[r] = state_read_mem_long(&state->data[STATE_INTPEND+r*4]);
+  }
 }
 
 static void default_instr(struct cpu *cpu, WORD op)

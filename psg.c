@@ -6,6 +6,7 @@
 #include "common.h"
 #include "floppy.h"
 #include "mmu.h"
+#include "state.h"
 
 #define PSGOUTPUT 0
 
@@ -203,6 +204,16 @@ static void psg_write_long(LONG addr, LONG data)
   psg_write_byte(addr+3, (data&0xff));
 }
 
+static int psg_state_collect(struct mmu_state *state)
+{
+  state->size = 0;
+  return STATE_VALID;
+}
+
+static void psg_state_restore(struct mmu_state *state)
+{
+}
+
 void psg_init()
 {
   int i;
@@ -214,6 +225,7 @@ void psg_init()
   }
   psg->start = PSGBASE;
   psg->size = PSGSIZE;
+  strcpy(psg->id, "PSG0");
   psg->name = strdup("PSG");
   psg->read_byte = psg_read_byte;
   psg->read_word = psg_read_word;
@@ -221,6 +233,8 @@ void psg_init()
   psg->write_byte = psg_write_byte;
   psg->write_word = psg_write_word;
   psg->write_long = psg_write_long;
+  psg->state_collect = psg_state_collect;
+  psg->state_restore = psg_state_restore;
 
   mmu_register(psg);
 

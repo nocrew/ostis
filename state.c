@@ -6,21 +6,66 @@
 #include "cpu.h"
 #include "state.h"
 
+static long lastid = 0;
+
+void state_write_mem_byte(char *ptr, BYTE data)
+{
+  ptr[0] = data;
+}
+
+void state_write_mem_word(char *ptr, WORD data)
+{
+  ptr[0] = data>>8;
+  ptr[1] = data;
+}
+
+void state_write_mem_long(char *ptr, LONG data)
+{
+  ptr[0] = data>>24;
+  ptr[1] = data>>16;
+  ptr[2] = data>>8;
+  ptr[3] = data;
+}
+
+BYTE state_read_mem_byte(char *ptr)
+{
+  return ptr[0];
+}
+
+WORD state_read_mem_word(char *ptr)
+{
+  return (ptr[0]<<8)|ptr[1];
+}
+
+LONG state_read_mem_long(char *ptr)
+{
+  return (ptr[0]<<24)|(ptr[1]<<16)|(ptr[2]<<8)|ptr[3];
+}
+
+static void state_write_file_long(FILE *f, long data)
+{
+  fprintf(f, "%c", (unsigned char)(data>>24));
+  fprintf(f, "%c", (unsigned char)(data>>16));
+  fprintf(f, "%c", (unsigned char)(data>>8));
+  fprintf(f, "%c", (unsigned char)(data));
+}
+
 static void state_write_section_header(FILE *f, char *id, unsigned long size)
 {
   fwrite(id, 4, 1, f);
 
   /* size is always saved in big endian */
-  fprintf(f, "%c", (unsigned char)(size>>24));
-  fprintf(f, "%c", (unsigned char)(size>>16));
-  fprintf(f, "%c", (unsigned char)(size>>8));
-  fprintf(f, "%c", (unsigned char)(size));
+  state_write_file_long(f, size);
 }
 
 static void state_write_section(FILE *f, char *id, long size, char *data)
 {
+  char dummy[4] = {0, 0, 0, 0};
+
   state_write_section_header(f, id, size);
   fwrite(data, size, 1, f);
+  if(size%4) /* Align to 32bit */
+    fwrite(dummy, 4-(size%4), 1, f); 
 }
 
 static void state_clear_mmu(struct mmu_state *state)
@@ -49,8 +94,7 @@ struct state *state_collect()
   new = (struct state *)malloc(sizeof(struct state));
 
   if(new == NULL) return NULL;
-
-  strcpy(new->id, "STAT");
+  
   new->cpu_state = cpu_state_collect();
   if(new->cpu_state == NULL) {
     free(new);
@@ -63,7 +107,10 @@ struct state *state_collect()
     return NULL;
   }
 
+  lastid++;
   new->size = new->cpu_state->size + state_get_mmu_size(new->mmu_state);
+  new->id = lastid;
+  new->version = STATE_VERSION;
 
   return new;
 }
@@ -89,7 +136,9 @@ void state_save(char *filename, struct state *state)
   FILE *f;
 
   f = fopen(filename, "wct");
-  state_write_section_header(f, state->id, state->size);
+  state_write_section_header(f, "STAT", state->size);
+  state_write_section(f, "STID", 4, (unsigned char *)&state->id);
+  state_write_section(f, "STVE", 4, (unsigned char *)&state->version);
 
   state_write_section(f, state->cpu_state->id, 
 		      state->cpu_state->size,
@@ -100,14 +149,31 @@ void state_save(char *filename, struct state *state)
     state_write_section(f, t->id, t->size, t->data);
     t = t->next;
   }
+  fclose(f);
 }
 
 struct state *state_load(char *filename)
 {
   struct state *new;
-
+  
   new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
-
+  
   return NULL;
 }
+
+int state_valid_id(char *id)
+{
+  if(!strcmp("STAT", id) ||  /* File header */
+     !strcmp("STID", id) ||  /* State ID (32bit big endian value) */
+     !strcmp("STVE", id) ||  /* State Version (32bit big endian value) */
+     !strcmp("STTS", id) ||  /* State TS (64bit big endian cycle count) */
+     !strcmp("STDL", id) ||  /* State Delta Reference ID
+				(32bit big endian value) */
+     !strcmp("CPU0", id)) {  /* CPU State */
+    return STATE_INVALID;
+  }
+
+  return STATE_VALID;
+}
+

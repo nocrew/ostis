@@ -5,9 +5,12 @@
 #include "scancode.h"
 #include "ikbd.h"
 #include "cpu.h"
+#include "state.h"
 
 static int tstart;
 static int tend;
+
+static struct state *laststate;
 
 static int event_key(SDL_KeyboardEvent key, int state)
 {
@@ -30,6 +33,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
 #if DEBUG
       return EVENT_DEBUG;
 #else
+      state_save("ostis.state", state_collect());
       SDL_Quit();
       exit(0);
 #endif
@@ -43,6 +47,16 @@ static int event_key(SDL_KeyboardEvent key, int state)
     } else {
       shifter_framecnt(-1);
       tstart = SDL_GetTicks();
+    }
+  } else if(k.sym == SDLK_F13) {
+    if(state == EVENT_RELEASE) {
+      printf("DEBUG: Collecting state\n");
+      laststate = state_collect();
+    }
+  } else if(k.sym == SDLK_F14) {
+    if(state == EVENT_RELEASE) {
+      printf("DEBUG: Restoring state\n");
+      state_restore(laststate);
     }
   } else if(k.sym == SDLK_LALT) {
     ikbd_queue_key(SCAN_ALT, state);

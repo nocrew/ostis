@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "common.h"
 #include "cpu.h"
 #include "mfp.h"
@@ -7,6 +8,7 @@
 #include "psg.h"
 #include "fdc.h"
 #include "mmu.h"
+#include "state.h"
 
 static struct mmu *memory[65536];
 static struct mmu_module *modules = NULL;
@@ -20,6 +22,21 @@ static struct mmu_module *find_module(struct mmu *data)
   while(t) {
     if((t->module->start == data->start) &&
        (t->module->size == data->size))
+      return t;
+    t = t->next;
+  }
+
+  return NULL;
+}
+
+static struct mmu_module *find_module_by_id(char *id)
+{
+  struct mmu_module *t;
+
+  t = modules;
+
+  while(t) {
+    if(!strncmp(id, t->module->id, 4))
       return t;
     t = t->next;
   }
@@ -245,12 +262,46 @@ void mmu_write_long(LONG addr, LONG data)
 
 struct mmu_state *mmu_state_collect()
 {
-  return NULL;
+  struct mmu_module *t;
+  struct mmu_state *new,*top;
+
+  top = NULL;
+
+  t = modules;
+
+  while(t) {
+    if(t->module->state_collect != NULL) {
+      new = (struct mmu_state *)malloc(sizeof(struct mmu_state));
+      if(new != NULL) {
+	strncpy(new->id, t->module->id, 4);
+	if(t->module->state_collect(new) == STATE_VALID) {
+	  new->next = top;
+	  top = new;
+	} else {
+	  free(new);
+	}
+      }
+    }
+    t = t->next;
+  }
+  
+  return top;
 }
 
 void mmu_state_restore(struct mmu_state *state)
 {
+  struct mmu_module *module;
+  struct mmu_state *t;
+
+  t = state;
   
+  while(t) {
+    module = find_module_by_id(t->id);
+    if(module != NULL) {
+      module->module->state_restore(t);
+    }
+    t = t->next;
+  }
 }
 
 void mmu_register(struct mmu *data)

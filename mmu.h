@@ -4,6 +4,13 @@
 #include "common.h"
 #include "cpu.h"
 
+struct mmu_state {
+  struct mmu_state *next;
+  char id[4];
+  long size;
+  char *data;
+};
+
 struct mmu {
   struct mmu *next;
   char id[4];
@@ -16,18 +23,13 @@ struct mmu {
   void (*write_byte)(LONG, BYTE);
   void (*write_word)(LONG, WORD);
   void (*write_long)(LONG, LONG);
+  int (*state_collect)(struct mmu_state *);
+  void (*state_restore)(struct mmu_state *);
 };
 
 struct mmu_module {
   struct mmu_module *next;
   struct mmu *module;
-};
-
-struct mmu_state {
-  struct mmu_state *next;
-  char id[4];
-  long size;
-  char *data;
 };
 
 struct mmu_state *mmu_state_collect();

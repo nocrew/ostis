@@ -7,6 +7,7 @@
 #include "mfp.h"
 #include "screen.h"
 #include "mmu.h"
+#include "state.h"
 
 #define PPMOUTPUT 0
 
@@ -348,6 +349,70 @@ static void shifter_write_long(LONG addr, LONG data)
   shifter_write_byte(addr+3, (data&0xff));
 }
 
+static int shifter_state_collect(struct mmu_state *state)
+{
+  int r;
+
+  /* Size:
+   * 
+   * stpal[16]   == 16*2
+   * curaddr     == 4
+   * scraddr     == 4
+   * scrptr      == 4
+   * linenum     == 4
+   * linecnt     == 4
+   * vsynccnt    == 4
+   * hsynccnt    == 4
+   * lastrasterpos == 4
+   * lastcpucnt  == 4
+   * resolution  == 1
+   * syncreg     == 1
+   */
+
+  state->size = 70;
+  state->data = (char *)malloc(state->size);
+  if(state->data == NULL) {
+    return STATE_INVALID;
+  }
+  for(r=0;r<16;r++) {
+    state_write_mem_word(&state->data[r*2], stpal[r]);
+  }
+  state_write_mem_long(&state->data[16*2], curaddr);
+  state_write_mem_long(&state->data[16*2+4*1], scraddr);
+  state_write_mem_long(&state->data[16*2+4*2], scrptr);
+  state_write_mem_long(&state->data[16*2+4*3], linenum);
+  state_write_mem_long(&state->data[16*2+4*4], linecnt);
+  state_write_mem_long(&state->data[16*2+4*5], vsynccnt);
+  state_write_mem_long(&state->data[16*2+4*6], hsynccnt);
+  state_write_mem_long(&state->data[16*2+4*7], lastrasterpos);
+  state_write_mem_long(&state->data[16*2+4*8], lastcpucnt);
+  state_write_mem_byte(&state->data[16*2+4*9], resolution);
+  state_write_mem_byte(&state->data[16*2+4*9+1], syncreg);
+  
+  return STATE_VALID;
+}
+
+static void shifter_state_restore(struct mmu_state *state)
+{
+  int r;
+  for(r=0;r<16;r++) {
+    stpal[r] = state_read_mem_word(&state->data[r*2]);
+    set_palette(r, stpal[r]>>8, 1);
+    set_palette(r, stpal[r], 2);
+  }
+  curaddr = state_read_mem_long(&state->data[16*2]);
+  scraddr = state_read_mem_long(&state->data[16*2+4*1]);
+  scrptr = state_read_mem_long(&state->data[16*2+4*2]);
+  linenum = state_read_mem_long(&state->data[16*2+4*3]);
+  linecnt = state_read_mem_long(&state->data[16*2+4*4]);
+  vsynccnt = state_read_mem_long(&state->data[16*2+4*5]);
+  hsynccnt = state_read_mem_long(&state->data[16*2+4*6]);
+  lastrasterpos = state_read_mem_long(&state->data[16*2+4*7]);
+  lastcpucnt = state_read_mem_long(&state->data[16*2+4*8]);
+  resolution = state_read_mem_byte(&state->data[16*2+4*9]);
+  syncreg = state_read_mem_byte(&state->data[16*2+4*9+1]);
+}
+
 void shifter_build_ppm()
 {
   int x,y,c;
@@ -381,6 +446,7 @@ void shifter_init()
   
   shifter->start = SHIFTERBASE;
   shifter->size = SHIFTERSIZE;
+  strcpy(shifter->id, "SHFT");
   shifter->name = strdup("Shifter");
   shifter->read_byte = shifter_read_byte;
   shifter->read_word = shifter_read_word;
@@ -388,6 +454,8 @@ void shifter_init()
   shifter->write_byte = shifter_write_byte;
   shifter->write_word = shifter_write_word;
   shifter->write_long = shifter_write_long;
+  shifter->state_collect = shifter_state_collect;
+  shifter->state_restore = shifter_state_restore;
 
   mmu_register(shifter);
 

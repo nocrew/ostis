@@ -2,6 +2,7 @@
 #include <string.h>
 #include "common.h"
 #include "mmu.h"
+#include "state.h"
 
 #define RTCSIZE 0x40
 #define RTCBASE 0xfffc20
@@ -42,6 +43,16 @@ static void rtc_write_long(LONG addr, LONG data)
   rtc_write_byte(addr+3, (data&0xff));
 }
 
+static int rtc_state_collect(struct mmu_state *state)
+{
+  state->size = 0;
+  return STATE_VALID;
+}
+
+static void rtc_state_restore(struct mmu_state *state)
+{
+}
+
 void rtc_init()
 {
   struct mmu *rtc;
@@ -52,6 +63,7 @@ void rtc_init()
   }
   rtc->start = RTCBASE;
   rtc->size = RTCSIZE;
+  strcpy(rtc->id, "RTC0");
   rtc->name = strdup("RTC");
   rtc->read_byte = rtc_read_byte;
   rtc->read_word = rtc_read_word;
@@ -59,6 +71,8 @@ void rtc_init()
   rtc->write_byte = rtc_write_byte;
   rtc->write_word = rtc_write_word;
   rtc->write_long = rtc_write_long;
+  rtc->state_collect = rtc_state_collect;
+  rtc->state_restore = rtc_state_restore;
 
   mmu_register(rtc);
 }

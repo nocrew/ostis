@@ -46,9 +46,11 @@ int floppy_seek(int track)
   floppy[0].sel_trk = track;
   if(track < 0)
     floppy[0].sel_trk = 0;
-#if 0
-  if(track >= floppy[0].tracks)
+#if 1
+  if(track >= floppy[0].tracks) {
     floppy[0].sel_trk = floppy[0].tracks-1;
+  }
+  if(track > floppy[0].tracks) return FLOPPY_ERROR;
 #else
   if(track > 86) floppy[0].sel_trk = 86;
 #endif

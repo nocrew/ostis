@@ -81,5 +81,6 @@ void abcd_init(void *[], void *[]);
 void stop_init(void *[], void *[]);
 void sbcd_init(void *[], void *[]);
 void tas_init(void *[], void *[]);
+void andi_to_ccr_init(void *[], void *[]);
 
 #endif

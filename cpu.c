@@ -113,6 +113,8 @@ static void cpu_do_exception(int vnum)
 
   cpu->stopped = 0;
 
+  //  printf("DEBUG: Do exception: %d (PC == %08x)\n", vnum, cpu->pc);
+
   if(vnum == 2) {
     if(cpu->debug) {
       printf("DEBUG: Entering Bus Error\n");
@@ -134,6 +136,7 @@ static void cpu_do_exception(int vnum)
       if(interrupt_pending[i]) break;
     }
     if((i >= 0) && (IPL < i)) {
+      //      printf("DEBUG: Do exception: %d (PC == %08x)\n", vnum, cpu->pc);
       interrupt_pending[i] = 0;
       cpu->a[7] -= 4;
       mmu_write_long(cpu->a[7], cpu->pc);
@@ -401,6 +404,14 @@ int cpu_step_instr(int trace)
     cpu->exception_pending = -2;
 #endif
 
+#if 0
+  if(cpu->pc == 0xf26) {
+    printf("DEBUG: [a1] == %08x\n", mmu_read_long(cpu->a[1]));
+  }
+  if(cpu->pc == 0xf28) {
+    printf("DEBUG: [a1] == %08x\n", mmu_read_long(cpu->a[1]-4));
+  }
+#endif
 
   if(!cpu->stopped) {
     op = fetch_instr(cpu);
@@ -418,7 +429,7 @@ int cpu_step_instr(int trace)
     
     instr[op](cpu, op);
   } else {
-    instr[0x4e71](cpu, 0x4e71);
+    instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
   }
   cpu_do_cycle(cpu->icycle, 0);
 
@@ -737,6 +748,7 @@ void cpu_init()
   exg_init((void *)instr, (void *)instr_print); /* overlaps and_init */
   andi_init((void *)instr, (void *)instr_print);
   andi_to_sr_init((void *)instr, (void *)instr_print); /* overlaps andi_init */
+  andi_to_ccr_init((void *)instr, (void *)instr_print);
   
   or_init((void *)instr, (void *)instr_print);
   ori_init((void *)instr, (void *)instr_print);

@@ -2,29 +2,30 @@
   #include <stdlib.h>
   #include <string.h>
   #include "common.h"
-  void yyerror(char *);
-  #include "y.tab.h"
+  void exprerror(char *);
+  #include "expr.tab.h"
   
   static char *inputstr;
   static int inputpos = 0;
 
-  #define YY_INPUT(buf, result, max_size) \
+  #define EXPR_INPUT(buf, result, max_size) \
   { \
     if(inputpos > strlen(inputstr)) { \
-      result = YY_NULL; \
+      result = EXPR_NULL; \
     } else { \
       buf[0] = inputstr[inputpos++]; \
       result = 1; \
     } \
   }
 %}
+%option prefix="expr"
 %%
 [aA][0-7] {
-  yylval.val = yytext[1]-'0';
+  exprlval.val = exprtext[1]-'0';
   return AREG;
 }
 [dD][0-7] {
-  yylval.val = yytext[1]-'0';
+  exprlval.val = exprtext[1]-'0';
   return DREG;
 }
 \.w {
@@ -46,19 +47,19 @@
   return USP;
 }
 [mM][0-9] {
-  yylval.val = yytext[1]-'0';
+  exprlval.val = exprtext[1]-'0';
   return WIN;
 }
 \$[0-9a-fA-F]+ {
-  yylval.val = strtol(&yytext[1], NULL, 16);
+  exprlval.val = strtol(&exprtext[1], NULL, 16);
   return VAL;
 }
 [0-9a-fA-F]+ {
-  yylval.val = strtol(yytext, NULL, 16);
+  exprlval.val = strtol(exprtext, NULL, 16);
   return VAL;
 }
 \\[0-9]+ {
-  yylval.val = strtol(&yytext[1], NULL, 10);
+  exprlval.val = strtol(&exprtext[1], NULL, 10);
   return VAL;
 }
 = { return EQ; }
@@ -76,14 +77,14 @@
 ~ { return BNOT; }
 ! { return LNOT; }
 [a-zA-Z][a-zA-Z0-9_]+ {
-  yylval.str = strdup(yytext);
+  exprlval.str = strdup(exprtext);
   return LABEL;
 }
 [()\[\]+\-*/\n] {
-  return *yytext;
+  return *exprtext;
 }
 %%
-int yywrap(void)
+int exprwrap(void)
 {
   return 1;
 }

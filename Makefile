@@ -9,10 +9,10 @@ LEX=lex
 
 YACCFILE=expr.y
 LEXFILE=expr.l
-YSRC=y.tab.c
-LSRC=lex.yy.c
-YOBJ=y.tab.o
-LOBJ=lex.yy.o
+YSRC=expr.tab.c
+LSRC=lex.expr.c
+YOBJ=expr.tab.o
+LOBJ=lex.expr.o
 
 SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
     midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c
@@ -75,4 +75,4 @@ $(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
 clean:
 	make -C cpu clean
 	make -C debug clean
-	rm -f *.o *~ $(YSRC) $(LSRC) y.tab.h
+	rm -f *.o *~ $(YSRC) $(LSRC) expr.tab.h

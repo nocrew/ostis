@@ -2,6 +2,8 @@
 %token <val> AREG DREG VAL WIN
 %token EQ NE LT LE GT GE BAND LAND BOR LOR BXOR BNOT LNOT
 %type <val> expr
+%file-prefix="expr"
+%name-prefix="expr"
 %left '-' '+'
 %left '*' '/'
 %{
@@ -13,13 +15,13 @@
 #include "expr.h"
 #include "debug/debug.h"
 #include "mmu.h"
-  int yydebug = 1;
-  void yyerror(char *);
-  int yylex(void);
+  int exprdebug = 1;
+  void exprerror(char *);
+  int exprlex(void);
   static LONG addr;
   static long parseerror;
 
-  int yyparse();
+  int exprparse();
 %}
 %union {
   char *str;
@@ -46,7 +48,7 @@ expr:	VAL { $$ = $1; }
 	| LABEL { if(cprint_label_exists($1)) {
                     $$ = cprint_label_addr($1);
 		  } else {
-		    yyerror("foobar");
+		    exprerror("foobar");
 		  }
 	          free($1);
 		}
@@ -73,7 +75,7 @@ expr:	VAL { $$ = $1; }
 	| LNOT expr { $$ = ! $2; }
 	;
 %% 
-void yyerror(char *s)
+void exprerror(char *s)
 {
   parseerror = EXPR_FAILURE;
 }
@@ -87,7 +89,7 @@ int expr_parse(LONG *ret, char *str)
   strcpy(tmp, str);
   strcat(tmp, "\n");
   expr_set_inputstr(tmp);
-  yyparse();
+  exprparse();
   free(tmp);
 
   if(parseerror == EXPR_FAILURE) return EXPR_FAILURE;

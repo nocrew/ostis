@@ -138,7 +138,7 @@ void bcc(struct cpu *cpu, WORD op)
     }
     return;
   case 14: /* BGT */
-    if((CHKN && CHKV && CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
+    if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
       ADD_CYCLE(10);
       cpu->pc += o;
     } else {

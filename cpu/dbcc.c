@@ -94,7 +94,7 @@ void dbcc(struct cpu *cpu, WORD op)
     }
     break;
   case 14: /* DBGT */
-    if((CHKN && CHKV && CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
+    if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
       ADD_CYCLE(12);
       return;
     }

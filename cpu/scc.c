@@ -108,7 +108,7 @@ void scc(struct cpu *cpu, WORD op)
     }
     break;
   case 14: /* SGT */
-    if((CHKN && CHKV && CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
+    if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
       ADD_CYCLE(2);
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;

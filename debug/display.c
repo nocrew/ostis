@@ -67,10 +67,10 @@ static void build_font()
   gmask = 0x0000ff00;
   bmask = 0x000000ff;
 #else
-  amask = 0x000000ff;
-  rmask = 0x0000ff00;
-  gmask = 0x00ff0000;
-  bmask = 0x00000000;
+  amask = 0x00000000;
+  rmask = 0x000000ff;
+  gmask = 0x0000ff00;
+  bmask = 0x00ff0000;
 #endif
 
 

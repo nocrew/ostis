@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "common.h"
 #include "cpu.h"
 #include "mfp.h"
 #include "screen.h"
 #include "mmu.h"
+
+#define PPMOUTPUT 0
 
 #define SHIFTERSIZE 256
 #define SHIFTERBASE 0xff8200
@@ -45,6 +49,7 @@ static LONG scrptr;  /* Actual screen pointer, read only from emulator */
 static BYTE syncreg; /* 50/60Hz + Internal/External Sync flags */
 static BYTE resolution; /* Low, medium or high resolution. Only low now. */
 
+static int ppm_fd;
 static unsigned char *rgbimage;
 
 static void set_palette(int pnum, int value, int part)
@@ -189,7 +194,11 @@ static void shifter_gen_pixel(int rasterpos)
 	      get_pixel(get_videooffset(rasterpos),
 			(linepos-HBLPRE)&15));
   } else {
+#if PPMOUTPUT
+    set_pixel(rasterpos, 0); /* Background in border */
+#else
     set_pixel(rasterpos, 16); /* Background in border */
+#endif
   }
 }
 
@@ -320,6 +329,28 @@ static void shifter_write_long(LONG addr, LONG data)
   shifter_write_byte(addr+3, (data&0xff));
 }
 
+void shifter_build_ppm()
+{
+  int x,y,c;
+  char header[80];
+  unsigned char frame[384*288*3];
+
+  c = 0;
+
+  for(y=0;y<288;y++) {
+    for(x=0;x<384;x++) {
+      frame[c*3+0] = rgbimage[((y+12)*512+x+32)*3+0];
+      frame[c*3+1] = rgbimage[((y+12)*512+x+32)*3+1];
+      frame[c*3+2] = rgbimage[((y+12)*512+x+32)*3+2];
+      c++;
+    }
+  }
+
+  sprintf(header, "P6\n%d %d\n255\n", 384, 288);
+  write(ppm_fd, header, strlen(header));
+  write(ppm_fd, frame, 384*288*3);
+}
+
 void shifter_init()
 {
   struct mmu *shifter;
@@ -342,6 +373,9 @@ void shifter_init()
   mmu_register(shifter);
 
   rgbimage = screen_pixels();
+#if PPMOUTPUT
+  ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+#endif
 }
 
 void shifter_do_interrupts(struct cpu *cpu, int noint)
@@ -366,6 +400,9 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     //    hsynccnt = HBLSIZE+(160);
     //    linecnt = HBLSIZE-(HBLSIZE-HBLPRE-HBLSCR-HBLPOST);
     lastrasterpos = 0; /* Restart image building from position 0 */
+#if PPMOUTPUT
+    shifter_build_ppm();
+#endif
     screen_swap();
     //    if(!noint && (IPL < 4))
       cpu_set_exception(28); /* Set VBL interrupt as pending */

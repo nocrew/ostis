@@ -52,10 +52,12 @@ void cmpa_init(void *instr[], void *print[])
   
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0xb0c0|(r<<9)|i] = cmpa;
-      instr[0xb1c0|(r<<9)|i] = cmpa;
-      print[0xb0c0|(r<<9)|i] = cmpa_print;
-      print[0xb1c0|(r<<9)|i] = cmpa_print;
+      if(ea_valid(i, EA_INVALID_NONE)) {
+	instr[0xb0c0|(r<<9)|i] = cmpa;
+	instr[0xb1c0|(r<<9)|i] = cmpa;
+	print[0xb0c0|(r<<9)|i] = cmpa_print;
+	print[0xb1c0|(r<<9)|i] = cmpa_print;
+      }
     }
   }
 }

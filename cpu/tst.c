@@ -73,7 +73,9 @@ void tst_init(void *instr[], void *print[])
   int i;
   
   for(i=0;i<0xc0;i++) {
-    instr[0x4a00|i] = tst;
-    print[0x4a00|i] = tst_print;
+    if(ea_valid(i, EA_INVALID_I|EA_INVALID_A)) {
+      instr[0x4a00|i] = tst;
+      print[0x4a00|i] = tst_print;
+    }
   }
 }

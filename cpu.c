@@ -354,6 +354,8 @@ int cpu_step_instr(int trace)
   }
   cpu->exception_pending = -1;
 
+  //  printf("DEBUG: PC == 0x%x\n", cpu->pc);
+
   op = fetch_instr(cpu);
 
   if(instr[op] == default_instr) {
@@ -603,6 +605,7 @@ void cpu_init()
   suba_init((void *)instr, (void *)instr_print);
   subq_init((void *)instr, (void *)instr_print);
   subi_init((void *)instr, (void *)instr_print);
+  subx_init((void *)instr, (void *)instr_print);
 
   lea_init((void *)instr, (void *)instr_print);
   pea_init((void *)instr, (void *)instr_print);
@@ -632,6 +635,7 @@ void cpu_init()
   adda_init((void *)instr, (void *)instr_print);
   addq_init((void *)instr, (void *)instr_print);
   addi_init((void *)instr, (void *)instr_print);
+  addx_init((void *)instr, (void *)instr_print);
 
   move_init((void *)instr, (void *)instr_print);
   movea_init((void *)instr, (void *)instr_print); /* overlaps move_init */
@@ -661,6 +665,7 @@ void cpu_init()
   eori_to_sr_init((void *)instr, (void *)instr_print); /* overlaps eori_init */
 
   cmp_init((void *)instr, (void *)instr_print); /* overlaps eor_init */
+  cmpm_init((void *)instr, (void *)instr_print);
 
   trap_init((void *)instr, (void *)instr_print);
 

@@ -225,4 +225,22 @@ static void cpu_set_flags_asl(struct cpu *cpu, int rm, int r, int cnt,
   }
 }
 
+/* ADDX */
+static void cpu_set_flags_addx(struct cpu *cpu, int sm, int dm, int rm, int r)
+{
+  if(r) CLRZ;
+  if((sm && dm && !rm) || (!sm && !dm && rm)) SETV; else CLRV;
+  if((sm && dm) || (!rm && dm) || (sm && !rm)) SETC; else CLRC;
+  cpu_set_flags_general(cpu, MSKN | MSKX, rm, r);
+}
+
+/* SUBX */
+static void cpu_set_flags_subx(struct cpu *cpu, int sm, int dm, int rm, int r)
+{
+  if(r) CLRZ;
+  if((!sm && dm && !rm) || (sm && !dm && rm)) SETV; else CLRV;
+  if((sm && !dm) || (rm && !dm) || (sm && rm)) SETC; else CLRC;
+  cpu_set_flags_general(cpu, MSKN | MSKX, rm, r);
+}
+
 #endif

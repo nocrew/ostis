@@ -127,18 +127,24 @@ void sub_init(void *instr[], void *print[])
 
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x9000|(r<<9)|i] = sub;
-      instr[0x9100|(r<<9)|i] = sub;
-      instr[0x9040|(r<<9)|i] = sub;
-      instr[0x9140|(r<<9)|i] = sub;
-      instr[0x9080|(r<<9)|i] = sub;
-      instr[0x9180|(r<<9)|i] = sub;
-      print[0x9000|(r<<9)|i] = sub_print;
-      print[0x9100|(r<<9)|i] = sub_print;
-      print[0x9040|(r<<9)|i] = sub_print;
-      print[0x9140|(r<<9)|i] = sub_print;
-      print[0x9080|(r<<9)|i] = sub_print;
-      print[0x9180|(r<<9)|i] = sub_print;
+      if(ea_valid(i, EA_INVALID_A)) {
+	instr[0x9000|(r<<9)|i] = sub;
+	print[0x9000|(r<<9)|i] = sub_print;
+      }
+      if(ea_valid(i, EA_INVALID_NONE)) {
+	instr[0x9040|(r<<9)|i] = sub;
+	instr[0x9080|(r<<9)|i] = sub;
+	print[0x9040|(r<<9)|i] = sub_print;
+	print[0x9080|(r<<9)|i] = sub_print;
+      }
+      if(ea_valid(i, EA_INVALID_MEM)) {
+	instr[0x9100|(r<<9)|i] = sub;
+	instr[0x9140|(r<<9)|i] = sub;
+	instr[0x9180|(r<<9)|i] = sub;
+	print[0x9100|(r<<9)|i] = sub_print;
+	print[0x9140|(r<<9)|i] = sub_print;
+	print[0x9180|(r<<9)|i] = sub_print;
+      }
     }
   }
 }

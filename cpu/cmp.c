@@ -90,12 +90,16 @@ void cmp_init(void *instr[], void *print[])
   
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0xb000|(r<<9)|i] = cmp;
-      instr[0xb040|(r<<9)|i] = cmp;
-      instr[0xb080|(r<<9)|i] = cmp;
-      print[0xb000|(r<<9)|i] = cmp_print;
-      print[0xb040|(r<<9)|i] = cmp_print;
-      print[0xb080|(r<<9)|i] = cmp_print;
+      if(ea_valid(i, EA_INVALID_A)) {
+	instr[0xb000|(r<<9)|i] = cmp;
+	print[0xb000|(r<<9)|i] = cmp_print;
+      }
+      if(ea_valid(i, EA_INVALID_NONE)) {
+	instr[0xb040|(r<<9)|i] = cmp;
+	instr[0xb080|(r<<9)|i] = cmp;
+	print[0xb040|(r<<9)|i] = cmp_print;
+	print[0xb080|(r<<9)|i] = cmp_print;
+      }
     }
   }
 }

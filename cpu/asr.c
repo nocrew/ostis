@@ -163,7 +163,9 @@ void asr_init(void *instr[], void *print[])
     }
   }
   for(i=0;i<0x40;i++) {
-    instr[0xe0c0|i] = asr;
-    print[0xe0c0|i] = asr_print;
+    if(ea_valid(i, EA_INVALID_MEM)) {
+      instr[0xe0c0|i] = asr;
+      print[0xe0c0|i] = asr_print;
+    }
   }
 }

@@ -645,3 +645,33 @@ void ea_print(struct cprint *cprint, int mode, int size)
     return;
   }
 }
+
+int ea_valid(int mode, int mask)
+{
+  int m,r;
+
+  m = (mode&0x38)>>3;
+  r = mode&7;
+
+  if((m == 1) && (mask&EA_INVALID_A)) {
+    return 0;
+  } else if((m == 0) && (mask&EA_INVALID_D)) {
+    return 0;
+  } else if((m == 3) && (mask&EA_INVALID_INC)) {
+    return 0;
+  } else if((m == 4) && (mask&EA_INVALID_DEC)) {
+    return 0;
+  } else if(m != 7) {
+    return 1;
+  } else if(m == 7) {
+    if((r == 4) && (mask&EA_INVALID_I)) {
+      return 0;
+    } else if(((r == 2) || (r == 3)) && (mask&EA_INVALID_PC)) {
+      return 0;
+    } else if(r < 5) {
+      return 1;
+    }
+  }
+
+  return 0;
+}

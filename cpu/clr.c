@@ -64,12 +64,14 @@ void clr_init(void *instr[], void *print[])
   int i;
   
   for(i=0;i<0x40;i++) {
-    instr[0x4200|i] = clr;
-    instr[0x4240|i] = clr;
-    instr[0x4280|i] = clr;
-    print[0x4200|i] = clr_print;
-    print[0x4240|i] = clr_print;
-    print[0x4280|i] = clr_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      instr[0x4200|i] = clr;
+      instr[0x4240|i] = clr;
+      instr[0x4280|i] = clr;
+      print[0x4200|i] = clr_print;
+      print[0x4240|i] = clr_print;
+      print[0x4280|i] = clr_print;
+    }
   }
 }
 

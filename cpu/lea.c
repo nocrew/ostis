@@ -32,8 +32,10 @@ void lea_init(void *instr[], void *print[])
 
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x41c0|(r<<9)|i] = lea;
-      print[0x41c0|(r<<9)|i] = lea_print;
+      if(ea_valid(i, EA_INVALID_EA)) {
+	instr[0x41c0|(r<<9)|i] = lea;
+	print[0x41c0|(r<<9)|i] = lea_print;
+      }
     }
   }
 }

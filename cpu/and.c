@@ -115,18 +115,22 @@ void and_init(void *instr[], void *print[])
 
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0xc000|(r<<9)|i] = and;
-      instr[0xc040|(r<<9)|i] = and;
-      instr[0xc080|(r<<9)|i] = and;
-      instr[0xc100|(r<<9)|i] = and;
-      instr[0xc140|(r<<9)|i] = and;
-      instr[0xc180|(r<<9)|i] = and;
-      print[0xc000|(r<<9)|i] = and_print;
-      print[0xc040|(r<<9)|i] = and_print;
-      print[0xc080|(r<<9)|i] = and_print;
-      print[0xc100|(r<<9)|i] = and_print;
-      print[0xc140|(r<<9)|i] = and_print;
-      print[0xc180|(r<<9)|i] = and_print;
+      if(ea_valid(i, EA_INVALID_A)) {
+	instr[0xc000|(r<<9)|i] = and;
+	instr[0xc040|(r<<9)|i] = and;
+	instr[0xc080|(r<<9)|i] = and;
+	print[0xc000|(r<<9)|i] = and_print;
+	print[0xc040|(r<<9)|i] = and_print;
+	print[0xc080|(r<<9)|i] = and_print;
+      }
+      if(ea_valid(i, EA_INVALID_MEM)) {
+	instr[0xc100|(r<<9)|i] = and;
+	instr[0xc140|(r<<9)|i] = and;
+	instr[0xc180|(r<<9)|i] = and;
+	print[0xc100|(r<<9)|i] = and_print;
+	print[0xc140|(r<<9)|i] = and_print;
+	print[0xc180|(r<<9)|i] = and_print;
+      }
     }
   }
 }

@@ -69,5 +69,8 @@ void neg_init(void *[], void *[]);
 void subi_init(void *[], void *[]);
 void move_to_ccr_init(void *[], void *[]);
 void ori_to_ccr_init(void *[], void *[]);
+void addx_init(void *[], void *[]);
+void cmpm_init(void *[], void *[]);
+void subx_init(void *[], void *[]);
 
 #endif

@@ -94,11 +94,13 @@ void bclr_init(void *instr[], void *print[])
 {
   int i,r;
   for(i=0;i<0x40;i++) {
-    for(r=0;r<8;r++) {
-      instr[0x0180|(r<<9)|i] = bclr;
-      print[0x0180|(r<<9)|i] = bclr_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      for(r=0;r<8;r++) {
+	instr[0x0180|(r<<9)|i] = bclr;
+	print[0x0180|(r<<9)|i] = bclr_print;
+      }
+      instr[0x0880|i] = bclr;
+      print[0x0880|i] = bclr_print;
     }
-    instr[0x0880|i] = bclr;
-    print[0x0880|i] = bclr_print;
   }
 }

@@ -51,10 +51,12 @@ void adda_init(void *instr[], void *print[])
     
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0xd0c0|(r<<9)|i] = adda;
-      instr[0xd1c0|(r<<9)|i] = adda;
-      print[0xd0c0|(r<<9)|i] = adda_print;
-      print[0xd1c0|(r<<9)|i] = adda_print;
+      if(ea_valid(i, EA_INVALID_NONE)) {
+	instr[0xd0c0|(r<<9)|i] = adda;
+	instr[0xd1c0|(r<<9)|i] = adda;
+	print[0xd0c0|(r<<9)|i] = adda_print;
+	print[0xd1c0|(r<<9)|i] = adda_print;
+      }
     }
   }
 }

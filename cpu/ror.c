@@ -148,7 +148,9 @@ void ror_init(void *instr[], void *print[])
     }
   }
   for(i=0;i<0x40;i++) {
-    instr[0xe6c0|i] = ror;
-    print[0xe6c0|i] = ror_print;
+    if(ea_valid(i, EA_INVALID_MEM)) {
+      instr[0xe6c0|i] = ror;
+      print[0xe6c0|i] = ror_print;
+    }
   }
 }

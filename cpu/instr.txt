@@ -3,7 +3,7 @@ abcd
 *adda
 *addi
 *addq
-addx
+*addx
 *and
 *andi
 andi_to_ccr
@@ -23,7 +23,7 @@ chk
 *cmp
 *cmpa
 *cmpi
-cmpm
+*cmpm
 *dbcc
 *divs
 *divu
@@ -43,7 +43,7 @@ illegal
 *move
 *movea
 --move_from_ccr
-move_to_ccr
+*move_to_ccr
 *move_from_sr
 *move_to_sr
 *move_usp
@@ -61,7 +61,7 @@ negx
 *not
 *or
 *ori
-ori_to_ccr
+*ori_to_ccr
 *ori_to_sr
 *pea
 *reset
@@ -80,7 +80,7 @@ stop
 *suba
 *subi
 *subq
-subx
+*subx
 *swap
 tas
 *trap

@@ -55,14 +55,12 @@ void movea_init(void *instr[], void *print[])
   int i,r;
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x2040|(r<<9)|i] = movea;
-      instr[0x3040|(r<<9)|i] = movea;
-      print[0x2040|(r<<9)|i] = movea_print;
-      print[0x3040|(r<<9)|i] = movea_print;
+      if(ea_valid(i, EA_INVALID_NONE)) {
+	instr[0x2040|(r<<9)|i] = movea;
+	instr[0x3040|(r<<9)|i] = movea;
+	print[0x2040|(r<<9)|i] = movea_print;
+	print[0x3040|(r<<9)|i] = movea_print;
+      }
     }
   }
 }
-
-
-
-

@@ -88,11 +88,13 @@ void btst_init(void *instr[], void *print[])
 {
   int i,r;
   for(i=0;i<0x40;i++) {
-    for(r=0;r<8;r++) {
-      instr[0x0100|(r<<9)|i] = btst;
-      print[0x0100|(r<<9)|i] = btst_print;
+    if(ea_valid(i, EA_INVALID_I|EA_INVALID_A)) {
+      for(r=0;r<8;r++) {
+	instr[0x0100|(r<<9)|i] = btst;
+	print[0x0100|(r<<9)|i] = btst_print;
+      }
+      instr[0x0800|i] = btst;
+      print[0x0800|i] = btst_print;
     }
-    instr[0x0800|i] = btst;
-    print[0x0800|i] = btst_print;
   }
 }

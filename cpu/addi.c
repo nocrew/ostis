@@ -127,8 +127,10 @@ void addi_init(void *instr[], void *print[])
   int i;
 
   for(i=0;i<0xc0;i++) {
-    instr[0x0600|i] = addi;
-    print[0x0600|i] = addi_print;
+    if(ea_valid(i&0x3f, EA_INVALID_DST|EA_INVALID_A)) {
+      instr[0x0600|i] = addi;
+      print[0x0600|i] = addi_print;
+    }
   }
 }
 

@@ -55,10 +55,12 @@ void suba_init(void *instr[], void *print[])
   
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x90c0|(r<<9)|i] = suba;
-      instr[0x91c0|(r<<9)|i] = suba;
-      print[0x90c0|(r<<9)|i] = suba_print;
-      print[0x91c0|(r<<9)|i] = suba_print;
+      if(ea_valid(i, EA_INVALID_NONE)) {
+	instr[0x90c0|(r<<9)|i] = suba;
+	instr[0x91c0|(r<<9)|i] = suba;
+	print[0x90c0|(r<<9)|i] = suba_print;
+	print[0x91c0|(r<<9)|i] = suba_print;
+      }
     }
   }
 }

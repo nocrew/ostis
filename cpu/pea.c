@@ -30,7 +30,9 @@ void pea_init(void *instr[], void *print[])
   int i;
 
   for(i=0;i<0x40;i++) {
-    instr[0x4840|i] = pea;
-    print[0x4840|i] = pea_print;
+    if(ea_valid(i, EA_INVALID_EA)) {
+      instr[0x4840|i] = pea;
+      print[0x4840|i] = pea_print;
+    }
   }
 }

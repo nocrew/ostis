@@ -150,8 +150,10 @@ void scc_init(void *instr[], void *print[])
   
   for(r=0;r<16;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x50c0|(r<<8)|i] = (void *)scc;
-      print[0x50c0|(r<<8)|i] = (void *)scc_print;
+      if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+	instr[0x50c0|(r<<8)|i] = (void *)scc;
+	print[0x50c0|(r<<8)|i] = (void *)scc_print;
+      }
     }
   }
 }

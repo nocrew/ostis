@@ -110,12 +110,16 @@ void addq_init(void *instr[], void *print[])
   
   for(d=0;d<8;d++) {
     for(i=0;i<0x40;i++) {
-      instr[0x5000|(d<<9)|i] = addq;
-      instr[0x5040|(d<<9)|i] = addq;
-      instr[0x5080|(d<<9)|i] = addq;
-      print[0x5000|(d<<9)|i] = addq_print;
-      print[0x5040|(d<<9)|i] = addq_print;
-      print[0x5080|(d<<9)|i] = addq_print;
+      if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+	instr[0x5000|(d<<9)|i] = addq;
+	print[0x5000|(d<<9)|i] = addq_print;
+      }
+      if(ea_valid(i, EA_INVALID_DST)) {
+	instr[0x5040|(d<<9)|i] = addq;
+	instr[0x5080|(d<<9)|i] = addq;
+	print[0x5040|(d<<9)|i] = addq_print;
+	print[0x5080|(d<<9)|i] = addq_print;
+      }
     }
   }
 }

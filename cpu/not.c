@@ -89,7 +89,9 @@ void not_init(void *instr[], void *print[])
   int i;
 
   for(i=0;i<0xc0;i++) {
-    instr[0x4600|i] = not;
-    print[0x4600|i] = not_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      instr[0x4600|i] = not;
+      print[0x4600|i] = not_print;
+    }
   }
 }

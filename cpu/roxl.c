@@ -153,7 +153,9 @@ void roxl_init(void *instr[], void *print[])
     }
   }
   for(i=0;i<0x40;i++) {
-    instr[0xe5c0|i] = roxl;
-    print[0xe5c0|i] = roxl_print;
+    if(ea_valid(i, EA_INVALID_MEM)) {
+      instr[0xe5c0|i] = roxl;
+      print[0xe5c0|i] = roxl_print;
+    }
   }
 }

@@ -115,18 +115,20 @@ void eor_init(void *instr[], void *print[])
 
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0xb000|(r<<9)|i] = eor;
-      instr[0xb040|(r<<9)|i] = eor;
-      instr[0xb080|(r<<9)|i] = eor;
-      instr[0xb100|(r<<9)|i] = eor;
-      instr[0xb140|(r<<9)|i] = eor;
-      instr[0xb180|(r<<9)|i] = eor;
-      print[0xb000|(r<<9)|i] = eor_print;
-      print[0xb040|(r<<9)|i] = eor_print;
-      print[0xb080|(r<<9)|i] = eor_print;
-      print[0xb100|(r<<9)|i] = eor_print;
-      print[0xb140|(r<<9)|i] = eor_print;
-      print[0xb180|(r<<9)|i] = eor_print;
+      if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+	instr[0xb000|(r<<9)|i] = eor;
+	instr[0xb040|(r<<9)|i] = eor;
+	instr[0xb080|(r<<9)|i] = eor;
+	instr[0xb100|(r<<9)|i] = eor;
+	instr[0xb140|(r<<9)|i] = eor;
+	instr[0xb180|(r<<9)|i] = eor;
+	print[0xb000|(r<<9)|i] = eor_print;
+	print[0xb040|(r<<9)|i] = eor_print;
+	print[0xb080|(r<<9)|i] = eor_print;
+	print[0xb100|(r<<9)|i] = eor_print;
+	print[0xb140|(r<<9)|i] = eor_print;
+	print[0xb180|(r<<9)|i] = eor_print;
+      }
     }
   }
 }

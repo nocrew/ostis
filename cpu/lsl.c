@@ -148,7 +148,9 @@ void lsl_init(void *instr[], void *print[])
     }
   }
   for(i=0;i<0x40;i++) {
-    instr[0xe3c0|i] = lsl;
-    print[0xe3c0|i] = lsl_print;
+    if(ea_valid(i, EA_INVALID_MEM)) {
+      instr[0xe3c0|i] = lsl;
+      print[0xe3c0|i] = lsl_print;
+    }
   }
 }

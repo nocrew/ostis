@@ -49,8 +49,10 @@ void divs_init(void *instr[], void *print[])
 
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x81c0|(r<<9)|i] = divs;
-      print[0x81c0|(r<<9)|i] = divs_print;
+      if(ea_valid(i, EA_INVALID_A)) {
+	instr[0x81c0|(r<<9)|i] = divs;
+	print[0x81c0|(r<<9)|i] = divs_print;
+      }
     }
   }
 }

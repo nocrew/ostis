@@ -94,12 +94,14 @@ void bset_init(void *instr[], void *print[])
 {
   int i,r;
   for(i=0;i<0x40;i++) {
-    for(r=0;r<8;r++) {
-      instr[0x01c0|(r<<9)|i] = bset;
-      print[0x01c0|(r<<9)|i] = bset_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      for(r=0;r<8;r++) {
+	instr[0x01c0|(r<<9)|i] = bset;
+	print[0x01c0|(r<<9)|i] = bset_print;
+      }
+      instr[0x08c0|i] = bset;
+      print[0x08c0|i] = bset_print;
     }
-    instr[0x08c0|i] = bset;
-    print[0x08c0|i] = bset_print;
   }
 }
 

@@ -95,7 +95,10 @@ void move_init(void *instr[], void *print[])
   int i;
 
   for(i=0x1000;i<0x4000;i++) {
-    instr[i] = move;
-    print[i] = move_print;
+    if(ea_valid(i&0x3f, EA_INVALID_NONE) && 
+       ea_valid(MODESWAP((i&0xfc0)>>6), EA_INVALID_A|EA_INVALID_DST)) {
+      instr[i] = move;
+      print[i] = move_print;
+    }
   }
 }

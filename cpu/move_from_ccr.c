@@ -21,7 +21,9 @@ void move_from_ccr_init(void *instr[])
 {
   int i;
   for(i=0;i<0x40;i++) {
-    instr[0x42c0|i] = (void *)move_from_ccr;
-    instr[0x142c0|i] = (void *)move_from_ccr_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      instr[0x42c0|i] = (void *)move_from_ccr;
+      instr[0x142c0|i] = (void *)move_from_ccr_print;
+    }
   }
 }

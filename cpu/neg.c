@@ -98,7 +98,9 @@ void neg_init(void *instr[], void *print[])
   int i;
 
   for(i=0;i<0xc0;i++) {
-    instr[0x4400|i] = neg;
-    print[0x4400|i] = neg_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      instr[0x4400|i] = neg;
+      print[0x4400|i] = neg_print;
+    }
   }
 }

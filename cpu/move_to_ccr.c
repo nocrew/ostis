@@ -30,7 +30,9 @@ void move_to_ccr_init(void *instr[], void *print[])
 {
   int i;
   for(i=0;i<0x40;i++) {
-    instr[0x44c0|i] = (void *)move_to_ccr;
-    print[0x44c0|i] = (void *)move_to_ccr_print;
+    if(ea_valid(i, EA_INVALID_A)) {
+      instr[0x44c0|i] = (void *)move_to_ccr;
+      print[0x44c0|i] = (void *)move_to_ccr_print;
+    }
   }
 }

@@ -106,12 +106,16 @@ void subq_init(void *instr[], void *print[])
   
   for(d=0;d<8;d++) {
     for(i=0;i<0x40;i++) { 
-      instr[0x5100|(d<<9)|i] = subq;
-      instr[0x5140|(d<<9)|i] = subq;
-      instr[0x5180|(d<<9)|i] = subq;
-      print[0x5100|(d<<9)|i] = subq_print;
-      print[0x5140|(d<<9)|i] = subq_print;
-      print[0x5180|(d<<9)|i] = subq_print;
+      if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+	instr[0x5100|(d<<9)|i] = subq;
+	print[0x5100|(d<<9)|i] = subq_print;
+      }
+      if(ea_valid(i, EA_INVALID_DST)) {
+	instr[0x5140|(d<<9)|i] = subq;
+	instr[0x5180|(d<<9)|i] = subq;
+	print[0x5140|(d<<9)|i] = subq_print;
+	print[0x5180|(d<<9)|i] = subq_print;
+      }
     }
   }
 }

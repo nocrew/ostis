@@ -27,7 +27,9 @@ void move_from_sr_init(void *instr[], void *print[])
 {
   int i;
   for(i=0;i<0x40;i++) {
-    instr[0x40c0|i] = (void *)move_from_sr;
-    print[0x40c0|i] = (void *)move_from_sr_print;
+    if(ea_valid(i, EA_INVALID_DST|EA_INVALID_A)) {
+      instr[0x40c0|i] = (void *)move_from_sr;
+      print[0x40c0|i] = (void *)move_from_sr_print;
+    }
   }
 }

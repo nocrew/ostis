@@ -192,7 +192,13 @@ void asl_init(void *instr[], void *print[])
     }
   }
   for(i=0;i<0x40;i++) {
-    instr[0xe1c0|i] = asl;
-    print[0xe1c0|i] = asl_print;
+    if(ea_valid(i, EA_INVALID_MEM)) {
+      instr[0xe1c0|i] = asl;
+      print[0xe1c0|i] = asl_print;
+    }
   }
 }
+
+
+
+

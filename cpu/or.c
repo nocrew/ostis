@@ -115,18 +115,22 @@ void or_init(void *instr[], void *print[])
 
   for(r=0;r<8;r++) {
     for(i=0;i<0x40;i++) {
-      instr[0x8000|(r<<9)|i] = or;
-      instr[0x8040|(r<<9)|i] = or;
-      instr[0x8080|(r<<9)|i] = or;
-      instr[0x8100|(r<<9)|i] = or;
-      instr[0x8140|(r<<9)|i] = or;
-      instr[0x8180|(r<<9)|i] = or;
-      print[0x8000|(r<<9)|i] = or_print;
-      print[0x8040|(r<<9)|i] = or_print;
-      print[0x8080|(r<<9)|i] = or_print;
-      print[0x8100|(r<<9)|i] = or_print;
-      print[0x8140|(r<<9)|i] = or_print;
-      print[0x8180|(r<<9)|i] = or_print;
+      if(ea_valid(i, EA_INVALID_A)) {
+	instr[0x8000|(r<<9)|i] = or;
+	instr[0x8040|(r<<9)|i] = or;
+	instr[0x8080|(r<<9)|i] = or;
+	print[0x8000|(r<<9)|i] = or_print;
+	print[0x8040|(r<<9)|i] = or_print;
+	print[0x8080|(r<<9)|i] = or_print;
+      }
+      if(ea_valid(i, EA_INVALID_MEM)) {
+	instr[0x8100|(r<<9)|i] = or;
+	instr[0x8140|(r<<9)|i] = or;
+	instr[0x8180|(r<<9)|i] = or;
+	print[0x8100|(r<<9)|i] = or_print;
+	print[0x8140|(r<<9)|i] = or_print;
+	print[0x8180|(r<<9)|i] = or_print;
+      }
     }
   }
 }

@@ -29,7 +29,9 @@ void jmp_init(void *instr[], void *print[])
   int i;
   
   for(i=0;i<0x40;i++) {
-    instr[0x4ec0|i] = jmp;
-    print[0x4ec0|i] = jmp_print;
+    if(ea_valid(i, EA_INVALID_EA)) {
+      instr[0x4ec0|i] = jmp;
+      print[0x4ec0|i] = jmp_print;
+    }
   }
 }

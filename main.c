@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
   fdc_init();
   mfp_init();
   shifter_init();
+  debug_init();
   screen_disable(0);
   screen_init();
   if(argc > 1) {
@@ -39,7 +40,6 @@ int main(int argc, char *argv[])
   } else {
     floppy_init("");
   }
-  debug_init();
 
   while(!debug_event());
   return 0;

@@ -9,12 +9,15 @@
 #define IKBDBASE 0xfffc00
 
 #define IKBDFIFO 3
+#define IKBD_INTCNT 7200
 
 static BYTE ikbd_control;
 static BYTE ikbd_status = 0x2; /* Always ready */
 static BYTE ikbd_writereg = 0;
 static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
+static int ikbd_intcnt = 0;
+static int lastcpucnt = 0;
 
 static int ikbd_pop_fifo()
 {
@@ -36,9 +39,10 @@ static void ikbd_queue_fifo(BYTE data)
     ikbd_pop_fifo();
     ikbd_status |= 0x20;
     if(ikbd_control&0x80) {
+      ikbd_intcnt = IKBD_INTCNT;
       ikbd_status |= 0x80;
-      mfp_set_GPIP(4);
-      mfp_do_interrupt(cpu, 6);
+      mfp_clr_GPIP(4);
+      //      mfp_do_interrupt(cpu, 6);
     }
   }
   ikbd_fifo[ikbd_fifocnt] = data;
@@ -55,6 +59,10 @@ static BYTE ikbd_read_byte(LONG addr)
     return ikbd_status;
   case 0xfffc02:
     ikbd_status &= ~0xa1;
+    if(ikbd_control&0x80)
+      ikbd_intcnt = IKBD_INTCNT;
+    else
+      ikbd_intcnt = 0;
     tmp = ikbd_pop_fifo();
     return tmp;
   default:
@@ -80,9 +88,14 @@ static void ikbd_write_byte(LONG addr, BYTE data)
   switch(addr) {
   case 0xfffc00:
     ikbd_control = data;
+    if(data&0x80)
+      ikbd_intcnt = IKBD_INTCNT;
+    else
+      ikbd_intcnt = 0;
     break;
   case 0xfffc02:
     ikbd_status &= ~0x80;
+    mfp_set_GPIP(4);
     ikbd_writereg = data;
     break;
   }
@@ -132,14 +145,35 @@ void ikbd_init()
   mmu_register(ikbd);
 }
 
-void ikbd_do_interrupts()
+void ikbd_do_interrupts(struct cpu *cpu)
 {
-  if(ikbd_control&0x80)
-    if(ikbd_fifocnt > 0) {
-      if(IPL < 6) {
-	ikbd_status |= 0x80;
-	mfp_set_GPIP(4);
-	mfp_do_interrupt(cpu, 6);
+  long tmpcpu;
+  tmpcpu = cpu->cycle - lastcpucnt;
+  if(tmpcpu < 0) {
+    tmpcpu += MAX_CYCLE;
+  }
+
+  if(ikbd_intcnt > 0) {
+    ikbd_intcnt -= tmpcpu;
+    if(cpu->debug)
+      printf("DEBUG: ikbd_intcnt == %d\n", ikbd_intcnt);
+    if(ikbd_intcnt <= 0) {
+      if(ikbd_control&0x80) {
+	if(ikbd_fifocnt > 0) {
+	  if(IPL < 6) {
+	    ikbd_status |= 0x80;
+	    mfp_clr_GPIP(4);
+	    mfp_do_interrupt(cpu, 6);
+	  }
+	} else {
+	  mfp_set_GPIP(4);
+	}
       }
+      ikbd_intcnt = IKBD_INTCNT;
+      if(cpu->debug)
+	printf("DEBUG: Resetting ikbd_intcnt\n");
     }
+  }
+
+  lastcpucnt = cpu->cycle;
 }

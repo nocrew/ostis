@@ -262,6 +262,6 @@ void mmu_do_interrupts(struct cpu *cpu)
 {
   mfp_do_interrupts(cpu);
   fdc_do_interrupts(cpu);
-  ikbd_do_interrupts();
+  ikbd_do_interrupts(cpu);
 }
 

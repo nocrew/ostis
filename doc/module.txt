@@ -1,0 +1,38 @@
+MMU module system
+-----------------
+
+The memory access system consists of separate modules for each part of
+the memory in use. The necessary parts are passed in a struct to the
+registration function, with information of which memory sections that
+module occupy, and the required functions for accessing the module.
+
+mmu_register():
+
+struct mmu {
+  struct mmu *next;
+  char id[4];
+  char *name;
+  LONG start;
+  LONG size;
+  BYTE (*read_byte)(LONG);
+  WORD (*read_word)(LONG);
+  LONG (*read_long)(LONG);
+  void (*write_byte)(LONG, BYTE);
+  void (*write_word)(LONG, WORD);
+  void (*write_long)(LONG, LONG);
+};
+
+id             4 character unique identification of the module
+name           Name of the module
+start          Address offset of beginning of occupied memory
+size           Size of occupied memory
+read_byte      Function pointer when read_byte action is performed
+read_word      Function pointer when read_word action is performed
+read_long      Function pointer when read_long action is performed
+write_byte     Function pointer when write_byte action is performed
+write_word     Function pointer when write_word action is performed
+write_long     Function pointer when write_long action is performed
+state_collect  Function pointer to collect a full module state. This state
+                _MUST_ be platform independant. (Not implemented)
+state_restore  Function pointer to restore a full module state. (Not impl.)
+

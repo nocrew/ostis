@@ -130,6 +130,8 @@ static void gen_scrptr(int rasterpos)
 {
   int vmemoff,scan,scanpos;
 
+  rasterpos = 160256-rasterpos;
+
   scan = 1+((rasterpos-256)/512);
   scanpos = (rasterpos+256)%512;
 
@@ -137,9 +139,9 @@ static void gen_scrptr(int rasterpos)
      (scanpos < LEFTBORDER) || (scanpos >= RIGHTBORDER)) {
     return;
   }
-  vmemoff = (scan-TOPBORDER)*80;
-  vmemoff += ((scanpos-LEFTBORDER)/16)*4;
-  scrptr = curaddr + vmemoff*2;
+  vmemoff = (scan-TOPBORDER)*160;
+  vmemoff += ((scanpos-LEFTBORDER+15)>>1)&(~1);
+  scrptr = curaddr + vmemoff;
 }
 
 static void shifter_gen_pixel(int rasterpos)
@@ -473,6 +475,7 @@ void shifter_do_interrupts(struct cpu *cpu)
     if(hline >= TOPBORDER)
       mfp_do_timerb_event(cpu);
     hsync += 512;
+    //    gen_scrptr(160256-vsync);
     hline++;
     if(IPL < 2)
       cpu_set_exception(26);
@@ -494,4 +497,9 @@ void shifter_print_status()
   printf("PTR: 0x%08x\n", scrptr);
   printf("Res: %d  Sync: %s\n", resolution, (syncreg&2)?"50Hz":"60Hz");
   printf("\n");
+}
+
+int shifter_get_vsync()
+{
+  return 160256-vsync;
 }

@@ -550,7 +550,7 @@ void cprint_save_labels(char *file)
   t = clabel;
 
   while(t) {
-    if(!t->named) {
+    if(t->named) {
       fprintf(f, "%-14s %08X\n", t->name, t->addr);
     }
     t = t->next;

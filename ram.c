@@ -8,6 +8,7 @@
 #define RAMBASE 8
 #define RAMCFGSIZE 1
 #define RAMCFGBASE 0xff8001
+#define RAM_PHYSMAX 0x100000-1
 
 static BYTE ramcfg;
 
@@ -19,6 +20,7 @@ static BYTE *real(LONG addr)
 
 static BYTE ram_read_byte(LONG addr)
 {
+  if(addr > RAM_PHYSMAX) return 0;
   return *(real(addr));
 }
 

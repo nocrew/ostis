@@ -338,8 +338,8 @@ void mfp_do_timerb_event(struct cpu *cpu)
   if(!timercnt[1]) {
     timercnt[1] = mfpreg[TBDR];
     if(mfpreg[IERA]&1) {
-      printf("DEBUG: should do event-interrupt here for Timer B.\n");
-      //      mfp_do_interrupt(cpu, INT_TIMERB);
+      //      printf("DEBUG: should do event-interrupt here for Timer B.\n");
+      mfp_do_interrupt(cpu, INT_TIMERB);
     }
   }
 }

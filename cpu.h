@@ -14,7 +14,7 @@ struct cpu {
   LONG icycle;
   int cyclecomp;
   int debug;
-  int rmw;
+  int stopped;
   int exception_pending;
 };
 

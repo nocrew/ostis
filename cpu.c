@@ -113,6 +113,8 @@ static void cpu_do_exception(int vnum)
   cpu_set_sr((cpu->sr|0x2000)&(~0x8000)); /* set supervisor, clear trace */
   fflush(stdout);
 
+  cpu->stopped = 0;
+
   if(vnum == 2) {
     if(cpu->debug) {
       printf("DEBUG: Entering Bus Error\n");
@@ -416,20 +418,23 @@ int cpu_step_instr(int trace)
 
   //  printf("DEBUG: PC == 0x%x\n", cpu->pc);
 
-  op = fetch_instr(cpu);
+  if(!cpu->stopped) {
+    op = fetch_instr(cpu);
 
 #if 1
-  if(instr[op] == default_instr) {
-    cpu->pc -= 2;
-    return CPU_BREAKPOINT;
-  }
+    if(instr[op] == default_instr) {
+      cpu->pc -= 2;
+      return CPU_BREAKPOINT;
+    }
 #endif
-
-  cpu->cyclecomp = 0;
-  cpu->icycle = 0;
-  cpu->rmw = 0;
-
-  instr[op](cpu, op);
+    
+    cpu->cyclecomp = 0;
+    cpu->icycle = 0;
+    
+    instr[op](cpu, op);
+  } else {
+    instr[0x4e71](cpu, 0x4e71);
+  }
   cpu_do_cycle(cpu->icycle, 0);
 
   if(cpu->exception_pending != -1) {
@@ -672,6 +677,7 @@ void cpu_init()
   cpu->debug = 0;
   cpu->a[5] = 0xdeadbeef;
   cpu->exception_pending = -1;
+  cpu->stopped = 0;
 
   for(i=0;i<65536;i++) {
     instr[i] = default_instr;
@@ -778,4 +784,6 @@ void cpu_init()
   not_init((void *)instr, (void *)instr_print);
   neg_init((void *)instr, (void *)instr_print);
   negx_init((void *)instr, (void *)instr_print);
+
+  stop_init((void *)instr, (void *)instr_print);
 }

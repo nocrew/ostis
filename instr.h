@@ -78,5 +78,6 @@ void linea_init(void *[], void *[]);
 void roxr_init(void *[], void *[]);
 void bchg_init(void *[], void *[]);
 void abcd_init(void *[], void *[]);
+void stop_init(void *[], void *[]);
 
 #endif

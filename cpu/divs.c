@@ -16,11 +16,15 @@ static void divs(struct cpu *cpu, WORD op)
   reg = (op&0xe00)>>9;
   dt = cpu->d[reg];
   d = *((int *)&dt);
-  if(!s) cpu_set_exception(5);
+  if(!s) {
+    cpu_set_exception(5);
+    CLRC;
+    return;
+  }
   r = d/s;
   m = d%s;
-  cpu_set_flags_divu(cpu, r&0x80000000, r, r&0xffff0000);
-  if(!(r&0xffff0000)) {
+  cpu_set_flags_divs(cpu, r&0x80000000, r);
+  if(!CHKV) {
     r = ((m&0xffff)<<16)|(r&0xffff);
     cpu->d[reg] = r;
   }

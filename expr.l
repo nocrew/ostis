@@ -8,10 +8,10 @@
   static char *inputstr;
   static int inputpos = 0;
 
-  #define EXPR_INPUT(buf, result, max_size) \
+  #define YY_INPUT(buf, result, max_size) \
   { \
     if(inputpos > strlen(inputstr)) { \
-      result = EXPR_NULL; \
+      result = YY_NULL; \
     } else { \
       buf[0] = inputstr[inputpos++]; \
       result = 1; \

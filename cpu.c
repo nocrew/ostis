@@ -419,9 +419,11 @@ int cpu_step_instr(int trace)
 
   instr[op](cpu, op);
   cpu_do_cycle(cpu->icycle, 0);
+
   if(cpu->exception_pending != -1) {
     cpu_do_exception(cpu->exception_pending);
   }
+  if(CHKT) cpu_do_exception(9);
   return CPU_OK;
 }
 

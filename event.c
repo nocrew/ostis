@@ -6,6 +6,9 @@
 #include "ikbd.h"
 #include "cpu.h"
 
+static int tstart;
+static int tend;
+
 static int event_key(SDL_KeyboardEvent key, int state)
 {
   SDL_keysym k;
@@ -32,8 +35,15 @@ static int event_key(SDL_KeyboardEvent key, int state)
 #endif
     }
   } else if(k.sym == SDLK_F12) {
-    if(state == EVENT_RELEASE)
+    if(state == EVENT_RELEASE) {
       printf("DEBUG: cpu->pc == %08x\n", cpu->pc);
+      tend = SDL_GetTicks();
+      printf("DEBUG: Speed: %g FPS\n",
+	     (shifter_framecnt(0)*1000.0)/(tend-tstart));
+    } else {
+      shifter_framecnt(-1);
+      tstart = SDL_GetTicks();
+    }
   } else if(k.sym == SDLK_LALT) {
     ikbd_queue_key(SCAN_ALT, state);
   } else if(k.sym == SDLK_UP) {

@@ -54,6 +54,7 @@ static int vblscr = VBLSCR;
 static int hblpre = HBLPRE;
 static int hblscr = HBLSCR;
 static int scr_bytes_per_line = SCR_BYTES_PER_LINE;
+static int framecnt;
 
 static int ppm_fd;
 static unsigned char *rgbimage;
@@ -83,7 +84,6 @@ static void set_palette(int pnum, int value, int part)
 
 static void set_pixel(int rasterpos, int pnum)
 {
-
   //  if(pnum == 0) return;
 
   rgbimage[rasterpos*3+0] = palette_r[pnum];
@@ -395,6 +395,7 @@ void shifter_init()
 #if PPMOUTPUT
   ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
 #endif
+  framecnt = 0;
 }
 
 void shifter_do_interrupts(struct cpu *cpu, int noint)
@@ -409,7 +410,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   linecnt -= tmpcpu;
   
   /* VBL Interrupt */
-  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
+  //  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
   if(vsynccnt < 0) {
     vblpre = VBLPRE;
     vblscr = VBLSCR;
@@ -426,7 +427,8 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 #endif
     screen_swap();
     //    if(!noint && (IPL < 4))
-      cpu_set_exception(28); /* Set VBL interrupt as pending */
+    cpu_set_exception(28); /* Set VBL interrupt as pending */
+    framecnt++;
   }
 
   /* HBL Interrupt */
@@ -459,4 +461,12 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 int shifter_get_vsync()
 {
   return VBLSIZE*HBLSIZE-vsynccnt;
+}
+
+int shifter_framecnt(int c)
+{
+  if(c == -1) {
+    framecnt = 0;
+  }
+  return framecnt;
 }

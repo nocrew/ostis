@@ -15,7 +15,8 @@ static int event_key(SDL_KeyboardEvent key, int state)
   u = k.unicode;
 
   if((u == ' ') ||
-     ((u >= '0') && (u <= '9'))
+     ((u >= '0') && (u <= '9')) ||
+     ((u >= 'a') && (u <= 'z'))
      ) {
     ikbd_queue_key(scancode[u], state);
   } else if((k.sym >= SDLK_F1) && (k.sym <= SDLK_F10)) {

@@ -22,7 +22,7 @@ alignN:	    padding to align data to N bytes
 
 size  count	data
 ---------------------
-long	1	"STAT"
+long	1	"FORM"
 long	1	<entire_file_size> - 8
 
 long	1	"STCT"

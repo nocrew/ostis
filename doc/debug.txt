@@ -28,6 +28,7 @@ RIGHT Move window address
 m     Move window address
 l     Set label
 L     Load/save labels
+v     Toggle between debugger and display
 
 
 Edit mode:

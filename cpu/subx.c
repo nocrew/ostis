@@ -12,8 +12,14 @@ static void subx_b(struct cpu *cpu, WORD op)
   ry = op&0x7;
 
   if(op&0x8) {
-    cpu->a[ry] -= 1;
-    cpu->a[rx] -= 1;
+    if(rx == 7)
+      cpu->a[rx] -= 2;
+    else
+      cpu->a[rx] -= 1;
+    if(ry == 7)
+      cpu->a[ry] -= 2;
+    else
+      cpu->a[ry] -= 1;
     s = mmu_read_byte(cpu->a[ry]);
     d = mmu_read_byte(cpu->a[rx]);
     r = d-s;

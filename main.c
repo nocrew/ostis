@@ -15,10 +15,12 @@
 #include "floppy.h"
 #include "debug/debug.h"
 #include "cartridge.h"
+#include "state.h"
 
 int main(int argc, char *argv[])
 {
   int i;
+  struct state *state;
 
   mmu_init(); /* Must run before hardware module inits */
   ram_init();
@@ -37,12 +39,24 @@ int main(int argc, char *argv[])
 #if DEBUG
   debug_init();
 #endif
+
   if(argc > 1) {
-    floppy_init(argv[1]);
+    state = state_load(argv[1]);
+    if(state == NULL) {
+      floppy_init(argv[1]);
+    } else {
+      if(argc > 2) {
+	floppy_init(argv[2]);
+      } else {
+	floppy_init("");
+      }
+    }
   } else {
     floppy_init("");
   }
 
+  if(state != NULL)
+    state_restore(state);
 #if DEBUG
   while(!debug_event());
   return 0;

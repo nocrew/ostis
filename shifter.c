@@ -64,6 +64,8 @@ static void set_pixel(int rasterpos, int pnum)
   int c;
   int r,g,b;
 
+  //  pnum = 1;
+
   c = palette[pnum];
 
   r = (c&0xf00)>>7;
@@ -211,6 +213,31 @@ static void shifter_gen_picture(long rasterpos)
 void shifter_build_image()
 {
   screen_copyimage(rgbimage);
+}
+
+void shifter_build_ppm()
+{
+  static unsigned char row[1024*3];
+  static char tmp[80];
+  int xoff,yoff,w,h;
+  int x,y;
+
+  xoff = 8;
+  yoff = 13;
+  w = 480;
+  h = 288;
+
+  sprintf(tmp, "P6\n%d %d\n255\n", w, h);
+  write(ppmout, tmp, strlen(tmp));
+  
+  for(y=0;y<h;y++) {
+    for(x=0;x<w;x++) {
+      row[x*3+0] = rgbimage[(y+yoff)*512*3+(x+xoff)*3+0];
+      row[x*3+1] = rgbimage[(y+yoff)*512*3+(x+xoff)*3+1];
+      row[x*3+2] = rgbimage[(y+yoff)*512*3+(x+xoff)*3+2];
+    }
+    write(ppmout, row, w*3);
+  }
 }
 
 static BYTE shifter_read_byte(LONG addr)
@@ -393,7 +420,7 @@ void shifter_build_ppm_16pxl(int wcnt, WORD d[], char *image)
   }
 }
 
-void shifter_build_ppm()
+void shifter_build_ppm_old()
 {
   int i;
   WORD d[4];
@@ -419,12 +446,18 @@ void shifter_do_interrupts(struct cpu *cpu)
     tmpcpu += MAX_CYCLE;
   }
 
+  if((tmpcpu%4) != 0) {
+    printf("DEBUG: ERROR!!!! tmpcpu == %ld\n", tmpcpu);
+    printf("DEBUG: ERROR!!!! cpu->pc == %08x\n", cpu->pc);
+  }
+    
   vsync -= tmpcpu;
   if(vsync < 0) {
     /* vsync_interrupt */
-    shifter_gen_picture(160256-vsync);
-    vsync += MAX_CYCLE/((syncreg&2)?50:60);
-    //    printf("DEBUG: vsync == %ld\n", vsync);
+    shifter_gen_picture(160256);
+    //vsync += MAX_CYCLE/((syncreg&2)?50:60);
+    vsync += 160256;
+    //    printf("DEBUG: vsync %d == %ld\n", vcnt++, 160256-vsync);
     hline = 0;
     scrptr = curaddr = scraddr;
     shifter_build_image();

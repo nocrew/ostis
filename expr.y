@@ -17,6 +17,8 @@
   int yylex(void);
   static LONG addr;
   static long parseerror;
+
+  int yyparse();
 %}
 %union {
   char *str;

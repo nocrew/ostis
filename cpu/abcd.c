@@ -12,15 +12,15 @@ static void abcd(struct cpu *cpu, WORD op)
   ry = op&0x7;
 
   if(op&0x8) {
-    if(rx == 7)
-      cpu->a[rx] -= 2;
-    else
-      cpu->a[rx] -= 1;
     if(ry == 7)
       cpu->a[ry] -= 2;
     else
       cpu->a[ry] -= 1;
     sb = mmu_read_byte(cpu->a[ry]);
+    if(rx == 7)
+      cpu->a[rx] -= 2;
+    else
+      cpu->a[rx] -= 1;
     db = mmu_read_byte(cpu->a[rx]);
     s = 10*((sb&0xf0)>>4)+((sb&0xf));
     d = 10*((db&0xf0)>>4)+((db&0xf));

@@ -12,15 +12,15 @@ static void subx_b(struct cpu *cpu, WORD op)
   ry = op&0x7;
 
   if(op&0x8) {
-    if(rx == 7)
-      cpu->a[rx] -= 2;
-    else
-      cpu->a[rx] -= 1;
     if(ry == 7)
       cpu->a[ry] -= 2;
     else
       cpu->a[ry] -= 1;
     s = mmu_read_byte(cpu->a[ry]);
+    if(rx == 7)
+      cpu->a[rx] -= 2;
+    else
+      cpu->a[rx] -= 1;
     d = mmu_read_byte(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;
@@ -49,8 +49,8 @@ static void subx_w(struct cpu *cpu, WORD op)
 
   if(op&0x8) {
     cpu->a[ry] -= 2;
-    cpu->a[rx] -= 2;
     s = mmu_read_word(cpu->a[ry]);
+    cpu->a[rx] -= 2;
     d = mmu_read_word(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;
@@ -79,8 +79,8 @@ static void subx_l(struct cpu *cpu, WORD op)
 
   if(op&0x8) {
     cpu->a[ry] -= 4;
-    cpu->a[rx] -= 4;
     s = mmu_read_long(cpu->a[ry]);
+    cpu->a[rx] -= 4;
     d = mmu_read_long(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;

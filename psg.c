@@ -52,7 +52,7 @@ static int psgactive = 0;
 static int psg_periodcnt[3] = { -1, -1, -1 };
 static int psg_volume[3];
 static int psg_noisecnt = -1;
-static int psg_noise;
+static int psg_noise = 1;
 
 #define DIV(x) ((((x/10)*65535)/25000))
 
@@ -228,6 +228,7 @@ static void psg_generate_presamples(long cycles)
     if(psg_noisecnt < 0) {
       psg_noisecnt = PSG_PERIODDIV*psgreg[PSG_NOISE];
       psg_noise |= ((psg_noise^(psg_noise>>2))&1)<<17;
+      psg_noise >>= 1;
     }
     noise = psg_noise&1;
 
@@ -305,3 +306,5 @@ void psg_do_interrupts(struct cpu *cpu)
 
   lastcpucnt = cpu->cycle;
 }
+
+

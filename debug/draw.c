@@ -1,7 +1,7 @@
 #include "common.h"
 #include "display.h"
 
-void draw_string(int x, int y, int f, char *str)
+void draw_string(int x, int y, int f, unsigned char *str)
 {
   if(!str) return;
   
@@ -49,7 +49,7 @@ void draw_title(int x, int y, char *title, int selected)
   }
 }
 
-void draw_cursor(int x, int y, int ch)
+void draw_cursor(int x, int y, unsigned char ch)
 {
   display_put_char(x, y, FONT_LGINV, ch);
 }

@@ -92,7 +92,7 @@ static void build_font()
   }
 }
 
-void display_put_char(int x, int y, int f, int c)
+void display_put_char(int x, int y, int f, unsigned char c)
 {
   SDL_Rect dst;
 
@@ -125,4 +125,9 @@ void display_swap_screen()
 {
   win_draw_screen();
   SDL_Flip(scr);
+}
+
+SDL_Surface *display_get_screen()
+{
+  return scr;
 }

@@ -196,12 +196,14 @@ static void update_timer(int tnum, long cycles)
   switch(tnum) {
   case 0:
     if(!(mfpreg[TACR]&0xf)) return;
+    if((mfpreg[TACR]&0xf) == 8) return;
     d = divider[(mfpreg[TACR]&0x7)];
     ierreg = 0;
     iermask = 0x20;
     break;
   case 1:
     if(!(mfpreg[TBCR]&0xf)) return;
+    if((mfpreg[TBCR]&0xf) == 8) return;
     d = divider[(mfpreg[TBCR]&0x7)];
     ierreg = 0;
     iermask = 0x1;
@@ -355,10 +357,6 @@ void mfp_do_interrupts(struct cpu *cpu)
   update_timer(2, mfpcycle);
   update_timer(3, mfpcycle);
 
-  if(!(IPR&(1<<8)) && (IPR&(1<<6))) {
-    printf("DEBUG: Keyboard pending, but not Timer B\n");
-  }
-
   for(i=15;i>=0;i--) {
     if(IPR&(1<<i)) {
       mfp_do_interrupt(i);
@@ -370,6 +368,7 @@ void mfp_do_interrupts(struct cpu *cpu)
 
 void mfp_do_timerb_event(struct cpu *cpu)
 {
+  if((mfpreg[TBCR]&0xf) != 8) return;
   timercnt[1]--;
   if(!timercnt[1]) {
     timercnt[1] = mfpreg[TBDR];

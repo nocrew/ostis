@@ -387,7 +387,9 @@ int cpu_step_instr(int trace)
 
   cpu_debug_check(cpu->pc);
   if(cpu->debug) {
-    printf("DEBUG: PC == 0x%x\n", cpu->pc);
+    if(cpu->pc < 0xfc0000)
+      printf("DEBUG: PC == 0x%x\n", cpu->pc);
+    //    mfp_print_status();
   }
 #endif
 
@@ -593,6 +595,7 @@ static char *cprint_find_auto_label(LONG addr)
 
 void cprint_set_label(LONG addr, char *name)
 {
+#if DEBUG
   struct cprint_label *new;
   static char tname[10];
   char *tmp;
@@ -618,6 +621,7 @@ void cprint_set_label(LONG addr, char *name)
   }
   new->next = clabel;
   clabel = new;
+#endif
 }
 
 void cprint_save_labels(char *file)

@@ -8,6 +8,8 @@
 #include <string.h>
 #include "screen.h"
 
+#define DEBUG 0
+
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t LONG;

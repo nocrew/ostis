@@ -34,15 +34,21 @@ int main(int argc, char *argv[])
   screen_disable(0);
   screen_init();
   shifter_init();
+#if DEBUG
   debug_init();
+#endif
   if(argc > 1) {
     floppy_init(argv[1]);
   } else {
     floppy_init("");
   }
 
+#if DEBUG
   while(!debug_event());
   return 0;
+#else
+  while(cpu_run());
+#endif
 
   mmu_print_map();
   // cpu_print_status();

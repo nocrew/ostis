@@ -38,12 +38,11 @@ void screen_init()
   bmask = 0x00ff0000;
 #endif
 
+#if DEBUG
   screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 314, 24,
 				rmask, gmask, bmask, amask);
-#if 0
-  screen = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
-                         400 + BORDER_SIZE * 2,
-                         24, SDL_HWSURFACE|SDL_DOUBLEBUF);
+#else
+  screen = SDL_SetVideoMode(512, 314, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
 #endif
 }
 
@@ -108,14 +107,20 @@ void screen_putpixel(int x, int y, long c)
 
 void screen_swap()
 {
+#if DEBUG
   SDL_Rect dst;
+#endif
   if(disable) return;
 
+#if DEBUG
   dst.x = BORDER_SIZE;
   dst.y = BORDER_SIZE;
   
   SDL_BlitSurface(screen, NULL, display_get_screen(), &dst);
   SDL_Flip(display_get_screen());
+#else
+  SDL_Flip(screen);
+#endif
 }
 
 void screen_disable(int yes)
@@ -135,3 +140,5 @@ void *screen_pixels()
 {
   return screen->pixels;
 }
+
+

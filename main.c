@@ -31,10 +31,10 @@ int main(int argc, char *argv[])
   rtc_init();
   fdc_init();
   mfp_init();
-  shifter_init();
-  debug_init();
   screen_disable(0);
   screen_init();
+  shifter_init();
+  debug_init();
   if(argc > 1) {
     floppy_init(argv[1]);
   } else {

@@ -23,7 +23,8 @@
    Rastersize is 512 cycles/scanline, 313 scanlines, 3 bytes/pixel 
    Only low resolution supported right now.
  */
-static unsigned char rgbimage[512*314*3];
+//static unsigned char rgbimage[512*314*3];
+static unsigned char *rgbimage;
 static int lastrasterpos = 0;
 
 static WORD palette[16];
@@ -368,6 +369,8 @@ void shifter_init()
 
   mmu_register(shifter);
 
+  rgbimage = screen_pixels();
+
   //  ppmout = open("out.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0664);
   ppmout = 1; /* send everything to stdout if running... */
 }
@@ -457,10 +460,11 @@ void shifter_do_interrupts(struct cpu *cpu)
   }
     
   vsync -= tmpcpu;
+  
   if(vsync < 0) {
     /* vsync_interrupt */
-    scrptr = curaddr = scraddr;
     shifter_gen_picture(160256);
+    scrptr = curaddr = scraddr;
     //vsync += MAX_CYCLE/((syncreg&2)?50:60);
     vsync += 160256;
     //    printf("DEBUG: vsync %d == %ld\n", vcnt++, 160256-vsync);
@@ -476,6 +480,7 @@ void shifter_do_interrupts(struct cpu *cpu)
   hsync -= tmpcpu;
   if(hsync < 0) {
     /* hsync_interrupt */
+    shifter_gen_picture(160256-vsync);
     if(hline >= (TOPBORDER-1))
       mfp_do_timerb_event(cpu);
     hsync += 512;

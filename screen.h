@@ -9,5 +9,6 @@ void screen_copyimage(unsigned char *);
 void screen_swap();
 void screen_disable(int);
 int screen_check_disable();
+void *screen_pixels();
 
 #endif

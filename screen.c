@@ -37,7 +37,7 @@ void screen_init()
   bmask = 0x00ff0000;
 #endif
 
-  screen = SDL_CreateRGBSurface(SDL_HWSURFACE, 512, 314, 24,
+  screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 314, 24,
 				rmask, gmask, bmask, amask);
 #if 0
   screen = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
@@ -52,7 +52,7 @@ void screen_copyimage(unsigned char *src)
   int i;
 #endif
 
-  memcpy(screen->pixels, src, 512*314*3);
+  //  memcpy(screen->pixels, src, 512*314*3);
 #if 0
   for(i=0;i<314;i++) {
     memcpy(PADDR(0, i), src+512*3*i, 512*3);
@@ -107,4 +107,9 @@ void screen_disable(int yes)
 int screen_check_disable()
 {
   return disable;
+}
+
+void *screen_pixels()
+{
+  return screen->pixels;
 }

@@ -206,6 +206,19 @@ static void cpu_set_flags_lsr(struct cpu *cpu, int rm, int r, int cnt, int hb)
   }
 }
 
+/* ROXL, ROXR */
+static void cpu_set_flags_roxl(struct cpu *cpu, int rm, int r, int cnt, int hb)
+{
+  CLRV;
+  if(cnt) {
+    if(hb) SETC; else CLRC;
+    cpu_set_flags_general(cpu, MSKX | MSKN | MSKZ, rm, r);
+  } else {
+    if(CHKX) SETX; else CLRX;
+    cpu_set_flags_general(cpu, MSKN | MSKZ, rm, r);
+  }
+}
+
 /* ROL */
 static void cpu_set_flags_rol(struct cpu *cpu, int rm, int r, int cnt, int hb)
 {

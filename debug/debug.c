@@ -197,7 +197,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     break;
   }
   if(viewmode == VIEW_DISPLAY) {
-    shifter_build_image();
+    shifter_build_image(0);
     screen_swap();
   } else {
     display_swap_screen();

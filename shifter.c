@@ -221,8 +221,12 @@ static void shifter_gen_picture(long rasterpos)
   lastrasterpos++;
 }
 
-void shifter_build_image()
+void shifter_build_image(int debug)
 {
+  if(debug) {
+    lastrasterpos = 0;
+    shifter_gen_picture(160256);
+  }
   screen_copyimage(rgbimage);
 }
 
@@ -467,6 +471,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     
   vsync -= tmpcpu;
   
+  //  shifter_gen_picture(160256-vsync);
   if(vsync < 0) {
     /* vsync_interrupt */
     shifter_gen_picture(160256);
@@ -478,7 +483,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     //    printf("DEBUG: vsync %d == %ld\n", vcnt++, 160256-vsync);
     hline = 0;
     hsync = 160;
-    shifter_build_image();
+    shifter_build_image(0);
     lastrasterpos = 0;
     //    shifter_build_ppm();
     screen_swap();
@@ -492,7 +497,8 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(hsync < 0) {
     /* hsync_interrupt */
     shifter_gen_picture(160256-vsync);
-    if(hline >= (TOPBORDER-1))
+    //    if((hline >= (TOPBORDER-1)) && (hline < LOWERBORDER))
+    if((hline >= (TOPBORDER-1)))
       mfp_do_timerb_event(cpu);
     hsync += 512;
     //    gen_scrptr(160256-vsync);

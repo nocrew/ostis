@@ -235,6 +235,16 @@ static int update_timer(int tnum, long cycles)
   return 0;
 }
 
+void mfp_set_GPIP(int bnum)
+{
+  mfpreg[GPIP] |= (1<<bnum);
+}
+
+void mfp_clr_GPIP(int bnum)
+{
+  mfpreg[GPIP] &= ~(1<<bnum);
+}
+
 static void mfp_set_IPR(int inum)
 {
   int t;

@@ -2,10 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "floppy.h"
 #include "mmu.h"
 
 #define PSGSIZE 256
 #define PSGBASE 0xff8800
+
+#define PSG_IOA 14
+
+#define PSG_IOA_SIDE (psgreg[PSG_IOA]&0x1)
+#define PSG_IOA_DEV0 (psgreg[PSG_IOA]&0x2)
+#define PSG_IOA_DEV1 (psgreg[PSG_IOA]&0x4)
 
 static BYTE psgreg[16];
 static int psgactive = 0;
@@ -40,6 +47,10 @@ static void psg_write_byte(LONG addr, BYTE data)
     break;
   case 2:
     psgreg[psgactive] = data;
+    if(psgactive == 14) {
+      floppy_side(PSG_IOA_SIDE);
+      floppy_active((PSG_IOA_DEV0|PSG_IOA_DEV1)>>1);
+    }
     break;
   }
 }

@@ -12,6 +12,7 @@
 #include "mfp.h"
 #include "shifter.h"
 #include "screen.h"
+#include "floppy.h"
 #include "debug/debug.h"
 #include "cartridge.h"
 
@@ -32,6 +33,11 @@ int main(int argc, char *argv[])
   shifter_init();
   screen_disable(0);
   screen_init();
+  if(argc > 1) {
+    floppy_init(argv[1]);
+  } else {
+    floppy_init("");
+  }
   debug_init();
 
   mmu_init(); /* Must be run AFTER all mmu_register sessions are done */

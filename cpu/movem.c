@@ -14,7 +14,7 @@ static void movem_w(struct cpu *cpu, WORD op, int rmask)
   cnt = 0;
   if(((op&0x38)>>3) == 4) {
     rev = 1;
-    a = -2;
+    a -= 2;
     inc = 1;
   } else {
     if(((op&0x38)>>3) == 3) {
@@ -339,13 +339,17 @@ void movem_init(void *instr[], void *print[])
   int i;
   
   for(i=0;i<0x40;i++) {
-    instr[0x4880|i] = movem;
-    instr[0x4c80|i] = movem;
-    instr[0x48c0|i] = movem;
-    instr[0x4cc0|i] = movem;
-    print[0x4880|i] = movem_print;
-    print[0x4c80|i] = movem_print;
-    print[0x48c0|i] = movem_print;
-    print[0x4cc0|i] = movem_print;
+    if(ea_valid(i, EA_INVALID_MEM|EA_INVALID_INC)) {
+      instr[0x4880|i] = movem;
+      instr[0x48c0|i] = movem;
+      print[0x4880|i] = movem_print;
+      print[0x48c0|i] = movem_print;
+    }
+    if(ea_valid(i, EA_INVALID_I|EA_INVALID_A|EA_INVALID_D|EA_INVALID_DEC)) {
+      instr[0x4c80|i] = movem;
+      instr[0x4cc0|i] = movem;
+      print[0x4c80|i] = movem_print;
+      print[0x4cc0|i] = movem_print;
+    }
   }
 }

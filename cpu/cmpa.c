@@ -11,12 +11,12 @@ static void cmpa(struct cpu *cpu, WORD op)
 
   ADD_CYCLE(6);
 
-  s = cpu->a[(op&0xe00)>>9];
+  d = cpu->a[(op&0xe00)>>9];
   if(op&0x100) {
-    d = ea_read_long(cpu, op&0x3f, 0);
+    s = ea_read_long(cpu, op&0x3f, 0);
   } else {
-    d = ea_read_word(cpu, op&0x3f, 0);
-    if(d&0x8000) d |= 0xffff0000;
+    s = ea_read_word(cpu, op&0x3f, 0);
+    if(s&0x8000) s |= 0xffff0000;
   }
   r = d-s;
   cpu_set_flags_sub(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);

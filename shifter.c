@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <SDL_byteorder.h>
 #include <fcntl.h>
 #include "common.h"
 #include "cpu.h"
@@ -11,7 +12,7 @@
 
 #define PPMOUTPUT 0
 
-#define SHIFTERSIZE 256
+#define SHIFTERSIZE 128
 #define SHIFTERBASE 0xff8200
 
 #define HBLSIZE 512
@@ -83,13 +84,51 @@ static void set_palette(int pnum, int value, int part)
   }
 }
 
-static void set_pixel(int rasterpos, int pnum)
+static void set_pixel_low(int rasterpos, int pnum)
 {
   //  if(pnum == 0) return;
 
+#if (SDL_BYTEORDER == SDL_BIG_ENDIAN) || DEBUG
   rgbimage[rasterpos*3+0] = palette_r[pnum];
   rgbimage[rasterpos*3+1] = palette_g[pnum];
   rgbimage[rasterpos*3+2] = palette_b[pnum];
+#else
+  rgbimage[rasterpos*3+2] = palette_r[pnum];
+  rgbimage[rasterpos*3+1] = palette_g[pnum];
+  rgbimage[rasterpos*3+0] = palette_b[pnum];
+#endif
+}
+
+static void set_pixel_medium(int rasterpos, int pnum)
+{
+  int r,g,b;
+  int c1,c2;
+
+  c1 = (pnum>>16);
+  c2 = pnum&0xffff;
+
+  r = (palette_r[c1]+palette_r[c2])/2;
+  g = (palette_g[c1]+palette_g[c2])/2;
+  b = (palette_b[c1]+palette_b[c2])/2;
+
+#if (SDL_BYTEORDER == SDL_BIG_ENDIAN) || DEBUG
+  rgbimage[rasterpos*3+0] = r;
+  rgbimage[rasterpos*3+1] = g;
+  rgbimage[rasterpos*3+2] = b;
+#else
+  rgbimage[rasterpos*3+2] = r;
+  rgbimage[rasterpos*3+1] = g;
+  rgbimage[rasterpos*3+0] = b;
+#endif
+}
+
+static void set_pixel(int rasterpos, int pnum)
+{
+  if(resolution&1) {
+    return set_pixel_medium(rasterpos, pnum);
+  } else {
+    return set_pixel_low(rasterpos, pnum);
+  }
 }
 
 static void fill_16pxl(int rasterpos, int pnum)
@@ -101,7 +140,7 @@ static void fill_16pxl(int rasterpos, int pnum)
   }
 }
 
-static int get_pixel(int videooffset, int pxlnum)
+static int get_pixel_low(int videooffset, int pxlnum)
 {
   int c;
   static int lastpos = 0;
@@ -120,6 +159,47 @@ static int get_pixel(int videooffset, int pxlnum)
        (((d[2]>>(15-pxlnum))&1)<<1)|
        (((d[3]>>(15-pxlnum))&1)));
   return c;
+}
+
+static int get_pixel_medium(int videooffset, int pxlnum)
+{
+  int c,c1,c2;
+  static int lastpos = 0;
+  static WORD d[4];
+
+  if((curaddr+videooffset) != lastpos) {
+    d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
+    d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
+    d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
+    d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+    lastpos = curaddr+videooffset;
+  }
+
+  if(pxlnum < 8) {
+    c1 = ((((d[2]>>(15-(pxlnum*2)))&1)<<1)|
+	  (((d[3]>>(15-(pxlnum*2)))&1)));
+    c2 = ((((d[2]>>(15-(pxlnum*2+1)))&1)<<1)|
+	  (((d[3]>>(15-(pxlnum*2+1)))&1)));
+  } else {
+    pxlnum -= 8;
+    c1 = ((((d[0]>>(15-(pxlnum*2)))&1)<<1)|
+	  (((d[1]>>(15-(pxlnum*2)))&1)));
+    c2 = ((((d[0]>>(15-(pxlnum*2+1)))&1)<<1)|
+	  (((d[1]>>(15-(pxlnum*2+1)))&1)));
+  }
+
+  c = (c1<<16)|c2;
+
+  return c;
+}
+
+static int get_pixel(int videooffset, int pxlnum)
+{
+  if(resolution&1) {
+    return get_pixel_medium(videooffset, pxlnum);
+  } else {
+    return get_pixel_low(videooffset, pxlnum);
+  }
 }
 
 static void set_16pxl(int rasterpos, int videooffset)

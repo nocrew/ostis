@@ -11,11 +11,11 @@ static void cmpm_b(struct cpu *cpu, WORD op)
   ry = op&0x7;
   
   s = mmu_read_byte(cpu->a[rx]);
-  d = mmu_read_byte(cpu->a[ry]);
   if(rx == 7)
     cpu->a[rx] += 2;
   else
     cpu->a[rx] += 1;
+  d = mmu_read_byte(cpu->a[ry]);
   if(ry == 7)
     cpu->a[ry] += 2;
   else
@@ -35,8 +35,8 @@ static void cmpm_w(struct cpu *cpu, WORD op)
   ry = op&0x7;
   
   s = mmu_read_word(cpu->a[rx]);
-  d = mmu_read_word(cpu->a[ry]);
   cpu->a[rx] += 2;
+  d = mmu_read_word(cpu->a[ry]);
   cpu->a[ry] += 2;
   r = d-s;
   
@@ -53,8 +53,8 @@ static void cmpm_l(struct cpu *cpu, WORD op)
   ry = op&0x7;
   
   s = mmu_read_long(cpu->a[rx]);
-  d = mmu_read_long(cpu->a[ry]);
   cpu->a[rx] += 4;
+  d = mmu_read_long(cpu->a[ry]);
   cpu->a[ry] += 4;
   r = d-s;
   

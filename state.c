@@ -137,8 +137,10 @@ void state_save(char *filename, struct state *state)
 
   f = fopen(filename, "wct");
   state_write_section_header(f, "STAT", state->size);
-  state_write_section(f, "STID", 4, (unsigned char *)&state->id);
-  state_write_section(f, "STVE", 4, (unsigned char *)&state->version);
+  state_write_section_header(f, "STID", 4);
+  state_write_file_long(f, state->id);
+  state_write_section_header(f, "STVE", 4);
+  state_write_file_long(f, state->version);
 
   state_write_section(f, state->cpu_state->id, 
 		      state->cpu_state->size,

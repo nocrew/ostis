@@ -8,13 +8,14 @@ YACC=yacc -d
 LEX=lex
 
 PARSER=expr
+PARSERFILE=expr.y expr.l
 PARSERSRC=expr.tab.c lex.expr.c
 PARSEROBJ=expr.tab.o lex.expr.o
 
 SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
-    midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c
+    midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c prefs.c
 OBJ=mmu.o ram.o rom.o cpu.o cartridge.o psg.o mfp.o shifter.o screen.o \
-    midi.o ikbd.o fdc.o rtc.o floppy.o event.o state.o
+    midi.o ikbd.o fdc.o rtc.o floppy.o event.o state.o prefs.o
 
 EMU_SRC=main.c $(SRC)
 EMU_OBJ=main.o $(OBJ)
@@ -49,6 +50,8 @@ $(LIBTEST):
 $(LIBDEBUG):
 	make -C debug
 
+$(PARSERSRC):	$(PARSER)
+
 $(PRG): $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
 
@@ -77,4 +80,4 @@ $(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
 clean:
 	make -C cpu clean
 	make -C debug clean
-	rm -f *.o *~ $(YSRC) $(LSRC) expr.tab.h $(PRG)
+	rm -f *.o *~ $(PARSERSRC) expr.tab.h $(PRG)

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "prefs.h"
 #include "mmu.h"
 #include "state.h"
 
@@ -94,7 +95,7 @@ void rom_init()
     return;
   }
   
-  f = fopen("tos.img", "rb");
+  f = fopen(prefs.tosimage, "rb");
   if(!f) {
     perror("open tos.img");
     exit(-1);

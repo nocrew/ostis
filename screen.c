@@ -2,10 +2,14 @@
 #include <stdlib.h>
 #include <SDL/SDL.h>
 
+#include "screen.h"
+
 static int disable = 0;
 static SDL_Surface *screen;
 
-#define PADDR(x, y) (screen->pixels + (y)*screen->pitch + (x)*screen->format->BytesPerPixel)
+#define PADDR(x, y) (screen->pixels + \
+                         ((y) + BORDER_SIZE) * screen->pitch + \
+                         ((x) + BORDER_SIZE) * screen->format->BytesPerPixel)
 
 void screen_init()
 {
@@ -17,7 +21,9 @@ void screen_init()
   atexit(SDL_Quit);
 #endif
 
-  screen = SDL_SetVideoMode(640, 400, 24, SDL_SWSURFACE|SDL_DOUBLEBUF);
+  screen = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
+                            400 + BORDER_SIZE * 2,
+                            24, SDL_SWSURFACE|SDL_DOUBLEBUF);
 }
 
 void screen_putpixel(int x, int y, long c, int dbg)

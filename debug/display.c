@@ -35,7 +35,7 @@ void display_put_pixel_screen(int x, int y, long c)
 {
   char *p;
 
-  p = PADDR(scr, x, y);
+  p = PADDR(scr, x + BORDER_SIZE, y + BORDER_SIZE);
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
   p[2] = (c&0xff);
@@ -96,8 +96,8 @@ void display_put_char(int x, int y, int f, int c)
 {
   SDL_Rect dst;
 
-  dst.x = x;
-  dst.y = y;
+  dst.x = x + BORDER_SIZE;
+  dst.y = y + BORDER_SIZE;
   
   SDL_BlitSurface(font[f][c], NULL, scr, &dst);
 }
@@ -111,7 +111,9 @@ void display_setup()
 
   atexit(SDL_Quit);
 
-  scr = SDL_SetVideoMode(640, 400, 24, SDL_SWSURFACE|SDL_DOUBLEBUF);
+  scr = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
+                         400 + BORDER_SIZE * 2,
+                         24, SDL_SWSURFACE|SDL_DOUBLEBUF);
 
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
   SDL_EnableUNICODE(1);

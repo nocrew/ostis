@@ -42,6 +42,8 @@ BSPC  Delete character
 
 Running mode:
 
-<key> Output PC to console
+<key> Send key to IKBD
+F11   Return to debugger
+F12   Output PC to console
 QUIT  Return to debugger
 

@@ -44,6 +44,11 @@ void screen_init()
 #else
   screen = SDL_SetVideoMode(512, 314, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
 #endif
+
+  if(screen == NULL) {
+    fprintf(stderr, "Did not get a video mode\n");
+    exit(1);
+  }
 }
 
 void screen_copyimage(unsigned char *src)

@@ -1,4 +1,4 @@
-abcd
+*abcd
 *add
 *adda
 *addi
@@ -33,7 +33,7 @@ chk
 *eori_to_sr
 *exg
 *ext
-illegal
+*illegal
 *jmp
 *jsr
 *lea
@@ -75,7 +75,7 @@ rtr
 *rts
 sbcd
 *scc
-stop
+*stop
 *sub
 *suba
 *subi

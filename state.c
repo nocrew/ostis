@@ -200,7 +200,7 @@ static struct state *state_find_state_by_id(long id)
   return NULL;
 }
 
-static long state_compress_rle(char *tmp, long size, char **input)
+static long state_compress_rle(unsigned char *tmp, long size, char **input)
 {
   char last;
   char *rle;
@@ -214,9 +214,10 @@ static long state_compress_rle(char *tmp, long size, char **input)
   }
 
   strncpy(rle, "RLE!", 4);
+  state_write_mem_long(&rle[4], size);
   last = tmp[0];
   cnt = 1;
-  j = 4; /* Skip RLE! header */
+  j = 8; /* Skip RLE! header */
 
   for(i=1;i<size;i++) {
     if((last == tmp[i]) && (i!=(size-1))) {
@@ -301,9 +302,86 @@ struct state *state_encode_delta(struct state *state, struct state *ref)
   return new;
 }
 
+static long state_uncompress_rle(unsigned char *rle, long size, char **output)
+{
+  int i,j;
+  long usize,ucnt;
+  unsigned int cnt;
+
+  if(strncmp("RLE!", rle, 4)) {
+    *output = malloc(size);
+    memcpy(*output, rle, size);
+    return size;
+  }
+
+  usize = state_read_mem_long(&rle[4]);
+  ucnt = 0;
+  *output = malloc(usize);
+
+  for(i=0;i<size;i++) {
+    if(i < (size-4) && (rle[i] == rle[i+1])) {
+      cnt = (rle[i+2]<<8)|rle[i+3];
+      if((ucnt+cnt) > usize) {
+	fprintf("ERROR! Illegal RLE data\n");
+	free(*output);
+	*output = NULL;
+	return 0;
+      }
+      for(j=0;j<cnt;j++) {
+	*output[ucnt++] = rle[i];
+      }
+    } else {
+      *output[ucnt++] = rle[i];
+      if(ucnt > usize) {
+	fprintf("ERROR! Illegal RLE data\n");
+	free(*output);
+	*output = NULL;
+	return 0;
+      }
+    }
+  }
+  if(ucnt != usize) {
+    fprintf("ERROR! Illegal RLE data\n");
+    free(*output);
+    *output = NULL;
+    return 0;
+  }
+
+  return usize;
+}
+
 struct state *state_decode_delta(struct state *state, struct state *ref)
 {
-  return NULL;
+  struct state *new;
+  char *tmp,*unrle;
+  int i;
+  long usize;
+  
+  new = (struct state *)malloc(sizeof(struct state));
+  if(new == NULL) return NULL;
+  tmp = (char *)malloc(ref->cpu_state->size);
+  if(tmp == NULL) return NULL;
+
+  usize = state_uncompress_rle(state->cpu_state->data,
+			       state->cpu_state->size,
+			       &unrle);
+  if(usize == 0) {
+    fprintf("ERROR! RLE uncompression failed.\n");
+    return NULL;
+  }
+
+  if(usize != ref->cpu_state->size) {
+    free(unrle);
+    fprintf("ERROR! State sizes conflict\n");
+    return NULL;
+  }
+
+  for(i=0;i<usize;i++) {
+    tmp[i] = unrle[i]^ref->cpu_data->data[i];
+  }
+  
+  new->cpu_state = state->cpu_state;
+  
 }
 
 struct state *state_unpack_delta(struct state *state)
@@ -311,6 +389,7 @@ struct state *state_unpack_delta(struct state *state)
   struct state *tmp, *result;
 
   if(state == NULL) return NULL;
+  return NULL;
 
   if(state->delta) {
     tmp = state_unpack_delta(state_find_state_by_id(state->delta));

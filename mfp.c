@@ -130,8 +130,11 @@ static void mfp_write_byte(LONG addr, BYTE data)
     if(!(mfpreg[TCDCR]&0x7)) timercnt[3] = data;
     break;
   }
-  
-  mfpreg[r] = data;
+  if((r != ISRA) && (r != ISRB)) {
+    mfpreg[r] = data;
+  } else {
+    mfpreg[r] &= data;
+  }
 }
 
 static void mfp_write_word(LONG addr, WORD data)
@@ -156,6 +159,7 @@ void mfp_init()
   if(!mfp) {
     return;
   }
+
   mfp->start = MFPBASE;
   mfp->size = MFPSIZE;
   mfp->name = strdup("MFP");
@@ -287,7 +291,7 @@ static int mfp_higher_ISR(int inum)
 
   t = ~((1<<(inum+1))-1);
 
-   return (ISR & t);
+  return (ISR & t);
 }
 
 void mfp_set_pending(int inum)
@@ -304,22 +308,21 @@ static void mfp_do_interrupt(int inum)
 
   if(!(IER & (1<<inum))) {
     mfp_clr_IPR(inum);
-    //    printf("DEBUG: IER not set for %d\n", inum);
+    //    if(inum == intnum[2]) printf("DEBUG: IER not set for %d\n", inum);
     return;
   }
 #if 1
   if((tmp = mfp_higher_ISR(inum))) {
-    //    printf("DEBUG: Higher ISR active for %d (%d higher)\n",
-    //	   inum, tmp);
+    //    if(inum == intnum[2]) printf("DEBUG: Higher ISR active for %d (%d higher)\n", inum, tmp);
     return;
   }
 #endif
   if(!(IMR & (1<<inum))) {
-    //    printf("DEBUG: IMR not set for %d\n", inum);
+    //    if(inum == intnum[2]) printf("DEBUG: IMR not set for %d\n", inum);
     return;
   }
   if(IPL >= 6) {
-    //    printf("DEBUG: IPL not low enough for %d (IPL == %d)\n", inum, IPL);
+    // printf("DEBUG: IPL not low enough for %d (IPL == %d)\n", inum, IPL);
     return;
   }
 

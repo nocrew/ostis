@@ -3,6 +3,7 @@
 
 void mfp_init();
 void mfp_print_status();
+void mfp_do_interrupt(struct cpu *, int);
 void mfp_do_interrupts(struct cpu *);
 void mfp_do_timerb_event(struct cpu *);
 

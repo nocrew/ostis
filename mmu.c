@@ -3,6 +3,7 @@
 #include "cpu.h"
 #include "mfp.h"
 #include "shifter.h"
+#include "ikbd.h"
 #include "fdc.h"
 #include "mmu.h"
 
@@ -68,6 +69,8 @@ BYTE mmu_read_byte_print(LONG addr)
 
   addr &= 0xffffff;
 
+  if(addr >= 0xff8000) return 0x2a;
+
   t = dispatch(addr);
   if(!t) {
     return 0;
@@ -84,6 +87,8 @@ WORD mmu_read_word_print(LONG addr)
 
   addr &= 0xffffff;
 
+  if(addr >= 0xff8000) return 0x2a2a;
+
   t = dispatch(addr);
   if(!t) {
     return 0;
@@ -99,6 +104,8 @@ LONG mmu_read_long_print(LONG addr)
   struct mmu *t;
 
   addr &= 0xffffff;
+
+  if(addr >= 0xff8000) return 0x2a2a2a2a;
 
   t = dispatch(addr);
   if(!t) {
@@ -256,4 +263,5 @@ void mmu_do_interrupts(struct cpu *cpu)
   mfp_do_interrupts(cpu);
   shifter_do_interrupts(cpu);
   fdc_do_interrupts(cpu);
+  ikbd_do_interrupts();
 }

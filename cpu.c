@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "common.h"
 #include "debug/debug.h"
+#include "event.h"
 #include "cpu.h"
 #include "mfp.h"
 #include "expr.h"
@@ -433,11 +434,22 @@ int cpu_run()
 
   stop = 0;
 
-  while(1) {
+  event_init();
+
+  while(!stop) {
     ret = cpu_step_instr(CPU_RUN);
-    if(debug_short_event() == DEBUG_QUIT) return CPU_BREAKPOINT;
-    if(ret != CPU_OK) return ret;
+    if(event_poll() == EVENT_DEBUG) {
+      stop = CPU_BREAKPOINT;
+      break;
+    }
+    if(ret != CPU_OK) {
+      stop = ret;
+      break;
+    }
   }
+  
+  event_exit();
+  return ret;
 }
 
 void cpu_print_status()

@@ -14,9 +14,9 @@ YOBJ=y.tab.o
 LOBJ=lex.yy.o
 
 SRC=main.c mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
-    midi.c ikbd.c fdc.c rtc.c floppy.c
+    midi.c ikbd.c fdc.c rtc.c floppy.c event.c
 OBJ=main.o mmu.o ram.o rom.o cpu.o cartridge.o psg.o mfp.o shifter.o screen.o \
-    midi.o ikbd.o fdc.o rtc.o floppy.o
+    midi.o ikbd.o fdc.o rtc.o floppy.o event.o
 LIBCPU=libcpu.a
 LIBDEBUG=libdebug.a
 LIB=-Lcpu -lcpu -Ldebug -ldebug -lSDL -lpthread

@@ -281,7 +281,7 @@ static int mfp_higher_ISR(int inum)
   return (ISR & t);
 }
 
-static void mfp_do_interrupt(struct cpu *cpu, int inum)
+void mfp_do_interrupt(struct cpu *cpu, int inum)
 {
   int vec;
 

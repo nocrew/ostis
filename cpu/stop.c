@@ -24,6 +24,7 @@ static struct cprint *stop_print(LONG addr, WORD op)
 
   strcpy(ret->instr, "STOP");
   sprintf(ret->data, "#$%04x", mmu_read_word_print(addr+ret->size));
+  ret->size += 2;
   
   return ret;
 }

@@ -1,6 +1,7 @@
 #include "common.h"
 #include "win.h"
 #include "layout.h"
+#include "shifter.h"
 #include "display.h"
 #include "mmu.h"
 #include "draw.h"
@@ -86,12 +87,16 @@ void layout_draw_info(int lnum, int wnum)
 	  CHKV?'V':' ',
 	  CHKC?'C':' ');
   draw_string(8, 9+8*(font+1)*lcnt, font, text);
+  sprintf(text, "Raster beam: %d", shifter_get_vsync());
+  draw_string(400, 9+8*(font+1)*lcnt, font, text);
   lcnt++;
   cprint = cprint_instr(cpu->pc);
   if(!cprint) printf("DEBUG: ERROR!!!!\n");
   sprintf(text, "PC:%08X  %s %s", cpu->pc, cprint->instr, cprint->data);
   draw_string(8, 9+8*(font+1)*lcnt, font, text);
   free(cprint);
+  sprintf(text, "Last cycle count: %d", cpu->icycle);
+  draw_string(400, 9+8*(font+1)*lcnt, font, text);
   lcnt+=2;
   
   if(rows > lcnt) {

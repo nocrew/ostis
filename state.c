@@ -144,6 +144,59 @@ static long state_get_mmu_size(struct mmu_state *state)
   return size;
 }
 
+struct cpu_state *state_cpu_state_dup(struct cpu_state *cpu_state)
+{
+  struct cpu_state *new;
+
+  new = (struct cpu_state *)malloc(sizeof(struct cpu_state));
+
+  strncpy(new->id, cpu_state->id, 4);
+  new->size = cpu_state->size;
+  new->data = (char *)malloc(new->size);
+  memcpy(new->data, cpu_state->data, new->size);
+
+  return new;
+}
+
+struct mmu_state *state_mmu_state_dup(struct mmu_state *mmu_state)
+{
+  struct mmu_state *first,*new;
+
+  first = NULL;
+
+  while(mmu_state) {
+    new = (struct mmu_state *)malloc(sizeof(struct mmu_state));
+    
+    strncpy(new->id, mmu_state->id, 4);
+    new->size = mmu_state->size;
+    new->data = (char *)malloc(new->size);
+    memcpy(new->data, mmu_state->data, new->size);
+    new->next = first;
+    first = new;
+    mmu_state = mmu_state->next;
+  }
+
+  return first;
+}
+
+struct state *state_dup(struct state *state)
+{
+  struct state *new;
+
+  new = (struct state *)malloc(sizeof(struct state));
+  if(new == NULL) return NULL;
+
+  new->id = state->id;
+  new->version = state->version;
+  new->size = state->size;
+  new->timestamp = state->timestamp;
+  new->delta = state->delta;
+  new->cpu_state = state_cpu_state_dup(state->cpu_state);
+  new->mmu_state = state_mmu_state_dup(state->mmu_state);
+
+  return new;
+}
+
 struct state *state_collect()
 {
   struct state *new;
@@ -350,17 +403,30 @@ static long state_uncompress_rle(unsigned char *rle, long size, char **output)
   return usize;
 }
 
-struct state *state_decode_delta(struct state *state, struct state *ref)
+static struct mmu_state *state_find_mmu_state_id(struct state *state,
+						 char *id)
 {
-  struct state *new;
+  struct mmu_state *mmu;
+  
+  mmu = state->mmu_state;
+  while(mmu) {
+    if(!strncmp(mmu->id, id, 4)) return mmu;
+    mmu = mmu->next;
+  }
+  return NULL;
+}
+
+struct state *state_decode_delta(struct state *coded, struct state *ref)
+{
+  struct state *state;
+  struct mmu_state *mmu,*mmuref;
   char *tmp,*unrle;
   int i;
   long usize;
   
-  return NULL;
+  state = state_dup(coded);
+  if(state == NULL) return NULL;
 
-  new = (struct state *)malloc(sizeof(struct state));
-  if(new == NULL) return NULL;
   tmp = (char *)malloc(ref->cpu_state->size);
   if(tmp == NULL) return NULL;
 
@@ -381,10 +447,52 @@ struct state *state_decode_delta(struct state *state, struct state *ref)
   for(i=0;i<usize;i++) {
     tmp[i] = unrle[i]^ref->cpu_state->data[i];
   }
+
+  free(state->cpu_state->data);
+  state->cpu_state->data = tmp;
+  state->cpu_state->size = usize;
+
+  free(unrle);
+
+  mmu = state->mmu_state;
+
+  while(mmu) {
+    usize = state_uncompress_rle(mmu->data, mmu->size, &unrle);
+
+    if(usize == 0) {
+      fprintf(stderr, "ERROR! RLE uncompression failed.\n");
+      return NULL;
+    }
+
+    mmuref = state_find_mmu_state_id(ref, mmu->id);
+    if(mmuref == NULL) {
+      fprintf(stderr, "ERROR! MMU Reference data missing.\n");
+      return NULL;
+    }
+    
+    if(usize != mmuref->size) {
+      free(unrle);
+      fprintf(stderr, "ERROR! State sizes conflict\n");
+      return NULL;
+    }
+    
+    tmp = (char *)malloc(usize);
+    if(tmp == NULL) return NULL;
+    
+    for(i=0;i<usize;i++) {
+      tmp[i] = unrle[i]^mmuref->data[i];
+    }
+    
+    free(mmu->data);
+    mmu->data = tmp;
+    mmu->size = usize;
+    
+    free(unrle);
+
+    mmu = mmu->next;
+  }
   
-  new->cpu_state = state->cpu_state;
-  
-  return NULL;
+  return state;
 }
 
 struct state *state_unpack_delta(struct state *state)
@@ -397,10 +505,11 @@ struct state *state_unpack_delta(struct state *state)
   if(state->delta) {
     tmp = state_unpack_delta(state_find_state_by_id(state->delta));
     if(tmp == NULL) return NULL;
-    result = state_decode_delta(tmp, state);
+    result = state_decode_delta(state, tmp);
     if(result == NULL) {
       if(tmp->delta == -1)
 	state_clear(tmp);
+      return NULL;
     }
     result->delta = -1;
     if(tmp->delta == -1)

@@ -26,7 +26,7 @@ static void abcd(struct cpu *cpu, WORD op)
     d = 10*((db&0xf0)>>4)+((db&0xf));
     r = s+d;
     if(CHKX) r+=1;
-    if(r>=100) { SETC; SETX; } else { CLRX; }
+    if(r>=100) { SETC; SETX; } else { CLRC; CLRX; }
     if(r&0xff) SETZ;
     rb = (r%10)|(((r/10)%10)<<4);
     mmu_write_byte(cpu->a[rx], rb);
@@ -38,7 +38,7 @@ static void abcd(struct cpu *cpu, WORD op)
     d = 10*((db&0xf0)>>4)+((db&0xf));
     r = s+d;
     if(CHKX) r+=1;
-    if(r>=100) { SETC; SETX; } else { CLRX; }
+    if(r>=100) { SETC; SETX; } else { CLRC; CLRX; }
     if(r&0xff) SETZ;
     rb = (r%10)|(((r/10)%10)<<4);
     cpu->d[ry] = (cpu->d[ry]&0xffffff00)|rb;

@@ -1,6 +1,37 @@
 File format
 -----------
 
+size  count	data
+---------------------
+long	1	"FORM"
+long	1	<entire_file_size> - 8
+
+long	1	"STCT"
+long	1	<stct_size>
+long	1	Number of states in file.
+
+...REPEAT <state_count>...
+long	1	"STIN"
+long	1	<STATE_info_size> (Always 24 at the moment)
+long	1	<id_number>
+long	1	<version_number>
+long	1	<state_size> (CPU+MMU ; data only)
+long	2	<timestamp>
+long	1	Delta compression reference <id_number> (0 means unpacked).
+
+long	1	<CPU module id>
+long	1	<cpu_state_size>
+byte	N	<cpu_state_size> bytes of data.
+byte	align4	-
+...REPEAT...
+long	1	<MMU module id>
+long	1	<module_size>
+byte	N	<module_size> bytes of data.
+byte	align4	-
+...ENDREP...
+...ENDREP <state_count>...
+
+
 Note:
 All integers are in big endian order.
 All long values are aligned to 4 bytes.
@@ -20,33 +51,13 @@ N:	    variable count
 alignN:	    padding to align data to N bytes
 
 
-size  count	data
----------------------
-long	1	"FORM"
-long	1	<entire_file_size> - 8
+Delta compression consists of the following:
 
-long	1	"STCT"
-long	1	<stct_size>
-long	1	Number of states in file.
+Each data area for a module is XORed with the corresponding data area of
+the reference state. The data is then RLE compressed. If the RLE compressed
+data is larger than the original data, the original data is stored. Each
+RLE compressed block begins with the four byte id "RLE!" to identify whether
+or not decompression should be applied.
 
-...REPEAT <state_count>...
-long	1	"STIN"
-long	1	<STATE_info_size> (Always 24 at the moment)
-long	1	<id_number>
-long	1	<version_number>
-long	1	<state_size> (CPU+MMU (both data and headers))
-long	2	<timestamp>
-long	1	Delta pack reference <id_number> (0 means unpacked).
 
-long	1	<CPU module id>
-long	1	<cpu_state_size>
-byte	N	<cpu_state_size> bytes of data.
-byte	align4	-
-...REPEAT...
-long	1	<MMU module id>
-long	1	<module_size>
-byte	N	<module_size> bytes of data.
-byte	align4	-
-...ENDREP...
-...ENDREP <state_count>...
 

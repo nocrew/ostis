@@ -6,7 +6,9 @@
 #include "cpu.h"
 #include "state.h"
 
-static long lastid = 0;
+static struct state_list *list = NULL;
+
+static long maxid = 0;
 struct state_section {
   char id[4];
   long size;
@@ -135,10 +137,13 @@ static long state_get_mmu_size(struct mmu_state *state)
 struct state *state_collect()
 {
   struct state *new;
+  struct state_list *new_list;
 
   new = (struct state *)malloc(sizeof(struct state));
-
   if(new == NULL) return NULL;
+
+  new_list = (struct state_list *)malloc(sizeof(struct state_list));
+  if(new_list == NULL) return NULL;
   
   new->cpu_state = cpu_state_collect();
   if(new->cpu_state == NULL) {
@@ -152,16 +157,180 @@ struct state *state_collect()
     return NULL;
   }
 
-  lastid++;
+  maxid++;
   new->size = new->cpu_state->size + state_get_mmu_size(new->mmu_state);
-  new->id = lastid;
+  new->id = maxid;
   new->version = STATE_VERSION;
+  new->timestamp = 0;
+  new->delta = 0;
 
+  new_list->next = list;
+  new_list->state = new;
+  list = new_list;
+
+  return new;
+}
+
+static struct state *state_find_state_by_id(long id)
+{
+  struct state_list *t;
+
+  t = list;
+
+  while(t) {
+    if(id == t->state->id) return t->state;
+    t = t->next;
+  }
+}
+
+static long state_compress_rle(char *tmp, long size, char **input)
+{
+  char last;
+  char *rle;
+  int i,cnt,j;
+
+  rle = (char *)malloc(size*2+8);
+  *input = rle;
+  if(rle == NULL) {
+    *input = NULL;
+    return 0;
+  }
+
+  strncpy(rle, "RLE!", 4);
+  last = tmp[0];
+  cnt = 1;
+  j = 4; /* Skip RLE! header */
+
+  for(i=1;i<size;i++) {
+    if((last == tmp[i]) && (i!=(size-1))) {
+      cnt++;
+      if(cnt >= 65534) {
+        rle[j++] = last;
+        rle[j++] = last;
+        rle[j++] = cnt>>8;
+        rle[j++] = cnt;
+        cnt = 0;
+      }
+    } else {
+      if(i==(size-1)) {
+        if(last == tmp[i]) {
+          cnt++;
+        }
+      }
+      if(cnt > 1) {
+        rle[j++] = last;
+        rle[j++] = last;
+        rle[j++] = cnt>>8;
+        rle[j++] = cnt;
+        cnt = 1;
+      } else {
+        rle[j++] = last;
+      }
+      if(i==(size-1)) {
+        if(last != tmp[i]) {
+          rle[j++] = tmp[i];
+        }
+      }
+    }
+    last = tmp[i];
+  }
+
+  if(j >= size) {
+    free(rle);
+    *input = NULL;
+    return 0;
+  }
+  
+  rle = (char *)malloc(j);
+  memcpy(rle, *input, j);
+  free(*input);
+  *input = rle;
+
+  return j;
+}
+
+struct state *state_encode_delta(struct state *state, struct state *ref)
+{
+  struct state *new;
+  char *tmp,*rle;
+  int i;
+  long rle_size;
+
+  tmp = (char *)malloc(state->cpu_state->size);
+  if(tmp == NULL) return NULL;
+  new = (struct state *)malloc(sizeof(struct state));
+  if(new == NULL) return NULL;
+
+  new->id = state->id;
+  new->version = state->version;
+  new->timestamp = state->timestamp;
+  new->delta = ref->id;
+
+  for(i=0;i<state->cpu_state->size;i++) {
+    tmp[i] = state->cpu_state->data[i]^ref->cpu_state->data[i];
+  }
+  rle_size = state_compress_rle(tmp, state->cpu_state->size, &rle);
+  new->cpu_state = state->cpu_state;
+  state->cpu_state = NULL;
+  free(new->cpu_state->data);
+  if(rle_size == 0) {
+    new->cpu_state->data = tmp;
+  } else {
+    new->cpu_state->size = rle_size;
+    new->cpu_state->data = rle;
+    free(tmp);
+  }
+
+  return new;
+}
+
+struct state *state_decode_delta(struct state *state, struct state *ref)
+{
+  return NULL;
+}
+
+struct state *state_unpack_delta(struct state *state)
+{
+  struct state *tmp, *result;
+
+  if(state == NULL) return NULL;
+
+  if(state->delta) {
+    tmp = state_unpack_delta(state_find_state_by_id(state->delta));
+    if(tmp == NULL) return NULL;
+    result = state_decode_delta(tmp, state);
+    if(result == NULL) {
+      if(tmp->delta == -1)
+	state_clear(tmp);
+    }
+    result->delta = -1;
+    if(tmp->delta == -1)
+      state_clear(tmp);
+    return result;
+  }
+  
+  return state;
+}
+
+struct state *state_pack_delta(struct state *state, struct state *ref)
+{
+  struct state *tmp, *new;
+
+  tmp = state_unpack_delta(ref);
+  new = state_encode_delta(state, tmp);
+  if(tmp->delta == -1)
+    state_clear(tmp);
+  state_clear(state);
   return new;
 }
 
 void state_restore(struct state *state)
 {
+  if(state->version != STATE_VERSION) {
+    fprintf(stderr, "Incompatible state version %ld != %d\n",
+	    state->version, STATE_VERSION);
+    return;
+  }
   cpu_state_restore(state->cpu_state);
   mmu_state_restore(state->mmu_state);
 }

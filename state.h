@@ -7,16 +7,23 @@
 
 struct state {
   long id;
-  long size;
   long version;
+  long size;
+  uint64_t timestamp;
+  long delta;
   struct cpu_state *cpu_state;
   struct mmu_state *mmu_state;
+};
+
+struct state_list {
+  struct state_list *next;
+  struct state *state;
 };
 
 #define STATE_INVALID 0
 #define STATE_VALID 1
 
-#define STATE_VERSION 1
+#define STATE_VERSION 2
 
 struct state *state_collect();
 void state_restore(struct state *);

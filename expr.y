@@ -1,4 +1,4 @@
-%token <str> PC SR LABEL SIZEW
+%token <str> PC SR LABEL SIZEW SP SSP USP
 %token <val> AREG DREG VAL WIN
 %type <val> expr
 %left '-' '+'
@@ -38,6 +38,9 @@ expr:	VAL { $$ = $1; }
 	| DREG { $$ = cpu->d[$1]; }
 	| PC { $$ = cpu->pc; }
 	| SR { $$ = cpu->sr; }
+	| SP { $$ = cpu->a[7]; }
+	| SSP { if(CHKS) { $$ = cpu->a[7]; } else { $$ = cpu->ssp; } }
+	| USP { if(!CHKS) { $$ = cpu->a[7]; } else { $$ = cpu->usp; } }
 	| WIN { $$ = debug_win_addr($1); }
 	| LABEL { if(cprint_label_exists($1)) {
                     $$ = cprint_label_addr($1);

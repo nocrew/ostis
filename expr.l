@@ -19,24 +19,33 @@
   }
 %}
 %%
-a[0-7] {
+[aA][0-7] {
   yylval.val = yytext[1]-'0';
   return AREG;
 }
-d[0-7] {
+[dD][0-7] {
   yylval.val = yytext[1]-'0';
   return DREG;
 }
 \.w {
   return SIZEW;
 }
-pc {
+[pP][cC] {
   return PC;
 }
-sr {
+[sS][rR] {
   return SR;
 }
-m[0-9] {
+[sS][pP] {
+  return SP;
+}
+[sS][sS][pP] {
+  return SSP;
+}
+[uU][sS][pP] {
+  return USP;
+}
+[mM][0-9] {
   yylval.val = yytext[1]-'0';
   return WIN;
 }

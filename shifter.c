@@ -185,7 +185,12 @@ static void shifter_gen_picture(long rasterpos)
 
   if((rasterpos - lastrasterpos) < 0) return;
 
-  if((rasterpos - lastrasterpos) < 30) {
+#if 0
+  printf("Shifter: gen_picture %d - %ld (%ld)\n", 
+	 lastrasterpos, rasterpos, rasterpos - lastrasterpos);
+#endif
+
+  if((rasterpos - lastrasterpos) < 300000) {
     //    printf("DEBUG: raster: %ld - %d == %ld\n", rasterpos, lastrasterpos,
     //	   rasterpos - lastrasterpos);
     for(i=lastrasterpos; i<=rasterpos; i++) {
@@ -197,22 +202,23 @@ static void shifter_gen_picture(long rasterpos)
 
   left = (16-(lastrasterpos%16))%16;
   right = rasterpos%16;
-  mid = ((rasterpos-right-left)-((lastrasterpos+16)&0xfffffff0))/16;
+  mid = ((rasterpos-right-left)-((lastrasterpos+15)&0xfffffff0))/16;
 
   for(i=0;i<left;i++) {
     shifter_gen_pixel(i+lastrasterpos);
   }
-  lastrasterpos += i;
+  lastrasterpos += left;
 
   for(i=0;i<mid;i++) {
     shifter_gen_16pxl(i*16+lastrasterpos);
   }
-  lastrasterpos += i*16;
+  lastrasterpos += mid*16;
 
   for(i=0;i<right;i++) {
     shifter_gen_pixel(i+lastrasterpos);
   } 
-  lastrasterpos += i;
+  lastrasterpos += right;
+  lastrasterpos++;
 }
 
 void shifter_build_image()
@@ -267,7 +273,7 @@ static BYTE shifter_read_byte(LONG addr)
     return resolution;
   default:
     if((addr >= 0xff8240) &&
-       (addr <= 0xff825e)) {
+       (addr <= 0xff825f)) {
       if(addr&1)
 	return palette[(addr-0xff8240)>>1]&0xff;
       else
@@ -446,7 +452,7 @@ void shifter_build_ppm_old()
   write(ppmout, image, 192000);
 }
 
-void shifter_do_interrupts(struct cpu *cpu)
+void shifter_do_interrupts(struct cpu *cpu, int noint)
 {
   long tmpcpu;
   tmpcpu = cpu->cycle - lastcpucnt;
@@ -464,6 +470,8 @@ void shifter_do_interrupts(struct cpu *cpu)
   if(vsync < 0) {
     /* vsync_interrupt */
     shifter_gen_picture(160256);
+    if(cpu->debug)
+      printf("Shifter: VBL Done\n");
     scrptr = curaddr = scraddr;
     //vsync += MAX_CYCLE/((syncreg&2)?50:60);
     vsync += 160256;
@@ -474,8 +482,11 @@ void shifter_do_interrupts(struct cpu *cpu)
     lastrasterpos = 0;
     //    shifter_build_ppm();
     screen_swap();
-    if(IPL < 4)
+    //    cpu_set_exception(28);
+#if 1
+    if(!noint && (IPL < 4))
       cpu_set_exception(28);
+#endif
   }
   hsync -= tmpcpu;
   if(hsync < 0) {
@@ -486,8 +497,11 @@ void shifter_do_interrupts(struct cpu *cpu)
     hsync += 512;
     //    gen_scrptr(160256-vsync);
     hline++;
-    if(IPL < 2)
+    //    cpu_set_exception(26);
+#if 1
+    if(!noint && (IPL < 2))
       cpu_set_exception(26);
+#endif
   }
   
   lastcpucnt = cpu->cycle;

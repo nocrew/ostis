@@ -60,6 +60,22 @@ void screen_copyimage(unsigned char *src)
 #endif
 }
 
+void screen_clear()
+{
+  int i;
+  unsigned char *p;
+
+  p = screen->pixels;
+
+  for(i=0;i<512*314;i++) {
+    if((((i/512)&1) && (i&1)) ||
+       (!((i/512)&1) && !(i&1)))
+      p[i*3+0] = p[i*3+1] = p[i*3+2] = 0;
+    else
+      p[i*3+0] = p[i*3+1] = p[i*3+2] = 0xff;
+  }
+}
+
 void screen_putpixel(int x, int y, long c)
 {
   unsigned char *p;

@@ -78,6 +78,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     break;
   case SDLK_d:
     if(debugmode) debugmode = 0; else debugmode = 1;
+    if(cpu->debug) cpu->debug = 0; else cpu->debug = 1;
     break;
   case SDLK_t:
     if(k.mod & KMOD_ALT)
@@ -190,6 +191,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     break;
   case SDLK_c:
     if(k.mod & KMOD_CTRL) return 1;
+    screen_clear();
     break;
   default:
     break;
@@ -219,6 +221,8 @@ static int debug_do_key_edit(SDL_KeyboardEvent key)
      (u == '$') || (u == '-') ||
      (u == '+') || (u == '*') ||
      (u == '/') || (u == '_') ||
+     (u == '|') || (u == '&') ||
+     (u == '^') || (u == '~') ||
      (u == '\\') || (u == '.') ||
      (u == '!') || (u == '<') ||
      (u == '>') ||

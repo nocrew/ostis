@@ -25,9 +25,17 @@ typedef int32_t SLONG;
 
 #include "shifter.h"
 
+#if 0
 #define ENTER do { if(cpu->debug) printf("----\nDEBUG: Entering: %s()\n----\n\n", __func__); } while(0);
 #define EXIT do { if(cpu->debug) printf("DEBUG: Exiting: %s()\n", __func__); } while(0);
 #define ENDLOOP do { shifter_build_image(1); screen_swap(); } while(1);
+#else
+#define ENTER 
+#define EXIT 
+#define ENDLOOP
+
+#endif
+
 
 #define MAX(x, y) (((x)>(y))?(x):(y))
 #define MIN(x, y) (((x)<(y))?(x):(y))

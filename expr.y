@@ -1,5 +1,6 @@
 %token <str> PC SR LABEL SIZEW SP SSP USP
 %token <val> AREG DREG VAL WIN
+%token EQ NE LT LE GT GE BAND LAND BOR LOR BXOR BNOT LNOT
 %type <val> expr
 %left '-' '+'
 %left '*' '/'
@@ -57,6 +58,19 @@ expr:	VAL { $$ = $1; }
 	| '(' expr ')' { $$ = $2; }
 	| '[' expr ']' { $$ = mmu_read_long_print($2); }
 	| '[' expr ']' SIZEW { $$ = mmu_read_word_print($2); }
+	| expr EQ expr { $$ = ($1 == $3); }
+	| expr NE expr { $$ = ($1 != $3); }
+	| expr LT expr { $$ = ($1 < $3); }
+	| expr LE expr { $$ = ($1 <= $3); }
+	| expr GT expr { $$ = ($1 > $3); }
+	| expr GE expr { $$ = ($1 >= $3); }
+	| expr BXOR expr { $$ = ($1 ^ $3); }
+	| expr BOR expr { $$ = ($1 | $3); }
+	| expr BAND expr { $$ = ($1 & $3); }
+	| expr LOR expr { $$ = ($1 || $3); }
+	| expr LAND expr { $$ = ($1 && $3); }
+	| BNOT expr { $$ = ~ $2; }
+	| LNOT expr { $$ = ! $2; }
 	;
 %% 
 void yyerror(char *s)

@@ -61,11 +61,25 @@
   yylval.val = strtol(&yytext[1], NULL, 10);
   return VAL;
 }
+= { return EQ; }
+== { return EQ; }
+!= { return NE; }
+[<] { return LT; }
+[<]= { return LE; }
+> { return GT; }
+>= { return GE; }
+& { return BAND; }
+&& { return LAND; }
+[|] { return BOR; }
+[|][|] { return LOR; }
+[\^] { return BXOR; }
+~ { return BNOT; }
+! { return LNOT; }
 [a-zA-Z][a-zA-Z0-9_]+ {
   yylval.str = strdup(yytext);
   return LABEL;
 }
-[()\[\]+\-*/=\n] {
+[()\[\]+\-*/\n] {
   return *yytext;
 }
 %%

@@ -25,10 +25,8 @@ struct cpubrk {
 
 struct cpuwatch {
   struct cpuwatch *next;
-  char *left;
-  char *right;
+  char *cond;
   int cnt;
-  int mode;
 };
 
 static struct cpudbg *dbg = NULL;
@@ -145,7 +143,7 @@ static void cpu_do_exception(int vnum)
       cpu_do_cycle(48, 0);
       cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
     } else {
-      printf("Missed interrupt: %d, IPL == %d\n", i, IPL);
+      //      printf("Missed interrupt: %d, IPL == %d\n", i, IPL);
     }
   } else if(vnum >= 64) {
     cpu_set_sr((cpu->sr&0xf0ff)|0x600);
@@ -313,8 +311,7 @@ static void cpu_remove_watchpoint(struct cpuwatch *r)
   if(!r) return;
   if(watch == r) {
     watch = r->next;
-    free(r->left);
-    free(r->right);
+    free(r->cond);
     free(r);
     return;
   }
@@ -324,8 +321,7 @@ static void cpu_remove_watchpoint(struct cpuwatch *r)
   while(t) {
     if(t->next == r) {
       t->next = r->next;
-      free(r->left);
-      free(r->right);
+      free(r->cond);
       free(r);
       return;
     }
@@ -337,33 +333,24 @@ static int cpu_dec_watchpoint(int trace)
 {
   int trig;
   struct cpuwatch *t,*l;
-  LONG laddr,raddr;
+  LONG res;
 
   t = watch;
   trig = 0;
   while(t) {
-    if(expr_parse(&laddr, t->left) == EXPR_FAILURE) {
+    if(expr_parse(&res, t->cond) == EXPR_FAILURE) {
       cpu_remove_watchpoint(t);
       return 0;
     }
-    if(expr_parse(&raddr, t->right) == EXPR_FAILURE) {
-      cpu_remove_watchpoint(t);
-      return 0;
-    }
-    if(((t->mode == CPU_WATCH_EQ) && (laddr == raddr)) ||
-       ((t->mode == CPU_WATCH_NE) && (laddr != raddr)) ||
-       ((t->mode == CPU_WATCH_GT) && (laddr > raddr)) ||
-       ((t->mode == CPU_WATCH_GE) && (laddr >= raddr)) ||
-       ((t->mode == CPU_WATCH_LT) && (laddr < raddr)) ||
-       ((t->mode == CPU_WATCH_LE) && (laddr <= raddr))) {
+    if(res) {
       if(t->cnt != -1)
-        t->cnt--;
+	t->cnt--;
       l = t->next;
       if(t->cnt == 0) {
-        cpu_remove_watchpoint(t);
-        trig = 1;
+	cpu_remove_watchpoint(t);
+	trig = 1;
       } else if((t->cnt == -1) && (!trace)) {
-        trig = 1;
+	trig = 1;
       }
       t = l;
     } else {
@@ -373,15 +360,13 @@ static int cpu_dec_watchpoint(int trace)
   return trig;
 }
 
-void cpu_set_watchpoint(char *left, char *right, int cnt, int mode)
+void cpu_set_watchpoint(char *cond, int cnt)
 {
   struct cpuwatch *t;
   
   t = (struct cpuwatch *)malloc(sizeof(struct cpuwatch));
-  t->left = left;
-  t->right = right;
+  t->cond = cond;
   t->cnt = cnt;
-  t->mode = mode;
   t->next = watch;
   watch = t;
 }
@@ -399,7 +384,7 @@ int cpu_step_instr(int trace)
 
   cpu_debug_check(cpu->pc);
   if(cpu->debug) {
-    cpu_print_status();
+    printf("DEBUG: PC == 0x%x\n", cpu->pc);
   }
 #endif
 
@@ -416,7 +401,6 @@ int cpu_step_instr(int trace)
     cpu->exception_pending = -2;
 #endif
 
-  //  printf("DEBUG: PC == 0x%x\n", cpu->pc);
 
   if(!cpu->stopped) {
     op = fetch_instr(cpu);
@@ -501,6 +485,7 @@ void cpu_do_cycle(LONG cnt, int noint)
     cnt = (cnt&0xfffffffc)+4;
   }
   cpu->cycle += cnt;
+  shifter_do_interrupts(cpu, noint);
   if(noint) return;
 
   mmu_do_interrupts(cpu);

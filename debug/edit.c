@@ -127,15 +127,10 @@ static int edit_do_setbrk()
 
 static int edit_do_setwatch()
 {
-  LONG addr;
-  int cnt,mode;
+  int cnt;
   unsigned char text[80],*tmp;
-  
   if(strlen(edit.text) == 0) return EDIT_FAILURE;
   if(strchr(edit.text, ',') != strrchr(edit.text, ',')) return EDIT_FAILURE;
-  if(strchr(edit.text, '=') != strrchr(edit.text, '=')) return EDIT_FAILURE;
-  if(strchr(edit.text, '>') != strrchr(edit.text, '>')) return EDIT_FAILURE;
-  if(strchr(edit.text, '<') != strrchr(edit.text, '<')) return EDIT_FAILURE;
 
   strcpy(text, edit.text);
 
@@ -155,74 +150,12 @@ static int edit_do_setwatch()
     cnt = 1;
   }
 
-  tmp = strchr(text, '=');
-  if(tmp) {
-    tmp[0] = '\0';
-    tmp++;
-    if(strlen(tmp) == 0) return EDIT_FAILURE;
-
-    mode = CPU_WATCH_EQ;
-
-    if(text[strlen(text)-1] == '!') {
-      mode = CPU_WATCH_NE;
-      text[strlen(text)-1] = '\0';
-    } else if(text[strlen(text)-1] == '<') {
-      mode = CPU_WATCH_LE;
-      text[strlen(text)-1] = '\0';
-    } else if(text[strlen(text)-1] == '>') {
-      mode = CPU_WATCH_GE;
-      text[strlen(text)-1] = '\0';
-    }
-  } else {
-    tmp = strchr(text, '>');
-    if(tmp) {
-      tmp[0] = '\0';
-      tmp++;
-      if(strlen(tmp) == 0) return EDIT_FAILURE;
-      mode = CPU_WATCH_GT;
-    } else {
-      tmp = strchr(text, '<');
-      if(tmp) {
-	tmp[0] = '\0';
-	tmp++;
-	if(strlen(tmp) == 0) return EDIT_FAILURE;
-	mode = CPU_WATCH_LT;
-      } else {
-	return EDIT_FAILURE;
-      }
-    }
-  }
-
-  if(expr_parse(&addr, text) == EXPR_FAILURE)
-    return EDIT_FAILURE;
-  if(expr_parse(&addr, tmp) == EXPR_FAILURE)
-    return EDIT_FAILURE;
-
-  switch(mode) {
-  case CPU_WATCH_EQ:
-    printf("DEBUG: \"%s\" == \"%s\"\n", text, tmp);
-    break;
-  case CPU_WATCH_NE:
-    printf("DEBUG: \"%s\" != \"%s\"\n", text, tmp);
-    break;
-  case CPU_WATCH_GT:
-    printf("DEBUG: \"%s\" > \"%s\"\n", text, tmp);
-    break;
-  case CPU_WATCH_GE:
-    printf("DEBUG: \"%s\" >= \"%s\"\n", text, tmp);
-    break;
-  case CPU_WATCH_LT:
-    printf("DEBUG: \"%s\" < \"%s\"\n", text, tmp);
-    break;
-  case CPU_WATCH_LE:
-    printf("DEBUG: \"%s\" <= \"%s\"\n", text, tmp);
-    break;
-  }
+  if(strlen(text) == 0) return EDIT_FAILURE;
 
   if(cnt == 0) {
     return EDIT_FAILURE;
   } else if(cnt) {
-    cpu_set_watchpoint(strdup(text), strdup(tmp), cnt, mode);
+    cpu_set_watchpoint(strdup(text), cnt);
     return EDIT_SUCCESS;
   }
   

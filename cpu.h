@@ -92,7 +92,7 @@ void cpu_set_exception(int);
 void cpu_add_debugpoint(LONG);
 void cpu_set_sr(WORD);
 int cpu_find_breakpoint_lowest_cnt(LONG);
-void cpu_set_watchpoint(char *, char *, int, int);
+void cpu_set_watchpoint(char *, int);
 void cpu_set_breakpoint(LONG, int);
 void cpu_print_breakpoints();
 int cpu_unset_breakpoint(LONG);

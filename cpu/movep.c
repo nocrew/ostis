@@ -55,6 +55,7 @@ static struct cprint *movep_print(LONG addr, WORD op)
   ar = op&0x7;
   dr = (op&0xe00)>>9;
   o = mmu_read_word(addr+ret->size);
+  if(o&0x8000) o |= 0xffff0000;
   ret->size += 2;
 
   switch((op&0xc0)>>6) {

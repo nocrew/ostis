@@ -67,7 +67,12 @@ static struct mmu *dispatch(LONG addr)
 
   off = (addr&0xffff00)>>8;
   if(!memory[off]) return NULL;
-  if(!memory[off]->next) return memory[off];
+  if(!memory[off]->next) {
+    if((addr < memory[off]->start) ||
+       (addr >= (memory[off]->start + memory[off]->size)))
+      return NULL;
+    return memory[off];
+  }
 
   t = memory[off];
   

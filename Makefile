@@ -30,8 +30,8 @@ LIBDEBUG=libdebug.a
 
 LIBTEST=libtests.a
 
-LIB=-Lcpu -lcpu -Ldebug -ldebug -lSDL -lpthread
-TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug -lSDL -lpthread
+LIB=-Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
+TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
 
 PRG=ostis
 TEST_PRG=ostistest

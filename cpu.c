@@ -712,6 +712,7 @@ void cpu_init()
   addq_init((void *)instr, (void *)instr_print);
   addi_init((void *)instr, (void *)instr_print);
   addx_init((void *)instr, (void *)instr_print);
+  abcd_init((void *)instr, (void *)instr_print);
 
   move_init((void *)instr, (void *)instr_print);
   movea_init((void *)instr, (void *)instr_print); /* overlaps move_init */

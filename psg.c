@@ -32,6 +32,11 @@
 #define PSG_CHB 1
 #define PSG_CHC 2
 
+#define PSG_ENV_CONTINUE  (psgreg[PSG_ENV]&0x8)
+#define PSG_ENV_ATTACK    (psgreg[PSG_ENV]&0x4)
+#define PSG_ENV_ALTERNATE (psgreg[PSG_ENV]&0x2)
+#define PSG_ENV_HOLD      (psgreg[PSG_ENV]&0x1)
+
 /* Floppy uses IO port A */
 #define PSG_IOA_SIDE (psgreg[PSG_IOA]&0x1)
 #define PSG_IOA_DEV0 (psgreg[PSG_IOA]&0x2)
@@ -53,10 +58,7 @@ static int psg_periodcnt[3] = { -1, -1, -1 };
 static int psg_volume[3];
 static int psg_noisecnt = -1;
 static int psg_noise = 1;
-static int env_hold = 0;
-static int env_alternate = 0;
 static int env_attack = 0;
-static int env_continue = 0;
 static int env_held = 0;
 static int env_first = 1;
 static int env_volume;
@@ -92,8 +94,7 @@ static int psg_set_period(int channel)
 
 static int env_set_period()
 {
-  return (PSG_PERIODDIV/2)*
-    (psgreg[PSG_EPERL]|(psgreg[PSG_EPERH]<<8));
+  return (PSG_PERIODDIV*16)*(psgreg[PSG_EPERL]|(psgreg[PSG_EPERH]<<8));
 }
 
 static void psg_set_register(BYTE data)
@@ -134,12 +135,8 @@ static void psg_set_register(BYTE data)
   case PSG_ENV:
     env_first = 0;
     env_held = 0;
-    env_continue = !!psgreg[psgactive]&0x8;
-    env_attack = !!psgreg[psgactive]&0x4;
-    env_alternate = !!psgreg[psgactive]&0x2;
-    env_hold = !!psgreg[psgactive]&0x1;
+    env_attack = PSG_ENV_ATTACK;
     env_cnt = env_set_period();
-    printf("DEBUG: Env used: %d\n", psgreg[PSG_ENV]);
     break;
   case PSG_IOA:
     floppy_side(PSG_IOA_SIDE);
@@ -166,9 +163,9 @@ static WORD psg_read_word(LONG addr)
 static LONG psg_read_long(LONG addr)
 {
   return ((psg_read_byte(addr)<<24)|
-       (psg_read_byte(addr+1)<<16)|
-       (psg_read_byte(addr+2)<<8)|
-       (psg_read_byte(addr+3)));
+	  (psg_read_byte(addr+1)<<16)|
+	  (psg_read_byte(addr+2)<<8)|
+	  (psg_read_byte(addr+3)));
 }
 
 static void psg_write_byte(LONG addr, BYTE data)
@@ -202,6 +199,7 @@ static void psg_write_long(LONG addr, LONG data)
 
 void psg_init()
 {
+  int i;
   struct mmu *psg;
 
   psg = (struct mmu *)malloc(sizeof(struct mmu));
@@ -221,6 +219,10 @@ void psg_init()
   mmu_register(psg);
 
   snd_fd = open("psg.raw", O_WRONLY|O_TRUNC|O_CREAT, 0644);
+
+  for(i=0;i<32;i++) {
+    psg_volume_voltage[i] /= 2;
+  }
 }
 
 void psg_print_status()
@@ -261,36 +263,45 @@ static void psg_generate_presamples(long cycles)
     }
     noise = psg_noise&1;
 
-    env_cnt--;
-    if(env_cnt < 0) {
-      env_cnt = (PSG_PERIODDIV/2)*((psgreg[PSG_EPERH]<<8)|psgreg[PSG_EPERL]);
-      if(env_first) { /* Make sure initial -1 is ignored */
-	env_first = 0;
-      } else {
-	if(!env_continue) {
-	  env_volume = 0;
-	  env_held = 1;
+    if(env_set_period()) {
+      env_cnt--;
+      if(env_cnt < 0) {
+	env_cnt = env_set_period();
+	if(env_first) { /* Make sure initial -1 is ignored */
+	  env_first = 0;
 	} else {
-	  if(env_hold) {
+	  if(!PSG_ENV_CONTINUE) {
+	    env_volume = 0;
 	    env_held = 1;
-	    if(env_attack^env_alternate) { /* (11, 13) should end high */
-	      env_volume = 31;
-	    } else { /* (9, 15) should end low */
-	      env_volume = 0;
-	    }
 	  } else {
-	    if(env_alternate) {
-	      env_attack = (env_attack+1)&1;
+	    if(PSG_ENV_HOLD) {
+	      env_held = 1;
+	      if((psgreg[PSG_ENV] == 11) || (psgreg[PSG_ENV] == 13)) { 
+		/* (11, 13) end high */
+		env_volume = 31;
+	      } else { /* (9, 15) should end low */
+		env_volume = 0;
+	      }
+	    } else {
+	      if(PSG_ENV_ALTERNATE) {
+		if(env_attack) {
+		  env_attack = 0;
+		} else {
+		  env_attack = 1;
+		}
+	      }
 	    }
 	  }
 	}
       }
-    }
-    if(!env_held) {
-      if(env_attack) {
-	env_volume = psg_volume_voltage[31-((31*env_cnt)/env_set_period())];
-      } else {
-	env_volume = psg_volume_voltage[(31*env_cnt)/env_set_period()];
+      if(!env_held) {
+	int vol;
+	vol = (31*env_cnt)/env_set_period();
+	if(env_attack) {
+	  env_volume = psg_volume_voltage[31-vol];
+	} else {
+	  env_volume = psg_volume_voltage[vol];
+	}
       }
     }
 
@@ -328,10 +339,7 @@ static void psg_generate_samples()
   
   presamples = pos - psg_presamplestart;
 
-  //  printf("DEBUG: --- entering loop\n");
   while(presamples >= PSG_PRESAMPLES_PER_SAMPLE) {
-    //    printf("DEBUG: presamples == %d (%d - %d - %d)\n", 
-    //	   presamples, psg_presamplepos, psg_presamplestart, pos);
     out = 0;
     for(i=0;i<PSG_PRESAMPLES_PER_SAMPLE;i++) {
       for(c=0;c<3;c++) {
@@ -373,5 +381,6 @@ void psg_do_interrupts(struct cpu *cpu)
 
   lastcpucnt = cpu->cycle;
 }
+
 
 

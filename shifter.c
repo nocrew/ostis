@@ -64,7 +64,6 @@ static void set_pixel(int rasterpos, int pnum)
   int c;
   int r,g,b;
 
-  if(pnum > 15) exit(-4);
   c = palette[pnum];
 
   r = (c&0xf00)>>7;

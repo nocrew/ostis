@@ -106,7 +106,7 @@ struct cpu_state *cpu_state_collect()
 void cpu_state_restore(struct cpu_state *state)
 {
   int r;
-  
+
   for(r=0;r<8;r++) {
     cpu->a[r] = state_read_mem_long(&state->data[STATE_AREG+r*4]);
   }
@@ -880,4 +880,5 @@ void cpu_init()
 
   instr[0x4afc] = illegal_instr;
   instr_print[0x4afc] = illegal_instr_print;
+  instr[0x42c0] = illegal_instr;
 }

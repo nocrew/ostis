@@ -324,7 +324,6 @@ static void shifter_write_byte(LONG addr, BYTE data)
     if(shifter_get_vsync() > ((313-topborder)*512)) {
       lowerborder = LOWERBORDER+47;
     }
-    lowerborder = 313;
     syncreg = data;
     return;
   case 0xff8260:

@@ -56,6 +56,11 @@ static void ram_write_long(LONG addr, LONG data)
   ram_write_byte(addr+3, (data&0xff));
 }
 
+void ram_clear(void)
+{
+  memset( memory, 0, sizeof(BYTE) * RAMSIZE );
+}
+
 static BYTE ramcfg_read_byte(LONG addr)
 {
   return ramcfg;

@@ -14,29 +14,46 @@ LSRC=lex.yy.c
 YOBJ=y.tab.o
 LOBJ=lex.yy.o
 
-SRC=main.c mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
+SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
     midi.c ikbd.c fdc.c rtc.c floppy.c event.c
-OBJ=main.o mmu.o ram.o rom.o cpu.o cartridge.o psg.o mfp.o shifter.o screen.o \
+OBJ=mmu.o ram.o rom.o cpu.o cartridge.o psg.o mfp.o shifter.o screen.o \
     midi.o ikbd.o fdc.o rtc.o floppy.o event.o
+
+EMU_SRC=main.c $(SRC)
+EMU_OBJ=main.o $(OBJ)
+
+TEST_SRC=test_main.c $(SRC)
+TEST_OBJ=test_main.o $(OBJ)
+
 LIBCPU=libcpu.a
 LIBDEBUG=libdebug.a
+
+LIBTEST=libtests.a
+
 LIB=-Lcpu -lcpu -Ldebug -ldebug -lSDL -lpthread
+TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug -lSDL -lpthread
 
 PRG=ostis
+TEST_PRG=ostistest
 
 .c.o:
 	$(CC) $(CFLAGS) -c $<
 
 all: $(PRG)
 
+tests:	$(TEST_PRG)
+
 $(LIBCPU):
 	make -C cpu
+
+$(LIBTEST):
+	make -C tests
 
 $(LIBDEBUG):
 	make -C debug
 
-$(PRG): $(OBJ) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ) $(LOBJ) $(YOBJ) $(LIB)
+$(PRG): $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
+	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(LOBJ) $(YOBJ) $(LIB)
 
 y.tab.h: $(YSRC)
 
@@ -51,6 +68,9 @@ $(YOBJ): $(YSRC)
 
 $(LSRC): $(LEXFILE) y.tab.h
 	$(LEX) $<
+
+$(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
+	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJ) $(LOBJ) $(YOBJ) $(TEST_LIB)
 
 clean:
 	make -C cpu clean

@@ -53,18 +53,26 @@ static int psg_periodcnt[3] = { -1, -1, -1 };
 static int psg_volume[3];
 static int psg_noisecnt = -1;
 static int psg_noise = 1;
+static int env_hold = 0;
+static int env_alternate = 0;
+static int env_attack = 0;
+static int env_continue = 0;
+static int env_held = 0;
+static int env_first = 1;
+static int env_volume;
+static int env_cnt = -1;
 
-#define DIV(x) ((((x/10)*65535)/25000))
+#define VOLUME_OFFSET(x) ((x==0)?0:(1+x*2))
 
-/* Fixed point volume levels, voltage*100000 */
+/* Fixed point volume levels, voltage*65535 */
+/* 32 values because 2149 has 32 levels in envelope, and 16 in non-env */
 static signed long psg_volume_voltage[32] = {
-  DIV(0), DIV(611), DIV(978), DIV(1710), 
-  DIV(2200), DIV(3300), DIV(4400), DIV(6360), 
-  DIV(8800), DIV(12500), DIV(17600), DIV(25200), 
-  DIV(35500), DIV(50400), DIV(70300), DIV(100000),
-  /* second half to secure that there are enough values */
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  0, 366, 435, 517, 615, 732, 870, 1035,
+  1231, 1464, 1740, 2069, 2460, 2924, 3476, 4132, 
+  4912, 5838, 6939, 8248, 9803, 11651, 13848, 16459, 
+  19562, 23250, 27633, 32843, 39035, 46394, 55140, 65535
 };
+
 static int psg_register_mask[16] = {
   0xff, 0xf, 0xff, 0xf, 0xff, 0xf, 0x1f, 0xff,
   0x1f, 0x1f, 0x1f, 0xff, 0xff, 0xf, 0xff, 0xff
@@ -80,6 +88,12 @@ static int psg_set_period(int channel)
 {
   return PSG_PERIODDIV*
     (psgreg[PSG_APERL+channel*2]|(psgreg[PSG_APERH+channel*2]<<8));
+}
+
+static int env_set_period()
+{
+  return (PSG_PERIODDIV/2)*
+    (psgreg[PSG_EPERL]|(psgreg[PSG_EPERH]<<8));
 }
 
 static void psg_set_register(BYTE data)
@@ -100,17 +114,32 @@ static void psg_set_register(BYTE data)
   case PSG_MIXER:
     break;
   case PSG_AVOL:
-    psg_volume[PSG_CHA] = psg_volume_voltage[psgreg[psgactive]];
+    if(!(psgreg[psgactive]&0x10))
+      psg_volume[PSG_CHA] = 
+	psg_volume_voltage[VOLUME_OFFSET(psgreg[psgactive])];
     break;
   case PSG_BVOL:
-    psg_volume[PSG_CHB] = psg_volume_voltage[psgreg[psgactive]];
+    if(!(psgreg[psgactive]&0x10))
+      psg_volume[PSG_CHB] = 
+	psg_volume_voltage[VOLUME_OFFSET(psgreg[psgactive])];
     break;
   case PSG_CVOL:
-    psg_volume[PSG_CHC] = psg_volume_voltage[psgreg[psgactive]];
+    if(!(psgreg[psgactive]&0x10))
+      psg_volume[PSG_CHC] = 
+	psg_volume_voltage[VOLUME_OFFSET(psgreg[psgactive])];
     break;
   case PSG_EPERL:
   case PSG_EPERH:
+    break;
   case PSG_ENV:
+    env_first = 0;
+    env_held = 0;
+    env_continue = !!psgreg[psgactive]&0x8;
+    env_attack = !!psgreg[psgactive]&0x4;
+    env_alternate = !!psgreg[psgactive]&0x2;
+    env_hold = !!psgreg[psgactive]&0x1;
+    env_cnt = env_set_period();
+    printf("DEBUG: Env used: %d\n", psgreg[PSG_ENV]);
     break;
   case PSG_IOA:
     floppy_side(PSG_IOA_SIDE);
@@ -232,13 +261,51 @@ static void psg_generate_presamples(long cycles)
     }
     noise = psg_noise&1;
 
+    env_cnt--;
+    if(env_cnt < 0) {
+      env_cnt = (PSG_PERIODDIV/2)*((psgreg[PSG_EPERH]<<8)|psgreg[PSG_EPERL]);
+      if(env_first) { /* Make sure initial -1 is ignored */
+	env_first = 0;
+      } else {
+	if(!env_continue) {
+	  env_volume = 0;
+	  env_held = 1;
+	} else {
+	  if(env_hold) {
+	    env_held = 1;
+	    if(env_attack^env_alternate) { /* (11, 13) should end high */
+	      env_volume = 31;
+	    } else { /* (9, 15) should end low */
+	      env_volume = 0;
+	    }
+	  } else {
+	    if(env_alternate) {
+	      env_attack = (env_attack+1)&1;
+	    }
+	  }
+	}
+      }
+    }
+    if(!env_held) {
+      if(env_attack) {
+	env_volume = psg_volume_voltage[31-((31*env_cnt)/env_set_period())];
+      } else {
+	env_volume = psg_volume_voltage[(31*env_cnt)/env_set_period()];
+      }
+    }
+
     for(c=0;c<3;c++) {
       tonemask = (psgreg[PSG_MIXER]>>c)&1;
       noisemask = (psgreg[PSG_MIXER]>>(c+3))&1;
       out = (tone[c]|tonemask)&(noise|noisemask);
       out = (out<<1)-1;
-      psg_presample[(psg_presamplepos)%PSG_PRESAMPLESIZE][c] = 
-	out * psg_volume[c];
+      if(psgreg[PSG_AVOL+c]&0x10) {
+	psg_presample[(psg_presamplepos)%PSG_PRESAMPLESIZE][c] =
+	  out * env_volume;
+      } else {
+	psg_presample[(psg_presamplepos)%PSG_PRESAMPLESIZE][c] = 
+	  out * psg_volume[c];
+      }
     }
     psg_presamplepos++;
     if(psg_presamplepos > (PSG_PRESAMPLESIZE-1))

@@ -37,7 +37,7 @@ static struct cprint *adda_print(LONG addr, WORD op)
     ea_print(ret, op&0x3f, 2);
     sprintf(ret->data, "%s,A%d", ret->data, r);
   } else {
-    strcpy(ret->instr, "ADDA.L");
+    strcpy(ret->instr, "ADDA.W");
     ea_print(ret, op&0x3f, 1);
     sprintf(ret->data, "%s,A%d", ret->data, r);
   }

@@ -6,6 +6,7 @@
 
 void floppy_side(int);
 void floppy_active(int);
+void floppy_sector(int);
 int floppy_seek(int);
 int floppy_seek_rel(int);
 int floppy_read_sector(LONG, int);

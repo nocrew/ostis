@@ -3,6 +3,7 @@
 #include "cpu.h"
 #include "mfp.h"
 #include "shifter.h"
+#include "fdc.h"
 #include "mmu.h"
 
 static struct mmu *memory = NULL;
@@ -256,4 +257,5 @@ void mmu_do_interrupts(struct cpu *cpu)
 {
   mfp_do_interrupts(cpu);
   shifter_do_interrupts(cpu);
+  fdc_do_interrupts(cpu);
 }

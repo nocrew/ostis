@@ -72,7 +72,7 @@ int floppy_read_sector(LONG addr, int count)
   if(!floppy[0].fp) return FLOPPY_ERROR;
   if(floppy[0].sel_sec < 1) floppy[0].sel_sec = 1;
 
-  pos = floppy[0].sel_trk*floppy[0].sides*floppy[0].sectors*512;
+  pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
   pos += (floppy[0].sel_sec-1)*512;
   pos += floppy[0].sel_side*floppy[0].sectors*512;
 
@@ -97,7 +97,6 @@ int floppy_read_sector(LONG addr, int count)
 void floppy_init(char *filename)
 {
   static BYTE bootsector[512];
-  int fsize;
 
   if(floppy[0].fp)
     fclose(floppy[0].fp);
@@ -117,11 +116,15 @@ void floppy_init(char *filename)
     return;
   }
 
-  fseek(floppy[0].fp, 0, SEEK_END);
-  fsize = ftell(floppy[0].fp);
-  fseek(floppy[0].fp, 0, SEEK_SET);
-
   floppy[0].sectors = bootsector[24]|(bootsector[25]<<8);
-  floppy[0].sides = (bootsector[24]|(bootsector[25]<<8))-1;
-  floppy[0].tracks = fsize/(floppy[0].sides+1)/floppy[0].sectors/512;
+  floppy[0].sides = (bootsector[26]|(bootsector[27]<<8))-1;
+  floppy[0].tracks = ((bootsector[19]|(bootsector[20]<<8))/
+		      (floppy[0].sides+1)/floppy[0].sectors);
+
+  printf("---FLOPPY LAYOUT---\n");
+  printf(" - Tracks:  %d\n", floppy[0].tracks);
+  printf(" - Sides:   %d\n", floppy[0].sides+1);
+  printf(" - Sectors: %d\n", floppy[0].sectors);
+  printf("--------\n");
+
 }

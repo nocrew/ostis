@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
+#include "cpu.h"
 #include "mfp.h"
 #include "floppy.h"
 #include "mmu.h"
@@ -71,17 +72,32 @@ static int fdc_stepdir = FDC_STEP_OUT;
 static int fdc_control;
 static BYTE fdc_dmastatus;
 static LONG fdc_dmaaddr;
+static long lastcpucnt;
+static int motoron = 1;
+static int motorcnt = 0;
 
 static int write_word_flag = 0;
 
+static void fdc_set_motor(int s)
+{
+    motoron = 1;
+  if(s)
+    motoron = 1;
+  else {
+    //    motorcnt = 16000; /* about 2 sec */
+  }
+}
+
 static void fdc_parse_control()
 {
-  printf("DEBUG: Running fdc_parse_control()\n");
-  
+  if(FDCC_HDC || FDCC_HDCXXX) return;
+
   if(FDCC_FDCREG) {
     fdc_reg_active = 1+((fdc_control&0x6)>>1);
     if(fdc_reg_active == FDC_STATUS) fdc_reg_active = FDC_INSTR;
+#if 0
     printf("DEBUG: Selecting register %d\n", fdc_reg_active);
+#endif
   } else if(FDCC_DMASEC) {
     fdc_reg_active = FDC_DMASEC;
     printf("DEBUG: Selecting sector count register\n");
@@ -90,12 +106,10 @@ static void fdc_parse_control()
     if(fdc_rwlast == 1) fdc_dmastatus = 0x1;
     fdc_rwlast = fdc_rwmode;
     fdc_rwmode = 0;
-    printf("DEBUG: Read mode\n");
   } else if(FDCC_WRITE) {
     if(fdc_rwlast == 0) fdc_dmastatus = 0x1;
     fdc_rwlast = fdc_rwmode;
     fdc_rwmode = 1;
-    printf("DEBUG: Write mode\n");
   }
 }
 
@@ -103,7 +117,8 @@ static void fdc_do_instr()
 {
   mfp_set_GPIP(5);
 
-  fdc_reg[FDC_STATUS] = 0xc0; /* Motor on, Writeprotected */
+  motoron = 1;
+  fdc_reg[FDC_STATUS] = 0x40|(motoron<<7); /* Motor on, Writeprotected */
 
   printf("DEBUG: Running command: %08x\n", fdc_reg[FDC_INSTR]);
 
@@ -157,16 +172,31 @@ static void fdc_do_instr()
       if((fdc_reg[FDC_TRACK]+FDC_STEP_OUT) <= 0)
 	fdc_reg[FDC_STATUS] |= 0x04;
     }
-  } else if(FDCI_READSEC) {
-    printf("DEBUG: FDCI_READSEC: 0x%x - %d blocks\n",
-	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
+  } else if(FDCI_READSEC && !FDCI_MULTSEC) {
+    printf("DEBUG: FDCI_READSEC: 0x%x - %d block\n",
+	   fdc_dmaaddr, 1);
     fdc_dmastatus = 0x3; /* Sector count != 0, No error */
     if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
       fdc_dmastatus = 0x0; /* Error */
     } else {
-      if(FDCI_MULTSEC) {
-	printf("Multisector. Do something here\n");
-      }
+      fdc_dmastatus = 0x1;
+    }
+  } else if(FDCI_READSEC && FDCI_MULTSEC) {
+    printf("DEBUG: FDCI_READSEC: 0x%x - %d blocks\n",
+	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
+    printf("---FDC---\n");
+    printf(" - Instr:   %d\n", fdc_reg[FDC_INSTR]);
+    printf(" - Status:  %d\n", fdc_reg[FDC_STATUS]);
+    printf(" - Track:   %d\n", fdc_reg[FDC_TRACK]);
+    printf(" - Sector:  %d\n", fdc_reg[FDC_SECTOR]);
+    printf(" - Seccnt:  %d\n", fdc_reg[FDC_DMASEC]);
+    printf(" - Addr:    %08x\n", fdc_dmaaddr);
+    printf("---------\n");
+    fdc_dmastatus = 0x3; /* Sector count != 0, No error */
+    if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
+      fdc_dmastatus = 0x0; /* Error */
+    } else {
+      fdc_dmastatus = 0x1;
     }
   } else if(FDCI_WRITESEC) {
     printf("Write sector not supported\n");
@@ -177,6 +207,7 @@ static void fdc_do_instr()
   } else if(FDCI_ABORT) {
     printf("Abort not supported\n");
   }
+  fdc_set_motor(0);
   mfp_clr_GPIP(5);
 }
 
@@ -186,10 +217,14 @@ static BYTE fdc_read_byte(LONG addr)
   case 0xff8604:
     return 0xff;
   case 0xff8605:
+#if 0
     printf("DEBUG: Reading register %d == %02x\n", fdc_reg_active,
 	   fdc_reg[fdc_reg_active]);
+#endif
     if(fdc_reg_active == 0) {
+#if 0
       printf("DEBUG: Returning Status: %02x\n", fdc_reg[FDC_STATUS]);
+#endif
       return fdc_reg[FDC_STATUS];
     } else {
       printf("DEBUG: Returning Register: %02x\n", fdc_reg[FDC_STATUS]);
@@ -231,15 +266,21 @@ static void fdc_write_byte(LONG addr, BYTE data)
     fdc_reg[fdc_reg_active] = data;
     if(fdc_reg_active == FDC_INSTR)
       fdc_do_instr();
+    if(fdc_reg_active == FDC_SECTOR)
+      floppy_sector(data);
     break;
   case 0xff8606:
+#if 0
     printf("Writing control with %02x--\n", data);
+#endif
     fdc_control = (fdc_control&0xff)|(data<<8);
     if(!write_word_flag)
       fdc_parse_control();
     break;
   case 0xff8607:
+#if 0
     printf("Writing control with --%02x\n", data);
+#endif
     fdc_control = (fdc_control&0xff00)|data;
     if(!write_word_flag)
       fdc_parse_control();
@@ -281,6 +322,29 @@ static void fdc_write_long(LONG addr, LONG data)
   fdc_write_word(addr+2, data&0xffff);
 }
 
+void fdc_do_interrupts(struct cpu *cpu)
+{
+  long tmpcpu;
+
+  tmpcpu = cpu->cycle - lastcpucnt;
+  if(tmpcpu < 0) {
+    tmpcpu += MAX_CYCLE;
+  }
+
+  if(motorcnt > 0) {
+    motorcnt -= tmpcpu;
+    printf("DEBUG: left on motor: %d\n", motorcnt);
+  }
+  if(motorcnt <= 0) {
+    motorcnt = 0;
+    motoron = 0;
+  }
+  if(motoron == 0)
+    fdc_reg[FDC_STATUS] &= ~(1<<7);
+
+  lastcpucnt = cpu->cycle;
+}
+
 void fdc_init()
 {
   struct mmu *fdc;
@@ -303,3 +367,4 @@ void fdc_init()
 
   mmu_register(fdc);
 }
+

@@ -1,0 +1,46 @@
+Keyboard commands
+-----------------
+
+Debug mode:
+
+C-a   Set breakpoint on next instruction and run until breakpoint/watchpoint
+C-b   Set breakpoint on active window address (only disassembly window)
+C-c   Exit debugger (and emulator)
+C-r   Run until breakpoint/watchpoint
+C-s   Skip one instruction
+C-z   Single step one instruction
+
+A-b   Set breakpoint
+A-f   Change font in active window
+A-s   Split/unsplit active window
+A-t   Change window type (Disassembly/Memory)
+A-w   Set watchpoint
+A-y   Maximize/unmaximize active window
+
+ESC   Set main disassembly window address to PC
+TAB   Cycle through visible windows
+
+UP    Move window address
+DOWN  Move window address
+LEFT  Move window address
+RIGHT Move window address
+
+m     Move window address
+l     Set label
+L     Load/save labels
+
+
+Edit mode:
+
+ESC   Cancel edit
+RET   Finish edit
+LEFT  Move cursor
+RIGHT Move cursor
+BSPC  Delete character
+
+
+Running mode:
+
+<key> Output PC to console
+QUIT  Return to debugger
+

@@ -159,11 +159,22 @@ static void gen_scrptr(int rasterpos)
   line = rasterpos/HBLSIZE;
   linepos = rasterpos%HBLSIZE;
 
-  voff = (line-VBLPRE)*SCR_BYTES_PER_LINE;
-  voff += ((linepos-HBLPRE+15)>>1)&(~1); /* Mainly stolen from hatari */
-
   if(shifter_on_display(rasterpos)) {
+    voff = (line-VBLPRE)*SCR_BYTES_PER_LINE;
+    voff += ((linepos-HBLPRE+15)>>1)&(~1); /* Mainly stolen from hatari */
     scrptr = curaddr + voff;
+  } else {
+    if(line < VBLPRE) {
+      scrptr = curaddr;
+    } else if(line >= (VBLPRE+VBLSCR)) {
+      scrptr = curaddr + SCR_BYTES_PER_LINE*VBLSCR;
+    } else {
+      if(linepos < HBLPRE) {
+	scrptr = curaddr + (line-VBLPRE)*SCR_BYTES_PER_LINE;
+      } else if(linepos >= (HBLPRE+HBLSCR)) {
+	scrptr = curaddr + (line-VBLPRE+1)*SCR_BYTES_PER_LINE;
+      }
+    }
   }
 }
 
@@ -345,6 +356,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   linecnt -= tmpcpu;
   
   /* VBL Interrupt */
+  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
   if(vsynccnt < 0) {
     shifter_gen_picture(VBLSIZE*HBLSIZE);
     scrptr = curaddr = scraddr;
@@ -370,8 +382,13 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   /* Line Interrupt */
   if(linecnt < 0) {
     linecnt += HBLSIZE;
-    if((linenum >= VBLPRE) && (linenum <= (VBLPRE+VBLSCR)))
+    if((linenum >= VBLPRE) && (linenum < (VBLPRE+VBLSCR)))
       mfp_do_timerb_event(cpu);
+#if 0
+    rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+0] = 0xff;
+    rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+1] = 0x00;
+    rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+2] = 0x00;
+#endif
     linenum++;
   }
 

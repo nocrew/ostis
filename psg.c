@@ -7,6 +7,8 @@
 #include "floppy.h"
 #include "mmu.h"
 
+#define PSGOUTPUT 0
+
 #define PSGSIZE 256
 #define PSGBASE 0xff8800
 
@@ -83,8 +85,10 @@ static signed long psg_presample[PSG_PRESAMPLESIZE][3];
 static int psg_presamplepos = 0; /* circular buffer */
 static int psg_presamplestart = 0;
 static long lastcpucnt = 0;
+#if PSGOUTPUT
 static int snd_fd;
-static int psg_running = 0;
+#endif
+static int psg_running = 1;
 
 static int psg_set_period(int channel)
 {
@@ -218,7 +222,9 @@ void psg_init()
 
   mmu_register(psg);
 
+#if PSGOUTPUT
   snd_fd = open("psg.raw", O_WRONLY|O_TRUNC|O_CREAT, 0644);
+#endif
 
   for(i=0;i<32;i++) {
     psg_volume_voltage[i] /= 2;
@@ -351,8 +357,10 @@ static void psg_generate_samples()
     if(!psg_running && (out != 0))
       psg_running = 1;
     if(psg_running) {
+#if PSGOUTPUT
       write(snd_fd, &outsign, 2);
       write(snd_fd, &outsign, 2);
+#endif
     }
     psg_presamplestart += PSG_PRESAMPLES_PER_SAMPLE;
     if(psg_presamplestart > (PSG_PRESAMPLESIZE-1)) {

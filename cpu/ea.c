@@ -623,14 +623,14 @@ void ea_print(struct cprint *cprint, int mode, int size)
   case 5:
     o = mmu_read_word_print(addr);
     if(o&0x8000) o |= 0xffff0000;
-    if((o < -128) || (o > 127))
+    if(o > 127)
       sprintf(str, "%s$%x(A%d)", str, o, mode&0x7);
     else
       sprintf(str, "%s%d(A%d)", str, o, mode&0x7);
     cprint->size += 2;
     return;
   case 6:
-    o = mmu_read_byte_print(addr+1);
+    o = mmu_read_byte_print(addr+1)&0xff;
     if(o&0x80) o |= 0xffffff00;
     sprintf(str, "%s%d(A%d,%c%d.%c)",
 	    str, 

@@ -351,7 +351,9 @@ static void psg_generate_samples()
   int presamples,pos;
   int i,c;
   signed long out;
+#if PSGOUTPUT
   signed short outsign;
+#endif
 
   if(psg_presamplepos < psg_presamplestart) {
     pos = psg_presamplepos + PSG_PRESAMPLESIZE;
@@ -369,7 +371,9 @@ static void psg_generate_samples()
       }
     }
     out = (out/(PSG_PRESAMPLES_PER_SAMPLE*3));
+#if PSGOUTPUT
     outsign = out&0xffff;
+#endif
     if(!psg_running && (out != 0))
       psg_running = 1;
     if(psg_running) {

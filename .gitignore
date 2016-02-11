@@ -5,3 +5,6 @@ expr.tab.c
 expr.tab.h
 lex.expr.c
 ostis
+tos.img
+psg.raw
+

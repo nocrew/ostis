@@ -16,9 +16,11 @@ static SDL_Surface *screen;
 
 void screen_init()
 {
+#if DEBUG
   /* should be rewritten with proper error checking */
   Uint32 rmask, gmask, bmask, amask;
-
+#endif
+  
   if(disable) return;
 #if 0
   SDL_Init(SDL_INIT_VIDEO);
@@ -26,6 +28,7 @@ void screen_init()
 #endif
   
 
+#if DEBUG
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
   amask = 0x00000000;
   rmask = 0x00ff0000;
@@ -37,7 +40,8 @@ void screen_init()
   gmask = 0x0000ff00;
   bmask = 0x00ff0000;
 #endif
-
+#endif
+  
 #if DEBUG
   screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 314, 24,
 				rmask, gmask, bmask, amask);

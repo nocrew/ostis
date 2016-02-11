@@ -111,7 +111,7 @@ void ram_init()
   }
   ram->start = RAMBASE;
   ram->size = RAMSIZE;
-  strcpy(ram->id, "RAM0");
+  memcpy(ram->id, "RAM0", 4);
   ram->name = strdup("RAM");
   ram->read_byte = ram_read_byte;
   ram->read_word = ram_read_word;

@@ -83,7 +83,7 @@ void midi_init()
   midi->start = MIDIBASE;
   midi->size = MIDISIZE;
   midi->name = strdup("MIDI");
-  strcpy(midi->id, "MIDI");
+  memcpy(midi->id, "MIDI", 4);
   midi->read_byte = midi_read_byte;
   midi->read_word = midi_read_word;
   midi->read_long = midi_read_long;

@@ -71,7 +71,7 @@ void cartridge_init()
 
   cartridge->start = CARTRIDGEBASE;
   cartridge->size = CARTRIDGESIZE;
-  strcpy(cartridge->id, "CART");
+  memcpy(cartridge->id, "CART", 4);
   cartridge->name = strdup("Cartridge");
   cartridge->read_byte = cartridge_read_byte;
   cartridge->read_word = cartridge_read_word;

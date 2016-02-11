@@ -63,7 +63,7 @@ void rtc_init()
   }
   rtc->start = RTCBASE;
   rtc->size = RTCSIZE;
-  strcpy(rtc->id, "RTC0");
+  memcpy(rtc->id, "RTC0", 4);
   rtc->name = strdup("RTC");
   rtc->read_byte = rtc_read_byte;
   rtc->read_word = rtc_read_word;

@@ -211,7 +211,7 @@ void mfp_init()
 
   mfp->start = MFPBASE;
   mfp->size = MFPSIZE;
-  strcpy(mfp->id, "MFP0");
+  memcpy(mfp->id, "MFP0", 4);
   mfp->name = strdup("MFP");
   mfp->read_byte = mfp_read_byte;
   mfp->read_word = mfp_read_word;

@@ -225,7 +225,7 @@ void psg_init()
   }
   psg->start = PSGBASE;
   psg->size = PSGSIZE;
-  strcpy(psg->id, "PSG0");
+  memcpy(psg->id, "PSG0", 4);
   psg->name = strdup("PSG");
   psg->read_byte = psg_read_byte;
   psg->read_word = psg_read_word;

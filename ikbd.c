@@ -185,7 +185,7 @@ void ikbd_init()
   }
   ikbd->start = IKBDBASE;
   ikbd->size = IKBDSIZE;
-  strcpy(ikbd->id, "IKBD");
+  memcpy(ikbd->id, "IKBD", 4);
   ikbd->name = strdup("IKBD");
   ikbd->read_byte = ikbd_read_byte;
   ikbd->read_word = ikbd_read_word;

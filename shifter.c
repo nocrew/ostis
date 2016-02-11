@@ -526,7 +526,7 @@ void shifter_init()
   
   shifter->start = SHIFTERBASE;
   shifter->size = SHIFTERSIZE;
-  strcpy(shifter->id, "SHFT");
+  memcpy(shifter->id, "SHFT", 4);
   shifter->name = strdup("Shifter");
   shifter->read_byte = shifter_read_byte;
   shifter->read_word = shifter_read_word;

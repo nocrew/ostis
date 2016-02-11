@@ -446,7 +446,7 @@ void fdc_init()
   }
   fdc->start = FDCBASE;
   fdc->size = FDCSIZE;
-  strcpy(fdc->id, "FDC0");
+  memcpy(fdc->id, "FDC0", 4);
   fdc->name = strdup("FDC");
   fdc->read_byte = fdc_read_byte;
   fdc->read_word = fdc_read_word;

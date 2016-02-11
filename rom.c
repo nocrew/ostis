@@ -108,7 +108,7 @@ void rom_init()
   
   rom->start = ROMBASE;
   rom->size = ROMSIZE;
-  strcpy(rom->id, "ROM0");
+  memcpy(rom->id, "ROM0", 4);
   rom->name = strdup("ROM");
   rom->read_byte = rom_read_byte;
   rom->read_word = rom_read_word;
@@ -155,7 +155,7 @@ void rom_init()
 
   rom2->start = ROMBASE2; /* First 8 bytes of memory is ROM */
   rom2->size = ROMSIZE2;
-  strcpy(rom2->id, "ROM1");
+  memcpy(rom2->id, "ROM1", 4);
   rom2->name = strdup("First 8 bytes of memory");
   rom2->read_byte = rom_read_byte;
   rom2->read_word = rom_read_word;

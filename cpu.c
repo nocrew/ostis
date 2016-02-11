@@ -61,7 +61,7 @@ struct cpu_state *cpu_state_collect()
   new = (struct cpu_state *)malloc(sizeof(struct cpu_state));
   if(new == NULL) return NULL;
 
-  strcpy(new->id, "CPU0");
+  memcpy(new->id, "CPU0", 4);
   /* 
    * CPU state size:
    *

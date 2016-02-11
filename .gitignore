@@ -1,0 +1,7 @@
+*~
+*.o
+*.a
+expr.tab.c
+expr.tab.h
+lex.expr.c
+ostis

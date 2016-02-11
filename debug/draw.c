@@ -36,16 +36,16 @@ void draw_frame(int x, int y, int w, int h, int c)
   }
 }
 
-void draw_message(char *str)
+void draw_message(unsigned char *str)
 {
   draw_string(8, 384, FONT_SMALL, str);
 }
 
-void draw_title(int x, int y, char *title, int selected)
+void draw_title(int x, int y, unsigned char *title, int selected)
 {
   draw_string(8+x, y, FONT_SMALL+selected*2, title);
-  if(title[strlen(title)-1] != ' ') {
-    display_put_char(8+x+strlen(title)*8, y, FONT_SMALL+selected*2, ' ');
+  if(title[strlen((char *)title)-1] != ' ') {
+    display_put_char(8+x+strlen((char *)title)*8, y, FONT_SMALL+selected*2, ' ');
   }
 }
 

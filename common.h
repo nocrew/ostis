@@ -1,7 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -9,7 +8,7 @@
 #include "screen.h"
 
 #ifndef DEBUG
-#define DEBUG 0
+#define DEBUG 1
 #endif
 
 typedef uint8_t BYTE;

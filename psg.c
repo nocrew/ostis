@@ -8,7 +8,7 @@
 #include "mmu.h"
 #include "state.h"
 
-#define PSGOUTPUT 0
+#define PSGOUTPUT 1
 
 #define PSGSIZE 256
 #define PSGBASE 0xff8800

@@ -253,7 +253,7 @@ static struct state *state_find_state_by_id(long id)
   return NULL;
 }
 
-static long state_compress_rle(unsigned char *tmp, long size, char **input)
+static long state_compress_rle(char *tmp, long size, char **input)
 {
   char last;
   char *rle;
@@ -355,7 +355,7 @@ struct state *state_encode_delta(struct state *state, struct state *ref)
   return new;
 }
 
-static long state_uncompress_rle(unsigned char *rle, long size, char **output)
+static long state_uncompress_rle(char *rle, long size, char **output)
 {
   int i,j;
   long usize,ucnt;

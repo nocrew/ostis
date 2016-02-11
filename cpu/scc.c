@@ -101,7 +101,7 @@ void scc(struct cpu *cpu, WORD op)
     }
     break;
   case 13: /* SLT */
-    if((CHKN & !CHKV) | (!CHKN & CHKV)) {
+    if((CHKN & !CHKV) | ((!CHKN) & CHKV)) {
       ADD_CYCLE(2);
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;

@@ -9,7 +9,7 @@
 struct edit {
   int pos;
   int len;
-  unsigned char text[80];
+  char text[80];
 };
 
 static struct edit edit;
@@ -27,7 +27,7 @@ static void edit_draw_cursor()
 
 void edit_draw_window(int exwin)
 {
-  unsigned char text[80];
+  char text[80];
 
   switch(exwin) {
   case EDIT_SETADDR:
@@ -87,7 +87,7 @@ static int edit_do_setbrk()
 {
   LONG addr;
   int cnt;
-  unsigned char text[80],*tmp;
+  char text[80],*tmp;
   
   if(strlen(edit.text) == 0) return EDIT_FAILURE;
   if(strchr(edit.text, ',') != strrchr(edit.text, ',')) return EDIT_FAILURE;
@@ -128,7 +128,7 @@ static int edit_do_setbrk()
 static int edit_do_setwatch()
 {
   int cnt;
-  unsigned char text[80],*tmp;
+  char text[80],*tmp;
   if(strlen(edit.text) == 0) return EDIT_FAILURE;
   if(strchr(edit.text, ',') != strrchr(edit.text, ',')) return EDIT_FAILURE;
 
@@ -162,7 +162,7 @@ static int edit_do_setwatch()
   return EDIT_FAILURE;
 }
 
-static int edit_match_areg(unsigned char *text)
+static int edit_match_areg(char *text)
 {
   if(((text[0] == 'a') || (text[0] == 'A')) &&
      ((text[1] >= '0') && (text[1] <= '7')))
@@ -170,7 +170,7 @@ static int edit_match_areg(unsigned char *text)
   return 0;
 }
 
-static int edit_match_dreg(unsigned char *text)
+static int edit_match_dreg(char *text)
 {
   if(((text[0] == 'd') || (text[0] == 'D')) &&
      ((text[1] >= '0') && (text[1] <= '7')))
@@ -178,7 +178,7 @@ static int edit_match_dreg(unsigned char *text)
   return 0;
 }
 
-static int edit_match_win(unsigned char *text)
+static int edit_match_win(char *text)
 {
   if(((text[0] == 'm') || (text[0] == 'M')) &&
      ((text[1] >= '0') && (text[1] <= '9')))
@@ -189,7 +189,7 @@ static int edit_match_win(unsigned char *text)
 static int edit_do_setreg()
 {
   LONG addr;
-  unsigned char text[80],*tmp;
+  char text[80],*tmp;
   
   if(strlen(edit.text) == 0) return EDIT_FAILURE;
   if(strchr(edit.text, '=') != strrchr(edit.text, '=')) return EDIT_FAILURE;
@@ -235,7 +235,7 @@ static int edit_do_setreg()
 static int edit_do_label()
 {
   LONG addr;
-  unsigned char text[80],*tmp;
+  char text[80],*tmp;
   
   if(strlen(edit.text) == 0) return EDIT_FAILURE;
   if(strchr(edit.text, ',') != strrchr(edit.text, ',')) return EDIT_FAILURE;
@@ -258,7 +258,7 @@ static int edit_do_label()
 
 static int edit_do_labelcmd()
 {
-  unsigned char text[80],*tmp;
+  char text[80],*tmp;
   
   if(strlen(edit.text) == 0) return EDIT_FAILURE;
   if(strchr(edit.text, ',') != strrchr(edit.text, ',')) return EDIT_FAILURE;
@@ -297,7 +297,7 @@ void edit_move(int dir)
 
 void edit_insert_char(int c)
 {
-  unsigned char tmp[80];
+  char tmp[80];
   if(strlen(edit.text) >= edit.len) return;
   
   strcpy(tmp, &edit.text[edit.pos]);
@@ -308,7 +308,7 @@ void edit_insert_char(int c)
 
 void edit_remove_char()
 {
-  unsigned char tmp[80];
+  char tmp[80];
   if(edit.pos == 0) return;
 
   strcpy(tmp, &edit.text[edit.pos]);

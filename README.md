@@ -6,7 +6,17 @@ To build, the SDL library must be installed.  Also, you need tools
 compatible with Lex and Yacc.  E.g. `apt-get install libsdl1.2-dev
 flex bison`.
 
-Set `-DDEBUG=1` in `CFLAGS` to boot into a MonST clone.
+There are a few different build options:
+
+Normal optimised binary:
+`make`
+
+A binary that boots into a MonST clone:
+`make debugger`
+
+Normal binary with GDB flags:
+`make gdb`
+
 
 ### Usage
 

@@ -7,10 +7,6 @@
 #include <string.h>
 #include "screen.h"
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t LONG;

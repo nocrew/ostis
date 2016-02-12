@@ -43,5 +43,8 @@ typedef int32_t SLONG;
 #define MAX(x, y) (((x)>(y))?(x):(y))
 #define MIN(x, y) (((x)<(y))?(x):(y))
 
+#define WARNING(F) \
+  fprintf(stderr, "WARNING: unexpected return value from %s at %s:%d\n", #F, __FILE__, __LINE__);
+
 #endif
 

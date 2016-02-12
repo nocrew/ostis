@@ -378,8 +378,10 @@ static void psg_generate_samples()
       psg_running = 1;
     if(psg_running) {
 #if PSGOUTPUT
-      write(snd_fd, &outsign, 2);
-      write(snd_fd, &outsign, 2);
+      if(write(snd_fd, &outsign, 2) != 2)
+	WARNING(write);
+      if(write(snd_fd, &outsign, 2) != 2)
+	WARNING(write);
 #endif
     }
     psg_presamplestart += PSG_PRESAMPLES_PER_SAMPLE;

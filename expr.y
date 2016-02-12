@@ -2,7 +2,7 @@
 %token <val> AREG DREG VAL WIN
 %token EQ NE LT LE GT GE BAND LAND BOR LOR BXOR BNOT LNOT
 %type <val> expr
-%name-prefix="expr"
+%name-prefix "expr"
 %left '-' '+'
 %left '*' '/'
 %{

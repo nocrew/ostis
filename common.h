@@ -46,5 +46,7 @@ typedef int32_t SLONG;
 #define WARNING(F) \
   fprintf(stderr, "WARNING: unexpected return value from %s at %s:%d\n", #F, __FILE__, __LINE__);
 
+extern int debugger;
+
 #endif
 

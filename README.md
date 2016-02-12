@@ -21,7 +21,7 @@ Normal binary with GDB flags:
 ### Usage
 
 Command line options:  
-`ostis` [`-a` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [disk image]
+`ostis` [`-a` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [`-d`] [disk image]
 
 Special keys:  
 `F11` - save emulator state to file  

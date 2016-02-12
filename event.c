@@ -30,13 +30,13 @@ static int event_key(SDL_KeyboardEvent key, int state)
     ikbd_queue_key(SCAN_F1+k.sym-SDLK_F1, state);
   } else if(k.sym == SDLK_F11) {
     if(state == EVENT_RELEASE) {
-#if DEBUG
-      return EVENT_DEBUG;
-#else
-      state_save("ostis.state", state_collect());
-      SDL_Quit();
-      exit(0);
-#endif
+      if(debugger)
+	return EVENT_DEBUG;
+      else {
+	state_save("ostis.state", state_collect());
+	SDL_Quit();
+	exit(0);
+      }
     }
   } else if(k.sym == SDLK_F12) {
     if(state == EVENT_RELEASE) {
@@ -130,12 +130,12 @@ int event_poll()
   case SDL_MOUSEBUTTONUP:
     return event_button(ev.button, EVENT_RELEASE);
   case SDL_QUIT:
-#if DEBUG
-    return EVENT_DEBUG;
-#else
-    SDL_Quit();
-    exit(0);
-#endif
+    if(debugger)
+      return EVENT_DEBUG;
+    else {
+      SDL_Quit();
+      exit(0);
+    }
   }
 
   return EVENT_NONE;

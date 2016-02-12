@@ -18,6 +18,8 @@
 #include "cartridge.h"
 #include "state.h"
 
+int debugger = 0;
+
 int main(int argc, char *argv[])
 {
   int i,c;
@@ -26,7 +28,7 @@ int main(int argc, char *argv[])
   prefs_init();
 
   while(1) {
-    c = getopt(argc, argv, "a:t:s:h");
+    c = getopt(argc, argv, "a:t:s:hd");
     if(c == -1) break;
 
     switch(c) {
@@ -39,9 +41,12 @@ int main(int argc, char *argv[])
     case 's':
       prefs_set("stateimage", optarg);
       break;
+    case 'd':
+      debugger = 1;
+      break;
     case 'h':
     default:
-      printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage]\n",
+      printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage] [-h] [-d]\n",
 	     argv[0]);
       exit(-1);
       break;
@@ -65,9 +70,8 @@ int main(int argc, char *argv[])
   screen_disable(0);
   screen_init();
   shifter_init();
-#if DEBUG
-  debug_init();
-#endif
+  if(debugger)
+    debug_init();
 
 #if 0
   if(argc > 1) {
@@ -99,12 +103,12 @@ int main(int argc, char *argv[])
   if(state != NULL)
     state_restore(state);
 
-#if DEBUG
-  while(!debug_event());
-  return 0;
-#else
-  while(cpu_run());
-#endif
+  if(debugger) {
+    while(!debug_event());
+    return 0;
+  } else {
+    while(cpu_run());
+  }
 
   mmu_print_map();
   // cpu_print_status();

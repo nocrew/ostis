@@ -90,6 +90,26 @@ void event_exit()
   SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
+static int event_mouse(SDL_MouseMotionEvent m)
+{
+  ikbd_queue_motion(m.xrel, m.yrel);
+  return EVENT_NONE;
+}
+
+static int event_button(SDL_MouseButtonEvent b, int state)
+{
+  switch (b.button) {
+  case SDL_BUTTON_LEFT:
+    ikbd_button(SCAN_LEFT_BUTTON, state);
+    break;
+  case SDL_BUTTON_RIGHT:
+    ikbd_button(SCAN_RIGHT_BUTTON, state);
+    break;
+  }
+
+  return EVENT_NONE;
+}
+
 int event_poll()
 {
   SDL_Event ev;
@@ -103,6 +123,12 @@ int event_poll()
     return event_key(ev.key, EVENT_PRESS);
   case SDL_KEYUP:
     return event_key(ev.key, EVENT_RELEASE);
+  case SDL_MOUSEMOTION:
+    return event_mouse(ev.motion);
+  case SDL_MOUSEBUTTONDOWN:
+    return event_button(ev.button, EVENT_PRESS);
+  case SDL_MOUSEBUTTONUP:
+    return event_button(ev.button, EVENT_RELEASE);
   case SDL_QUIT:
 #if DEBUG
     return EVENT_DEBUG;

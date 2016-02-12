@@ -5,6 +5,8 @@
 
 void ikbd_init();
 void ikbd_queue_key(int, int);
+void ikbd_queue_motion(int, int);
+void ikbd_button(int, int);
 void ikbd_do_interrupts(struct cpu *);
 
 #endif

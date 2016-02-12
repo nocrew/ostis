@@ -52,4 +52,7 @@ static int scancode[256] = {
 #define SCAN_INSERT 0x52
 #define SCAN_DELETE 0x53
 
+#define SCAN_LEFT_BUTTON 0x02
+#define SCAN_RIGHT_BUTTON 0x01
+
 #endif

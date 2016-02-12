@@ -1,4 +1,4 @@
-# Cyle-Accurate Atari ST Emulator
+# Cycle-Accurate Atari ST Emulator
 
 ### Building
 

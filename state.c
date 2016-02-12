@@ -61,7 +61,8 @@ static void state_write_file_long(FILE *f, long data)
 static long state_read_file_long(FILE *f)
 {
   unsigned char tmp[4];
-  fread(tmp, 4, 1, f);
+  if(fread(tmp, 4, 1, f) != 1)
+    WARNING(fread);
 
   return (tmp[0]<<24)|(tmp[1]<<16)|(tmp[2]<<8)|tmp[3];
 }
@@ -111,7 +112,8 @@ static int state_read_section(FILE *f, struct state_section *sec)
     return STATE_INVALID;
   }
   if(sec->size%4)
-    fread(dummy, 4-(sec->size%4), 1, f);
+    if(fread(dummy, 4-(sec->size%4), 1, f) != 1)
+      WARNING(fread);
 
   return STATE_VALID;
 }

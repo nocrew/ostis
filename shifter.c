@@ -511,8 +511,10 @@ void shifter_build_ppm()
   }
 
   sprintf(header, "P6\n%d %d\n255\n", 384, 288);
-  write(ppm_fd, header, strlen(header));
-  write(ppm_fd, frame, 384*288*3);
+  if(write(ppm_fd, header, strlen(header)) != strlen(header))
+    WARNING(write);
+  if (write(ppm_fd, frame, 384*288*3) != 384*288*3)
+    WARNING(write);
 }
 
 void shifter_init()

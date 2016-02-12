@@ -740,7 +740,8 @@ void cprint_load_labels(char *file)
   }
 
   while(!feof(f)) {
-    fscanf(f, "%14s %08X\n", name, &addr);
+    if(fscanf(f, "%14s %08X\n", name, &addr) != 2)
+      WARNING(fscanf);
     cprint_set_label(addr, strdup(name));
   }
   

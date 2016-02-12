@@ -8,3 +8,6 @@ ostis
 tos.img
 psg.raw
 ostis.state
+ostis
+ostis-debug
+ostis-gdb

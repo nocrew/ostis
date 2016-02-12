@@ -1,2 +1,0 @@
-CFLAGS=-g `sdl-config --cflags` -I. -I.. -Wall -Werror -Wno-unused-function
-LDFLAGS=-g

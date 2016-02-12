@@ -1,9 +1,12 @@
 CC=gcc
-include Makefile.include
-#CFLAGS=-O3 -I. -I.. -Wall -Werror -Wno-unused-function
-#LDFLAGS=-O3
-#CFLAGS=-g -I. -I.. -Wall -Werror -Wno-unused-function
-#LDFLAGS=-g
+CFLAGS_BASE=`sdl-config --cflags` -I. -I.. -Wall -Werror -Wno-unused-function
+LDFLAGS_BASE=
+
+CFLAGS=$(CFLAGS_EXTRA) $(CFLAGS_BASE)
+LDFLAGS=$(LDFLAGS_EXTRA) $(LDFLAGS_BASE)
+export CFLAGS
+export LDFLAGS
+
 YACC=yacc -d
 LEX=lex
 
@@ -31,13 +34,24 @@ LIBTEST=libtests.a
 LIB=-Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
 TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
 
-PRG=ostis
 TEST_PRG=ostistest
 
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $<
 
-all: $(PRG)
+all:	default
+
+default:
+	make ostis CFLAGS_EXTRA="-O3"
+
+debugger:
+	make ostis-debug CFLAGS_EXTRA="-DDEBUG=1 -O3"
+
+gdb:
+	make ostis-gdb CFLAGS_EXTRA="-ggdb"
+
+ostis ostis-debug ostis-gdb:	ostis_depends
+	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
 
 tests:	$(TEST_PRG)
 
@@ -50,10 +64,7 @@ $(LIBTEST):
 $(LIBDEBUG):
 	make -C debug
 
-$(PARSERSRC):	$(PARSER)
-
-$(PRG): $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
-	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
+ostis_depends: $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 
 $(PARSERSRC):	$(PARSER)
 $(PARSEROBJ):	$(PARSERSRC)
@@ -80,4 +91,4 @@ $(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
 clean:
 	make -C cpu clean
 	make -C debug clean
-	rm -f *.o *~ $(PARSERSRC) expr.tab.h $(PRG)
+	rm -f *.o *~ $(PARSERSRC) expr.tab.h

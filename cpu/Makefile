@@ -1,11 +1,6 @@
 CC=gcc
 AR=ar
 RANLIB=ranlib
-include ../Makefile.include
-#CFLAGS=-O3 -I.. -Wall -Werror -Wno-unused-function
-#LDFLAGS=-O3
-#CFLAGS=-g -Wall -Werror -Wno-unused-function -I..
-#LDFLAGS=-g
 
 SRC=ea.c move_to_sr.c reset.c cmpi.c bcc.c lea.c suba.c jmp.c move.c btst.c \
     moveq.c cmp.c dbcc.c clr.c movea.c add.c cmpa.c lsr.c adda.c addq.c \

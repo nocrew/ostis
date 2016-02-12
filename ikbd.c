@@ -19,6 +19,7 @@ static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
 static int ikbd_intcnt = 0;
 static int lastcpucnt = 0;
+static BYTE ikbd_buttons = 0;
 
 static int ikbd_pop_fifo()
 {
@@ -175,6 +176,23 @@ void ikbd_queue_key(int key, int state)
   }
 }
 
+void ikbd_queue_motion(int x, int y)
+{
+  ikbd_queue_fifo(0xF8 | ikbd_buttons);
+  ikbd_queue_fifo(x & 0xFF);
+  ikbd_queue_fifo(y & 0xFF);
+}
+
+void ikbd_button(int button, int state)
+{
+  if(state == EVENT_PRESS) {
+    ikbd_buttons |= button;
+  } else {
+    ikbd_buttons &= ~button;
+  }
+  ikbd_queue_motion(0, 0);
+}
+
 void ikbd_init()
 {
   struct mmu *ikbd;
@@ -220,12 +238,10 @@ void ikbd_do_interrupts(struct cpu *cpu)
     if(ikbd_intcnt <= 0) {
       if(ikbd_control&0x80) {
 	if(ikbd_fifocnt > 0) {
-	  if(IPL < 6) {
-	    ikbd_status |= 0x80;
-	    mfp_clr_GPIP(4);
-	    //	    printf("DEBUG: sending keyboard interrupt\n");
-	    mfp_set_pending(6);
-	  }
+	  ikbd_status |= 0x80;
+	  mfp_clr_GPIP(4);
+	  //printf("DEBUG: sending keyboard interrupt\n");
+	  mfp_set_pending(6);
 	} else {
 	  mfp_set_GPIP(4);
 	}

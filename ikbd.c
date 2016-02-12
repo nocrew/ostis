@@ -20,6 +20,24 @@ static int ikbd_fifocnt = 0;
 static int ikbd_intcnt = 0;
 static int lastcpucnt = 0;
 static BYTE ikbd_buttons = 0;
+static BYTE ikbd_waiting_for_cmd = 1;
+static BYTE ikbd_mouse_enabled = 0;
+
+static void ikbd_set_cmd(BYTE cmd)
+{
+  if(cmd == 0x08) {
+    // Enable mouse relative
+    ikbd_mouse_enabled = 1;
+    ikbd_waiting_for_cmd = 1;
+  } else if(cmd == 0x12) {
+    // Disable mouse
+    ikbd_mouse_enabled = 0;
+    ikbd_waiting_for_cmd = 1;
+  } else {
+    // Unhandled ikbd commands (nothing for now)
+    ikbd_waiting_for_cmd = 1;
+  }
+}
 
 static int ikbd_pop_fifo()
 {
@@ -97,7 +115,9 @@ static void ikbd_write_byte(LONG addr, BYTE data)
   case 0xfffc02:
     ikbd_status &= ~0x80;
     mfp_set_GPIP(4);
-    ikbd_writereg = data;
+    if(ikbd_waiting_for_cmd) {
+      ikbd_set_cmd(data);
+    }
     break;
   }
 }
@@ -122,17 +142,19 @@ static int ikbd_state_collect(struct mmu_state *state)
 
   /* Size:
    * 
-   * ikbd_fifocnt  == 4
-   * ikbd_intcnt   == 4
-   * lastcpucnt    == 4
-   * ikbd_fifosize == 4
-   * ikbd_fifo     == 1*fifosize
-   * ikbd_control  == 1
-   * ikbd_status   == 1
-   * ikbd_writereg == 1
+   * ikbd_fifocnt         == 4
+   * ikbd_intcnt          == 4
+   * lastcpucnt           == 4
+   * ikbd_fifosize        == 4
+   * ikbd_fifo            == 1*fifosize
+   * ikbd_control         == 1
+   * ikbd_status          == 1
+   * ikbd_writereg        == 1
+   * ikbd_mouse_enabled   == 1
+   * ikbd_waiting_for_cmd == 1
    */
 
-  state->size = 19+IKBDFIFO;
+  state->size = 21+IKBDFIFO;
   state->data = (char *)malloc(state->size);
   if(state->data == NULL)
     return STATE_INVALID;
@@ -146,6 +168,8 @@ static int ikbd_state_collect(struct mmu_state *state)
   state_write_mem_byte(&state->data[16+IKBDFIFO], ikbd_control);
   state_write_mem_byte(&state->data[16+IKBDFIFO+1], ikbd_status);
   state_write_mem_byte(&state->data[16+IKBDFIFO+2], ikbd_writereg);
+  state_write_mem_byte(&state->data[16+IKBDFIFO+3], ikbd_mouse_enabled);
+  state_write_mem_byte(&state->data[16+IKBDFIFO+4], ikbd_waiting_for_cmd);
   return STATE_VALID;
 }
 
@@ -164,6 +188,8 @@ static void ikbd_state_restore(struct mmu_state *state)
   ikbd_control = state_read_mem_byte(&state->data[16+IKBDFIFO]);
   ikbd_status = state_read_mem_byte(&state->data[16+IKBDFIFO+1]);
   ikbd_writereg = state_read_mem_byte(&state->data[16+IKBDFIFO+2]);
+  ikbd_mouse_enabled = state_read_mem_byte(&state->data[16+IKBDFIFO+3]);
+  ikbd_waiting_for_cmd = state_read_mem_byte(&state->data[16+IKBDFIFO+4]);
 }
 
 void ikbd_queue_key(int key, int state)
@@ -177,6 +203,7 @@ void ikbd_queue_key(int key, int state)
 
 void ikbd_queue_motion(int x, int y)
 {
+  if(!ikbd_mouse_enabled) return;
   ikbd_queue_fifo(0xF8 | ikbd_buttons);
   ikbd_queue_fifo(x & 0xFF);
   ikbd_queue_fifo(y & 0xFF);
@@ -184,6 +211,7 @@ void ikbd_queue_motion(int x, int y)
 
 void ikbd_button(int button, int state)
 {
+  if(!ikbd_mouse_enabled) return;
   if(state == EVENT_PRESS) {
     ikbd_buttons |= button;
   } else {

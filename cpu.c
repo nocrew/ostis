@@ -678,10 +678,12 @@ static char *cprint_find_auto_label(LONG addr)
 
 void cprint_set_label(LONG addr, char *name)
 {
-#if DEBUG
   struct cprint_label *new;
   static char tname[10];
   char *tmp;
+
+  if(!debugger)
+    return;
 
   if(name) {
     tmp = cprint_find_label(addr);
@@ -704,7 +706,6 @@ void cprint_set_label(LONG addr, char *name)
   }
   new->next = clabel;
   clabel = new;
-#endif
 }
 
 void cprint_save_labels(char *file)

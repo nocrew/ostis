@@ -16,10 +16,8 @@ static SDL_Surface *screen;
 
 void screen_init()
 {
-#if DEBUG
   /* should be rewritten with proper error checking */
   Uint32 rmask, gmask, bmask, amask;
-#endif
   
   if(disable) return;
 #if 0
@@ -28,26 +26,24 @@ void screen_init()
 #endif
   
 
-#if DEBUG
+  if(debugger) {
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-  amask = 0x00000000;
-  rmask = 0x00ff0000;
-  gmask = 0x0000ff00;
-  bmask = 0x000000ff;
+    amask = 0x00000000;
+    rmask = 0x00ff0000;
+    gmask = 0x0000ff00;
+    bmask = 0x000000ff;
 #else
-  amask = 0x00000000;
-  rmask = 0x000000ff;
-  gmask = 0x0000ff00;
-  bmask = 0x00ff0000;
-#endif
+    amask = 0x00000000;
+    rmask = 0x000000ff;
+    gmask = 0x0000ff00;
+    bmask = 0x00ff0000;
 #endif
   
-#if DEBUG
-  screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 314, 24,
-				rmask, gmask, bmask, amask);
-#else
-  screen = SDL_SetVideoMode(512, 314, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
-#endif
+    screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 314, 24,
+				  rmask, gmask, bmask, amask);
+  } else {
+    screen = SDL_SetVideoMode(512, 314, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
+  }
 
   if(screen == NULL) {
     fprintf(stderr, "Did not get a video mode\n");
@@ -116,20 +112,19 @@ void screen_putpixel(int x, int y, long c)
 
 void screen_swap()
 {
-#if DEBUG
   SDL_Rect dst;
-#endif
+
   if(disable) return;
 
-#if DEBUG
-  dst.x = BORDER_SIZE;
-  dst.y = BORDER_SIZE;
+  if(debugger) {
+    dst.x = BORDER_SIZE;
+    dst.y = BORDER_SIZE;
   
-  SDL_BlitSurface(screen, NULL, display_get_screen(), &dst);
-  SDL_Flip(display_get_screen());
-#else
-  SDL_Flip(screen);
-#endif
+    SDL_BlitSurface(screen, NULL, display_get_screen(), &dst);
+    SDL_Flip(display_get_screen());
+  } else {
+    SDL_Flip(screen);
+  }
 }
 
 void screen_disable(int yes)

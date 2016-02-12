@@ -7,10 +7,6 @@
 #include <string.h>
 #include "screen.h"
 
-#ifndef DEBUG
-#define DEBUG 0
-#endif
-
 typedef uint8_t BYTE;
 typedef uint16_t WORD;
 typedef uint32_t LONG;
@@ -45,6 +41,8 @@ typedef int32_t SLONG;
 
 #define WARNING(F) \
   fprintf(stderr, "WARNING: unexpected return value from %s at %s:%d\n", #F, __FILE__, __LINE__);
+
+extern int debugger;
 
 #endif
 

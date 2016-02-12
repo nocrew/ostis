@@ -44,9 +44,6 @@ all:	default
 default:
 	make ostis CFLAGS_EXTRA="-O3"
 
-debugger:
-	make ostis-debug CFLAGS_EXTRA="-DDEBUG=1 -O3"
-
 gdb:
 	make ostis-gdb CFLAGS_EXTRA="-ggdb"
 

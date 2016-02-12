@@ -202,7 +202,7 @@ static void fdc_do_instr()
     }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_READSEC && !FDCI_MULTSEC) {
-#if 1
+#if 0
     printf("DEBUG: FDCI_READSEC: 0x%x - %d blocks\n",
 	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
     printf("---FDC---\n");
@@ -227,7 +227,7 @@ static void fdc_do_instr()
    }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_READSEC && FDCI_MULTSEC) {
-#if 1
+#if 0
     printf("DEBUG: FDCI_READSEC (MULTI): 0x%x - %d blocks\n",
 	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
     printf("---FDC---\n");

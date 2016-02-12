@@ -9,7 +9,7 @@
 #define IKBDSIZE 4
 #define IKBDBASE 0xfffc00
 
-#define IKBDFIFO 3
+#define IKBDFIFO 32
 #define IKBD_INTCNT 7200
 
 static BYTE ikbd_control;
@@ -27,8 +27,7 @@ static int ikbd_pop_fifo()
 
   if(ikbd_fifocnt == 0) return 0;
   tmp = ikbd_fifo[0];
-  ikbd_fifo[0] = ikbd_fifo[1];
-  ikbd_fifo[1] = ikbd_fifo[2];
+  memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0)
     ikbd_status |= 0x1;

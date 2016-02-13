@@ -28,7 +28,7 @@ Command line options:
 `-s`  - Save state file  
 `-h`  - Show help  
 `-d`  - Activate MonST clone  
-`-p`  - Dump all video into PPM file (`ostis.ppm`)
+`-p`  - Dump all video into PPM file (`ostis.ppm`)  
 `-y`  - Dump all audio into raw PCM file (`psg.raw`)
 
 Special keys:  

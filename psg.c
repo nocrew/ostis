@@ -8,8 +8,6 @@
 #include "mmu.h"
 #include "state.h"
 
-#define PSGOUTPUT 1
-
 #define PSGSIZE 256
 #define PSGBASE 0xff8800
 
@@ -86,9 +84,7 @@ static signed long psg_presample[PSG_PRESAMPLESIZE][3];
 static int psg_presamplepos = 0; /* circular buffer */
 static int psg_presamplestart = 0;
 static long lastcpucnt = 0;
-#if PSGOUTPUT
 static int snd_fd;
-#endif
 static int psg_running = 1;
 
 static int psg_set_period(int channel)
@@ -238,9 +234,9 @@ void psg_init()
 
   mmu_register(psg);
 
-#if PSGOUTPUT
-  snd_fd = open("psg.raw", O_WRONLY|O_TRUNC|O_CREAT, 0644);
-#endif
+  if(psgoutput) {
+    snd_fd = open("psg.raw", O_WRONLY|O_TRUNC|O_CREAT, 0644);
+  }
 
   for(i=0;i<32;i++) {
     psg_volume_voltage[i] /= 2;
@@ -351,9 +347,7 @@ static void psg_generate_samples()
   int presamples,pos;
   int i,c;
   signed long out;
-#if PSGOUTPUT
   signed short outsign;
-#endif
 
   if(psg_presamplepos < psg_presamplestart) {
     pos = psg_presamplepos + PSG_PRESAMPLESIZE;
@@ -371,18 +365,19 @@ static void psg_generate_samples()
       }
     }
     out = (out/(PSG_PRESAMPLES_PER_SAMPLE*3));
-#if PSGOUTPUT
-    outsign = out&0xffff;
-#endif
+    if(psgoutput) {
+      outsign = out&0xffff;
+    }
+
     if(!psg_running && (out != 0))
       psg_running = 1;
     if(psg_running) {
-#if PSGOUTPUT
-      if(write(snd_fd, &outsign, 2) != 2)
-	WARNING(write);
-      if(write(snd_fd, &outsign, 2) != 2)
-	WARNING(write);
-#endif
+      if(psgoutput) {
+        if(write(snd_fd, &outsign, 2) != 2)
+          WARNING(write);
+        if(write(snd_fd, &outsign, 2) != 2)
+          WARNING(write);
+      }
     }
     psg_presamplestart += PSG_PRESAMPLES_PER_SAMPLE;
     if(psg_presamplestart > (PSG_PRESAMPLESIZE-1)) {
@@ -406,10 +401,10 @@ void psg_do_interrupts(struct cpu *cpu)
     tmpcpu += MAX_CYCLE;
   }
 
-#if PSGOUTPUT
-  psg_generate_presamples(tmpcpu/4);
-  psg_generate_samples();
-#endif
+  if(psgoutput) {
+    psg_generate_presamples(tmpcpu/4);
+    psg_generate_samples();
+  }
 
   lastcpucnt = cpu->cycle;
 }

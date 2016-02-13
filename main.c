@@ -20,6 +20,7 @@
 
 int debugger = 0;
 int ppmoutput = 0;
+int psgoutput = 0;
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
   prefs_init();
 
   while(1) {
-    c = getopt(argc, argv, "a:t:s:hdp");
+    c = getopt(argc, argv, "a:t:s:hdpy");
     if(c == -1) break;
 
     switch(c) {
@@ -47,6 +48,9 @@ int main(int argc, char *argv[])
       break;
     case 'p':
       ppmoutput = 1;
+      break;
+    case 'y':
+      psgoutput = 1;
       break;
     case 'h':
     default:

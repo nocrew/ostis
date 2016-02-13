@@ -44,6 +44,7 @@ typedef int32_t SLONG;
 
 extern int debugger;
 extern int ppmoutput;
+extern int psgoutput;
 
 #endif
 

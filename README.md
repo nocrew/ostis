@@ -23,7 +23,7 @@ Normal binary with GDB flags:
 Command line options:  
 `ostis` [`-a` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [`-d`] [disk image] [`-p`] [`-y`]
 
-`-a`  - Load disk image (.ST or uncompressed .MSA)  
+`-a`  - Load disk image (.ST or .MSA)  
 `-t`  - TOS image (default: `tos.img`)  
 `-s`  - Save state file  
 `-h`  - Show help  

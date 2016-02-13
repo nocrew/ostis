@@ -172,7 +172,7 @@ void floppy_load_msa(FILE *fp)
 {
   BYTE msa_header[10];
   int starting_track, ending_track;
-  int track,side,pos;
+  int track,side,pos,tpos;
   int track_size;
   BYTE *track_data;
   int track_data_size;
@@ -220,21 +220,41 @@ void floppy_load_msa(FILE *fp)
 
   for(track = 0; track < floppy[0].tracks; track++) {
     for(side = 0; side <= floppy[0].sides; side++) {
+
       if(fread(track_data, 1, 2, fp) != 2) {
         printf("Error: Unable to read track data\n");
         return;
       }
       track_data_size = (track_data[0]<<8)|track_data[1];
-      if(track_data_size != track_size) {
-        printf("Error: Compressed MSA not supported\n");
-        return;
-      }
       if(fread(track_data, 1, track_data_size, fp) != track_data_size) {
         printf("Error: Unable to read track data\n");
         return;
       }
-      memcpy(&floppy_raw_data[pos], track_data, track_data_size);
-      pos += track_size;
+
+      if(track_data_size != track_size) {
+        for(tpos = 0; tpos < track_data_size; tpos++) {
+          BYTE rep_byte;
+          WORD rep_count;
+          
+          if(track_data[tpos] == 0xe5) {
+            rep_byte = track_data[tpos+1];
+            rep_count = (track_data[tpos+2]<<8)|track_data[tpos+3];
+            if((pos + rep_count) > floppy_raw_data_size) {
+              printf("Error: MSA RLE compression corrupt.\n");
+              return;
+            }
+            memset(&floppy_raw_data[pos], rep_byte, rep_count);
+            pos += rep_count;
+            tpos += 3;
+          } else {
+            floppy_raw_data[pos] = track_data[tpos];
+            pos++;
+          }
+        }
+      } else {
+        memcpy(&floppy_raw_data[pos], track_data, track_data_size);
+        pos += track_size;
+      }
     }
   }
 

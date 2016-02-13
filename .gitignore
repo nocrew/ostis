@@ -7,6 +7,7 @@ lex.expr.c
 ostis
 tos.img
 psg.raw
+ostis.ppm
 ostis.state
 ostis
 ostis-gdb

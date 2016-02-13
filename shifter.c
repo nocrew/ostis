@@ -10,8 +10,6 @@
 #include "mmu.h"
 #include "state.h"
 
-#define PPMOUTPUT 0
-
 #define SHIFTERSIZE 128
 #define SHIFTERBASE 0xff8200
 
@@ -285,11 +283,11 @@ static void shifter_gen_pixel(int rasterpos)
 	      get_pixel(get_videooffset(rasterpos),
 			(linepos-hblpre)&15));
   } else {
-#if PPMOUTPUT
-    set_pixel(rasterpos, 0); /* Background in border */
-#else
-    set_pixel(rasterpos, 16); /* Background in border */
-#endif
+    if(ppmoutput) {
+      set_pixel(rasterpos, 0); /* Background in border */
+    } else {
+      set_pixel(rasterpos, 16); /* Background in border */
+    }
   }
 }
 
@@ -542,9 +540,9 @@ void shifter_init()
   mmu_register(shifter);
 
   rgbimage = screen_pixels();
-#if PPMOUTPUT
-  ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
-#endif
+  if(ppmoutput) {
+    ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+  }
   framecnt = 0;
 }
 
@@ -572,9 +570,9 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     //    hsynccnt = HBLSIZE+(160);
     //    linecnt = HBLSIZE-(HBLSIZE-HBLPRE-HBLSCR-HBLPOST);
     lastrasterpos = 0; /* Restart image building from position 0 */
-#if PPMOUTPUT
-    shifter_build_ppm();
-#endif
+    if(ppmoutput) {
+      shifter_build_ppm();
+    }
     screen_swap();
     //    if(!noint && (IPL < 4))
     cpu_set_exception(28); /* Set VBL interrupt as pending */

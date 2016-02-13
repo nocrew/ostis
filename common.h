@@ -43,6 +43,7 @@ typedef int32_t SLONG;
   fprintf(stderr, "WARNING: unexpected return value from %s at %s:%d\n", #F, __FILE__, __LINE__);
 
 extern int debugger;
+extern int ppmoutput;
 
 #endif
 

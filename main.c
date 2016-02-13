@@ -19,6 +19,7 @@
 #include "state.h"
 
 int debugger = 0;
+int ppmoutput = 0;
 
 int main(int argc, char *argv[])
 {
@@ -28,7 +29,7 @@ int main(int argc, char *argv[])
   prefs_init();
 
   while(1) {
-    c = getopt(argc, argv, "a:t:s:hd");
+    c = getopt(argc, argv, "a:t:s:hdp");
     if(c == -1) break;
 
     switch(c) {
@@ -44,9 +45,12 @@ int main(int argc, char *argv[])
     case 'd':
       debugger = 1;
       break;
+    case 'p':
+      ppmoutput = 1;
+      break;
     case 'h':
     default:
-      printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage] [-h] [-d]\n",
+      printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage] [-h] [-d] [-p]\n",
 	     argv[0]);
       exit(-1);
       break;

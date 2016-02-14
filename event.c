@@ -38,6 +38,10 @@ static int event_key(SDL_KeyboardEvent key, int state)
 	exit(0);
       }
     }
+  } else if(k.sym == SDLK_PRINT) {
+    if(state == EVENT_RELEASE) {
+      cprint_all = !cprint_all;
+    }
   } else if(k.sym == SDLK_F12) {
     if(state == EVENT_RELEASE) {
       printf("DEBUG: cpu->pc == %08x\n", cpu->pc);

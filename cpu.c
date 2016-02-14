@@ -36,6 +36,8 @@ static struct cpubrk *brk = NULL;
 static struct cpuwatch *watch = NULL;
 static int interrupt_pending[8];
 
+int cprint_all = 0;
+
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
 
@@ -199,6 +201,7 @@ static void cpu_do_exception(int vnum)
   //  printf("DEBUG: Do exception: %d (PC == %08x)\n", vnum, cpu->pc);
 
   if(vnum == 2) {
+    cprint_all = 0;
     if(cpu->debug) {
       printf("DEBUG: Entering Bus Error\n");
     }
@@ -511,7 +514,20 @@ int cpu_step_instr(int trace)
     cpu->cyclecomp = 0;
     cpu->icycle = 0;
     cpu->tracedelay = 0;
-    
+
+    if(cprint_all) {
+      struct cprint *cprint;
+      char *label;
+      cprint = cprint_instr(cpu->pc-2);
+
+      label = cprint_find_label(cpu->pc-2);
+      printf("DEBUG-ASM: %06X  %-14s %s %s\n",
+             cpu->pc-2,
+             label?label:"",
+             cprint->instr,
+             cprint->data);
+      free(cprint);
+    }
     instr[op](cpu, op);
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
@@ -600,6 +616,9 @@ void cpu_set_exception(int vnum)
 
 void cpu_set_sr(WORD sr)
 {
+  if(sr & 0x8000) {
+    printf("DEBUG: Setting trace bit in SR\n");
+  }
   if((sr^cpu->sr)&0x2000) {
     if(cpu->sr&0x2000) {
       cpu->ssp = cpu->a[7];

@@ -32,10 +32,11 @@ Command line options:
 `-y`  - Dump all audio into raw PCM file (`psg.raw`)
 
 Special keys:  
-`F11` - save emulator state to file  
-`F12` - print diagnosics  
-`F13` - temporarily save state  
-`F14` - restore temporary state  
+`F11`      - save emulator state to file  
+`F12`      - print diagnosics  
+`F13`      - temporarily save state  
+`F14`      - restore temporary state
+`PrintScr` - toggle insane amount of debug output (live disassemble)
 
 MonST keys:  
 `Esc` - set window address to pc  

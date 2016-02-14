@@ -46,6 +46,7 @@ struct cpu_state *cpu_state_collect();
 void cpu_state_restore(struct cpu_state *);
 
 extern struct cpu *cpu;
+extern int cprint_all;
 
 #define ADD_CYCLE(x) do { cpu->icycle += x; } while(0);
 #define MAX_CYCLE 8012800

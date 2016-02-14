@@ -1,4 +1,4 @@
-%token <str> PC SR LABEL SIZEW SP SSP USP
+%token <str> PC SR LABEL SIZEW SIZEB SP SSP USP
 %token <val> AREG DREG VAL WIN
 %token EQ NE LT LE GT GE BAND LAND BOR LOR BXOR BNOT LNOT
 %type <val> expr
@@ -52,6 +52,7 @@ expr:	VAL { $$ = $1; }
 	          free($1);
 		}
 	| expr SIZEW { $$ = $1 & 0xffff; }
+	| expr SIZEB { $$ = $1 & 0xff; }
 	| expr '-' expr { $$ = $1 - $3; }
 	| expr '+' expr { $$ = $1 + $3; }
 	| expr '/' expr { $$ = $1 / $3; }
@@ -59,6 +60,7 @@ expr:	VAL { $$ = $1; }
 	| '(' expr ')' { $$ = $2; }
 	| '[' expr ']' { $$ = mmu_read_long_print($2); }
 	| '[' expr ']' SIZEW { $$ = mmu_read_word_print($2); }
+	| '[' expr ']' SIZEB { $$ = mmu_read_byte_print($2); }
 	| expr EQ expr { $$ = ($1 == $3); }
 	| expr NE expr { $$ = ($1 != $3); }
 	| expr LT expr { $$ = ($1 < $3); }

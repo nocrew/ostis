@@ -109,8 +109,6 @@ BYTE mmu_read_byte_print(LONG addr)
 
   addr &= 0xffffff;
 
-  if(addr >= 0xff8000) return 0x2a;
-
   t = dispatch(addr);
   if(!t) {
     return 0;
@@ -127,8 +125,6 @@ WORD mmu_read_word_print(LONG addr)
 
   addr &= 0xffffff;
 
-  if(addr >= 0xff8000) return 0x2a2a;
-
   t = dispatch(addr);
   if(!t) {
     return 0;
@@ -144,8 +140,6 @@ LONG mmu_read_long_print(LONG addr)
   struct mmu *t;
 
   addr &= 0xffffff;
-
-  if(addr >= 0xff8000) return 0x2a2a2a2a;
 
   t = dispatch(addr);
   if(!t) {

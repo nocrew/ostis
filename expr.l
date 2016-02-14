@@ -31,6 +31,9 @@
 \.w {
   return SIZEW;
 }
+\.b {
+  return SIZEB;
+}
 [pP][cC] {
   return PC;
 }

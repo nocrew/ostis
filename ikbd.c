@@ -43,12 +43,12 @@ static int ikbd_pop_fifo()
 {
   BYTE tmp;
 
-  if(ikbd_fifocnt == 0) return 0;
+  if(ikbd_fifocnt == 0) return -1;
   tmp = ikbd_fifo[0];
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0)
-    ikbd_status |= 0x1;
+    ikbd_status |= 0x81;
   return tmp;
 }
 
@@ -66,12 +66,13 @@ static void ikbd_queue_fifo(BYTE data)
   }
   ikbd_fifo[ikbd_fifocnt] = data;
   ikbd_fifocnt++;
-  ikbd_status |= 0x1;
+  ikbd_status |= 0x81;
 }
 
 static BYTE ikbd_read_byte(LONG addr)
 {
-  BYTE tmp;
+  static BYTE last = 0;
+  int tmp;
 
   switch(addr) {
   case 0xfffc00:
@@ -83,7 +84,10 @@ static BYTE ikbd_read_byte(LONG addr)
     else
       ikbd_intcnt = 0;
     tmp = ikbd_pop_fifo();
-    return tmp;
+    if(tmp == -1)
+      return last;
+    else
+      return last = tmp;
   default:
     return 0;
   }
@@ -265,7 +269,7 @@ void ikbd_do_interrupts(struct cpu *cpu)
     if(ikbd_intcnt <= 0) {
       if(ikbd_control&0x80) {
 	if(ikbd_fifocnt > 0) {
-	  ikbd_status |= 0x80;
+	  ikbd_status |= 0x81;
 	  mfp_clr_GPIP(4);
 	  //printf("DEBUG: sending keyboard interrupt\n");
 	  mfp_set_pending(6);

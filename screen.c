@@ -9,6 +9,9 @@
 
 static int disable = 0;
 static SDL_Surface *screen;
+static SDL_Texture *texture;
+static SDL_Window *window;
+static SDL_Renderer *renderer;
 
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
@@ -26,23 +29,30 @@ void screen_init()
 #endif
   
 
-  if(debugger) {
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
-    amask = 0x00000000;
-    rmask = 0x00ff0000;
-    gmask = 0x0000ff00;
-    bmask = 0x000000ff;
+  amask = 0x00000000;
+  rmask = 0x00ff0000;
+  gmask = 0x0000ff00;
+  bmask = 0x000000ff;
 #else
-    amask = 0x00000000;
-    rmask = 0x000000ff;
-    gmask = 0x0000ff00;
-    bmask = 0x00ff0000;
+  amask = 0x00000000;
+  rmask = 0x000000ff;
+  gmask = 0x0000ff00;
+  bmask = 0x00ff0000;
 #endif
-  
-    screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 512, 314, 24,
-				  rmask, gmask, bmask, amask);
+
+  if(debugger) {
+    screen = SDL_CreateRGBSurface(0, 512, 314, 24,
+    				  rmask, gmask, bmask, amask);
   } else {
-    screen = SDL_SetVideoMode(512, 314, 24, SDL_HWSURFACE|SDL_DOUBLEBUF);
+    window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_RESIZABLE);
+    screen = SDL_CreateRGBSurface(0, 512, 314, 24,
+    				  rmask, gmask, bmask, amask);
+    renderer = SDL_CreateRenderer(window, -1, 0);
+    texture = SDL_CreateTexture(renderer,
+                                SDL_PIXELFORMAT_RGB24,
+                                SDL_TEXTUREACCESS_STREAMING,
+                                512, 314);
   }
 
   if(screen == NULL) {
@@ -121,9 +131,17 @@ void screen_swap()
     dst.y = BORDER_SIZE;
   
     SDL_BlitSurface(screen, NULL, display_get_screen(), &dst);
-    SDL_Flip(display_get_screen());
+    SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    //    SDL_Flip(display_get_screen());
   } else {
-    SDL_Flip(screen);
+    SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    //    SDL_Flip(screen);
   }
 }
 
@@ -142,6 +160,8 @@ int screen_check_disable()
 
 void *screen_pixels()
 {
+  printf("DEBUG: Screen: %p\n", screen);
+  printf("DEBUG: Screen pixels: %p\n", screen->pixels);
   return screen->pixels;
 }
 

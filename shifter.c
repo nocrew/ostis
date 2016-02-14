@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <SDL_byteorder.h>
+#include <SDL_endian.h>
 #include <fcntl.h>
 #include "common.h"
 #include "cpu.h"

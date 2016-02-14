@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS_BASE=`sdl-config --cflags` -I. -I.. -Wall -Werror -Wno-unused-function
+CFLAGS_BASE=`sdl2-config --cflags` -I. -I.. -Wall -Werror -Wno-unused-function
 LDFLAGS_BASE=
 
 CFLAGS=$(CFLAGS_EXTRA) $(CFLAGS_BASE)
@@ -31,7 +31,7 @@ LIBDEBUG=libdebug.a
 
 LIBTEST=libtests.a
 
-LIB=-Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
+LIB=-Lcpu -lcpu -Ldebug -ldebug `sdl2-config --libs`
 TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
 
 TEST_PRG=ostistest

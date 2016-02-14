@@ -7,17 +7,24 @@
 #include "cpu.h"
 #include "state.h"
 
+#if 0
 static int tstart;
 static int tend;
 
 static struct state *laststate;
+#endif
 
 static int event_key(SDL_KeyboardEvent key, int state)
 {
-  SDL_keysym k;
-  Uint16 u;
+  SDL_Keysym k;
+  //  Uint16 u;
 
   k = key.keysym;
+
+  printf("DEBUG: Keysym: Scancode: %d, Sym: %d, Mod: %d\n", k.scancode, k.sym, k.mod);
+  printf("DEBUG: Scancode: %d", scancode[k.scancode]);
+
+#if 0  
   u = k.unicode;
 
   if((u == ' ') ||
@@ -79,19 +86,19 @@ static int event_key(SDL_KeyboardEvent key, int state)
   } else {
     printf("Unimplemented key: %d\n", k.sym);
   }
-
+#endif
   return EVENT_NONE;
 }
 
 void event_init()
 {
-  SDL_EnableKeyRepeat(0, SDL_DEFAULT_REPEAT_INTERVAL);
-  SDL_EnableUNICODE(1);
+  //  SDL_EnableKeyRepeat(0, SDL_DEFAULT_REPEAT_INTERVAL);
+  //  SDL_EnableUNICODE(1);
 }
 
 void event_exit()
 {
-  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+  //  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
 static int event_mouse(SDL_MouseMotionEvent m)

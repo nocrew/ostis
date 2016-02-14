@@ -4,8 +4,11 @@
 #include "font.h"
 #include "win.h"
 
+static SDL_Window *window;
 static SDL_Surface *scr;
 static SDL_Surface *font[4][256];
+static SDL_Texture *texture;
+static SDL_Renderer *renderer;
 
 #define PADDR(f, x, y) (f->pixels + (y)*f->pitch + (x)*f->format->BytesPerPixel)
 
@@ -75,17 +78,17 @@ static void build_font()
 
 
   for(i=0;i<256;i++) {
-    font[0][i] = SDL_CreateRGBSurface(SDL_HWSURFACE, 8, 8, 24,
+    font[0][i] = SDL_CreateRGBSurface(0, 8, 8, 24,
 				      rmask, gmask, bmask, amask);
-    font[2][i] = SDL_CreateRGBSurface(SDL_HWSURFACE, 8, 8, 24,
+    font[2][i] = SDL_CreateRGBSurface(0, 8, 8, 24,
 				      rmask, gmask, bmask, amask);
     build_char(font8x8[i], font[0][i], 8, 0);
     build_char(font8x8[i], font[2][i], 8, 1);
   }
   for(i=0;i<256;i++) {
-    font[1][i] = SDL_CreateRGBSurface(SDL_HWSURFACE, 8, 16, 24,
+    font[1][i] = SDL_CreateRGBSurface(0, 8, 16, 24,
 				      rmask, gmask, bmask, amask);
-    font[3][i] = SDL_CreateRGBSurface(SDL_HWSURFACE, 8, 16, 24,
+    font[3][i] = SDL_CreateRGBSurface(0, 8, 16, 24,
 				      rmask, gmask, bmask, amask);
     build_char(font8x16[i], font[1][i], 16, 0);
     build_char(font8x16[i], font[3][i], 16, 1);
@@ -104,6 +107,8 @@ void display_put_char(int x, int y, int f, unsigned char c)
 
 void display_setup()
 {
+  Uint32 rmask, gmask, bmask, amask;
+  
   if(SDL_Init(SDL_INIT_VIDEO) == -1) {
     fprintf(stderr, "Unable to initialize SDL.\n");
     exit(-2);
@@ -111,12 +116,34 @@ void display_setup()
 
   atexit(SDL_Quit);
 
-  scr = SDL_SetVideoMode(640 + BORDER_SIZE * 2,
-                         400 + BORDER_SIZE * 2,
-                         24, SDL_HWSURFACE|SDL_DOUBLEBUF);
+  window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                            (640 + BORDER_SIZE * 2),
+                            (400 + BORDER_SIZE * 2),
+                            SDL_WINDOW_RESIZABLE);
 
-  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
-  SDL_EnableUNICODE(1);
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+  amask = 0x00000000;
+  rmask = 0x00ff0000;
+  gmask = 0x0000ff00;
+  bmask = 0x000000ff;
+#else
+  amask = 0x00000000;
+  rmask = 0x000000ff;
+  gmask = 0x0000ff00;
+  bmask = 0x00ff0000;
+#endif
+
+  scr = SDL_CreateRGBSurface(0,
+                             (640 + BORDER_SIZE * 2),
+                             (400 + BORDER_SIZE * 2),
+                             24,
+                             rmask, gmask, bmask, amask);
+  renderer = SDL_CreateRenderer(window, -1, 0);
+  texture = SDL_CreateTexture(renderer,
+                              SDL_PIXELFORMAT_RGB24,
+                              SDL_TEXTUREACCESS_STREAMING,
+                              (640 + BORDER_SIZE * 2),
+                              (400 + BORDER_SIZE * 2));
 
   build_font();
 }
@@ -124,7 +151,10 @@ void display_setup()
 void display_swap_screen()
 {
   win_draw_screen();
-  SDL_Flip(scr);
+  SDL_UpdateTexture(texture, NULL, scr->pixels, scr->pitch);
+  SDL_RenderClear(renderer);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
+  SDL_RenderPresent(renderer);
 }
 
 SDL_Surface *display_get_screen()

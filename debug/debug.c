@@ -50,7 +50,7 @@ static void debug_skip_next_instr()
 
 static int debug_do_key_normal(SDL_KeyboardEvent key)
 {
-  SDL_keysym k;
+  SDL_Keysym k;
   int ret;
 
   k = key.keysym;
@@ -207,9 +207,10 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
 
 static int debug_do_key_edit(SDL_KeyboardEvent key)
 {
-  SDL_keysym k;
-  Uint16 u;
+  //  SDL_Keysym k;
+  //  Uint16 u;
 
+#if 0
   k = key.keysym;
   u = k.unicode;
 
@@ -243,7 +244,7 @@ static int debug_do_key_edit(SDL_KeyboardEvent key)
   } else if(k.sym == SDLK_BACKSPACE) {
     edit_remove_char();
   }
-
+#endif
   display_swap_screen();
   return 0;
 }
@@ -268,8 +269,7 @@ int debug_event()
   }
 
   switch(ev.type) {
-  case SDL_ACTIVEEVENT:
-  case SDL_VIDEOEXPOSE:
+  case SDL_WINDOWEVENT:
     display_swap_screen();
     break;
   case SDL_KEYDOWN:

@@ -24,8 +24,20 @@ static void movem_w(struct cpu *cpu, WORD op, int rmask)
     }
     rev = 0;
   }
+  if(inc && op&0x400) {
+    int ea_reg = op&0x7;
+    if(rev) {
+      if(rmask & (1<<(15-(ea_reg+8)))) {
+        inc = 0;
+      }
+    } else {
+      if(rmask & (1<<(ea_reg+8))) {
+        inc = 0;
+      }
+    }
+  }
   cpu->icycle = savecycle;
-  
+
   if(op&0x400) {
     for(i=0;i<8;i++) {
       if(rmask&(1<<i)) {
@@ -113,6 +125,18 @@ static void movem_l(struct cpu *cpu, WORD op, int rmask)
       inc = 0;
     }
     rev = 0;
+  }
+  if(inc && op&0x400) {
+    int ea_reg = op&0x7;
+    if(rev) {
+      if(rmask & (1<<(15-(ea_reg+8)))) {
+        inc = 0;
+      }
+    } else {
+      if(rmask & (1<<(ea_reg+8))) {
+        inc = 0;
+      }
+    }
   }
   cpu->icycle = savecycle;
   

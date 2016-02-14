@@ -20,7 +20,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
   k = key.keysym;
   u = k.unicode;
 
-  if((u == ' ') ||
+  if((u == ' ') || (u == 27) ||
      ((u >= '0') && (u <= '9')) ||
      ((u >= 'a') && (u <= 'z')) ||
      ((u == '\r')) || ((u == '\b')) || ((u == '\t'))

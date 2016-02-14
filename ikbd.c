@@ -43,7 +43,7 @@ static int ikbd_pop_fifo()
 {
   BYTE tmp;
 
-  if(ikbd_fifocnt == 0) return 0;
+  if(ikbd_fifocnt == 0) return -1;
   tmp = ikbd_fifo[0];
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
@@ -71,7 +71,8 @@ static void ikbd_queue_fifo(BYTE data)
 
 static BYTE ikbd_read_byte(LONG addr)
 {
-  BYTE tmp;
+  static BYTE last = 0;
+  int tmp;
 
   switch(addr) {
   case 0xfffc00:
@@ -83,7 +84,10 @@ static BYTE ikbd_read_byte(LONG addr)
     else
       ikbd_intcnt = 0;
     tmp = ikbd_pop_fifo();
-    return tmp;
+    if(tmp == -1)
+      return last;
+    else
+      return last = tmp;
   default:
     return 0;
   }

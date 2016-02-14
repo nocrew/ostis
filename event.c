@@ -18,7 +18,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
   Uint16 u;
 
   k = key.keysym;
-  u = k.unicode;
+  u = k.unicode ? k.unicode : k.sym;
 
   if((u == ' ') ||
      ((u >= '0') && (u <= '9')) ||

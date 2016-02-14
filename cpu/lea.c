@@ -11,6 +11,10 @@ static void lea(struct cpu *cpu, WORD op)
 
   r = (op&0xe00)>>9;
   cpu->a[r] = ea_get_addr(cpu, op&0x3f);
+  // x(An,Dn) and x(PC,Dn) needs an extra 4 cycles due to internal workings of LEA and alignments in the ST
+  if((op&0x38) == 0x30 || (op&0x3f) == 0x3b) {
+    ADD_CYCLE(4);
+  }
 }
 
 static struct cprint *lea_print(LONG addr, WORD op)

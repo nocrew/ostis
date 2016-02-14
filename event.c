@@ -20,10 +20,10 @@ static int event_key(SDL_KeyboardEvent key, int state)
   k = key.keysym;
   u = k.unicode;
 
-  if((u == ' ') ||
+  if((u == ' ') || (u == 27) ||
      ((u >= '0') && (u <= '9')) ||
      ((u >= 'a') && (u <= 'z')) ||
-     ((u == '\r'))
+     ((u == '\r')) || ((u == '\b')) || ((u == '\t'))
      ) {
     ikbd_queue_key(scancode[u], state);
   } else if((k.sym >= SDLK_F1) && (k.sym <= SDLK_F10)) {
@@ -62,6 +62,12 @@ static int event_key(SDL_KeyboardEvent key, int state)
       printf("DEBUG: Restoring state\n");
       state_restore(laststate);
     }
+  } else if(k.sym == SDLK_LSHIFT) {
+    ikbd_queue_key(SCAN_LSHIFT, state);
+  } else if(k.sym == SDLK_RSHIFT) {
+    ikbd_queue_key(SCAN_RSHIFT, state);
+  } else if(k.sym == SDLK_LCTRL) {
+    ikbd_queue_key(SCAN_CONTROL, state);
   } else if(k.sym == SDLK_LALT) {
     ikbd_queue_key(SCAN_ALT, state);
   } else if(k.sym == SDLK_UP) {

@@ -517,13 +517,9 @@ int cpu_step_instr(int trace)
 
     if(cprint_all) {
       struct cprint *cprint;
-      char *label;
       cprint = cprint_instr(cpu->pc-2);
-
-      label = cprint_find_label(cpu->pc-2);
-      printf("DEBUG-ASM: %06X  %-14s %s %s\n",
+      printf("DEBUG-ASM: %06X      %s %s",
              cpu->pc-2,
-             label?label:"",
              cprint->instr,
              cprint->data);
       free(cprint);
@@ -531,6 +527,13 @@ int cpu_step_instr(int trace)
     instr[op](cpu, op);
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
+  }
+  if(cprint_all) {
+    int cnt = cpu->icycle;
+    if(cnt&3) {
+      cnt = (cnt&0xfffffffc)+4;
+    }
+    printf("    [%d => %d]\n", cpu->icycle, cnt);
   }
   cpu_do_cycle(cpu->icycle, 0);
 

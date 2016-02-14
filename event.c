@@ -23,7 +23,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
   if((u == ' ') ||
      ((u >= '0') && (u <= '9')) ||
      ((u >= 'a') && (u <= 'z')) ||
-     ((u == '\r')) || ((u == '\b'))
+     ((u == '\r')) || ((u == '\b')) || ((u == '\t'))
      ) {
     ikbd_queue_key(scancode[u], state);
   } else if((k.sym >= SDLK_F1) && (k.sym <= SDLK_F10)) {

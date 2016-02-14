@@ -62,6 +62,12 @@ static int event_key(SDL_KeyboardEvent key, int state)
       printf("DEBUG: Restoring state\n");
       state_restore(laststate);
     }
+  } else if(k.sym == SDLK_LSHIFT) {
+    ikbd_queue_key(SCAN_LSHIFT, state);
+  } else if(k.sym == SDLK_RSHIFT) {
+    ikbd_queue_key(SCAN_RSHIFT, state);
+  } else if(k.sym == SDLK_LCTRL) {
+    ikbd_queue_key(SCAN_CONTROL, state);
   } else if(k.sym == SDLK_LALT) {
     ikbd_queue_key(SCAN_ALT, state);
   } else if(k.sym == SDLK_UP) {

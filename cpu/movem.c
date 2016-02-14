@@ -243,8 +243,11 @@ static void movem(struct cpu *cpu, WORD op)
     break;
   }
 
-  if(op&0x40) {
+  if(op&0x400) {
     ADD_CYCLE(4);
+  }
+  
+  if(op&0x40) {
     movem_l(cpu, op, rmask);
   } else {
     movem_w(cpu, op, rmask);

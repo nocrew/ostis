@@ -148,13 +148,18 @@ void display_setup()
   build_font();
 }
 
-void display_swap_screen()
+void display_render_screen()
 {
-  win_draw_screen();
   SDL_UpdateTexture(texture, NULL, scr->pixels, scr->pitch);
   SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
+}
+
+void display_swap_screen()
+{
+  win_draw_screen();
+  display_render_screen();
 }
 
 SDL_Surface *display_get_screen()

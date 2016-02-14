@@ -207,28 +207,26 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
 
 static int debug_do_key_edit(SDL_KeyboardEvent key)
 {
-  //  SDL_Keysym k;
+   SDL_Keysym k;
   //  Uint16 u;
 
-#if 0
   k = key.keysym;
-  u = k.unicode;
 
-  if(((u >= '0') && (u <= '9')) ||
-     ((u >= 'a') && (u <= 'z')) ||
-     ((u >= 'A') && (u <= 'Z')) ||
-     (u == '[') || (u == ']') ||
-     (u == '(') || (u == ')') ||
-     (u == '$') || (u == '-') ||
-     (u == '+') || (u == '*') ||
-     (u == '/') || (u == '_') ||
-     (u == '|') || (u == '&') ||
-     (u == '^') || (u == '~') ||
-     (u == '\\') || (u == '.') ||
-     (u == '!') || (u == '<') ||
-     (u == '>') ||
-     (u == '=') || (u == ',')) {
-    edit_insert_char(u);
+  if(((k.sym >= '0') && (k.sym <= '9')) ||
+     ((k.sym >= 'a') && (k.sym <= 'z')) ||
+     ((k.sym >= 'A') && (k.sym <= 'Z')) ||
+     (k.sym == '[') || (k.sym == ']') ||
+     (k.sym == '(') || (k.sym == ')') ||
+     (k.sym == '$') || (k.sym == '-') ||
+     (k.sym == '+') || (k.sym == '*') ||
+     (k.sym == '/') || (k.sym == '_') ||
+     (k.sym == '|') || (k.sym == '&') ||
+     (k.sym == '^') || (k.sym == '~') ||
+     (k.sym == '\\') || (k.sym == '.') ||
+     (k.sym == '!') || (k.sym == '<') ||
+     (k.sym == '>') ||
+     (k.sym == '=') || (k.sym == ',')) {
+    edit_insert_char(k.sym);
   } else if(k.sym == SDLK_RETURN) {
     if(edit_finish(win_get_exwin()) == EDIT_SUCCESS) {
       win_set_exwin(EDIT_EXIT);
@@ -244,7 +242,7 @@ static int debug_do_key_edit(SDL_KeyboardEvent key)
   } else if(k.sym == SDLK_BACKSPACE) {
     edit_remove_char();
   }
-#endif
+
   display_swap_screen();
   return 0;
 }

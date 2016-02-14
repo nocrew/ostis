@@ -50,7 +50,7 @@ void screen_init()
     				  rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     texture = SDL_CreateTexture(renderer,
-                                SDL_PIXELFORMAT_RGB24,
+                                SDL_PIXELFORMAT_BGR24,
                                 SDL_TEXTUREACCESS_STREAMING,
                                 512, 314);
   }
@@ -127,14 +127,14 @@ void screen_swap()
   if(disable) return;
 
   if(debugger) {
+    SDL_Surface *debug_display;
     dst.x = BORDER_SIZE;
     dst.y = BORDER_SIZE;
-  
-    SDL_BlitSurface(screen, NULL, display_get_screen(), &dst);
-    SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
+
+    debug_display = display_get_screen();
+    
+    SDL_BlitSurface(screen, NULL, debug_display, &dst);
+    display_render_screen();
     //    SDL_Flip(display_get_screen());
   } else {
     SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
@@ -160,8 +160,6 @@ int screen_check_disable()
 
 void *screen_pixels()
 {
-  printf("DEBUG: Screen: %p\n", screen);
-  printf("DEBUG: Screen pixels: %p\n", screen->pixels);
   return screen->pixels;
 }
 

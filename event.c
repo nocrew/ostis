@@ -7,33 +7,23 @@
 #include "cpu.h"
 #include "state.h"
 
-#if 0
 static int tstart;
 static int tend;
 
 static struct state *laststate;
-#endif
 
 static int event_key(SDL_KeyboardEvent key, int state)
 {
   SDL_Keysym k;
-  //  Uint16 u;
 
   k = key.keysym;
 
-  printf("DEBUG: Keysym: Scancode: %d, Sym: %d, Mod: %d\n", k.scancode, k.sym, k.mod);
-  printf("DEBUG: Scancode: %d", scancode[k.scancode]);
-
-#if 0  
-  u = k.unicode;
-  u = k.unicode ? k.unicode : k.sym;
-
-  if((u == ' ') || (u == 27) ||
-     ((u >= '0') && (u <= '9')) ||
-     ((u >= 'a') && (u <= 'z')) ||
-     ((u == '\r')) || ((u == '\b')) || ((u == '\t'))
+  if((k.sym == ' ') || (k.sym == 27) ||
+     ((k.sym >= '0') && (k.sym <= '9')) ||
+     ((k.sym >= 'a') && (k.sym <= 'z')) ||
+     ((k.sym == '\r')) || ((k.sym == '\b')) || ((k.sym == '\t'))
      ) {
-    ikbd_queue_key(scancode[u], state);
+    ikbd_queue_key(scancode[k.sym], state);
   } else if((k.sym >= SDLK_F1) && (k.sym <= SDLK_F10)) {
     ikbd_queue_key(SCAN_F1+k.sym-SDLK_F1, state);
   } else if(k.sym == SDLK_F11) {
@@ -46,7 +36,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
 	exit(0);
       }
     }
-  } else if(k.sym == SDLK_PRINT) {
+  } else if(k.sym == SDLK_PRINTSCREEN) {
     if(state == EVENT_RELEASE) {
       cprint_all = !cprint_all;
     }
@@ -93,19 +83,15 @@ static int event_key(SDL_KeyboardEvent key, int state)
   } else {
     printf("Unimplemented key: %d\n", k.sym);
   }
-#endif
   return EVENT_NONE;
 }
 
 void event_init()
 {
-  //  SDL_EnableKeyRepeat(0, SDL_DEFAULT_REPEAT_INTERVAL);
-  //  SDL_EnableUNICODE(1);
 }
 
 void event_exit()
 {
-  //  SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
 static int event_mouse(SDL_MouseMotionEvent m)

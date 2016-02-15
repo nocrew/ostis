@@ -18,4 +18,4 @@ $(LIBDEBUG): $(OBJ)
 	$(RANLIB) $@
 
 clean:
-	rm -f *.o *~
+	rm -f *.o *~ $(LIBDEBUG)

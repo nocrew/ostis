@@ -26,8 +26,8 @@ EMU_OBJ=main.o $(OBJ)
 TEST_SRC=test_main.c $(SRC)
 TEST_OBJ=test_main.o $(OBJ)
 
-LIBCPU=cpu/libcpu.a
-LIBDEBUG=debug/libdebug.a
+LIBCPU=libcpu.a
+LIBDEBUG=libdebug.a
 
 DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 

@@ -9,13 +9,30 @@
 
 static int disable = 0;
 static SDL_Surface *screen;
-static SDL_Texture *texture;
+static SDL_Texture *texture = NULL;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
                          ((x) + BORDER_SIZE) * screen->format->BytesPerPixel)
+
+void screen_make_texture(const char *scale)
+{
+  static const char *old_scale = "";
+
+  if(strcmp(scale, old_scale) == 0)
+    return;
+
+  if(texture != NULL)
+    SDL_DestroyTexture(texture);
+
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, scale);
+  texture = SDL_CreateTexture(renderer,
+			      SDL_PIXELFORMAT_BGR24,
+			      SDL_TEXTUREACCESS_STREAMING,
+			      512, 314);
+}
 
 void screen_init()
 {
@@ -45,15 +62,11 @@ void screen_init()
     screen = SDL_CreateRGBSurface(0, 512, 314, 24,
     				  rmask, gmask, bmask, amask);
   } else {
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_RESIZABLE);
     screen = SDL_CreateRGBSurface(0, 512, 314, 24,
     				  rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
-    texture = SDL_CreateTexture(renderer,
-                                SDL_PIXELFORMAT_BGR24,
-                                SDL_TEXTUREACCESS_STREAMING,
-                                512, 314);
+    screen_make_texture(SDL_SCALING_NEAREST);
   }
 
   if(screen == NULL) {
@@ -107,6 +120,7 @@ void screen_putpixel(int x, int y, long c)
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
   p[2] = c&0xff;
+#if 0
   p = PADDR(x*2+1, y*2);
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
@@ -119,6 +133,7 @@ void screen_putpixel(int x, int y, long c)
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
   p[2] = c&0xff;
+#endif
 }
 
 void screen_swap()

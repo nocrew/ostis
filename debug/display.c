@@ -121,7 +121,7 @@ void display_setup()
 
   atexit(SDL_Quit);
 
-  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, SDL_SCALING_LINEAR);
   window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                             (640 + BORDER_SIZE * 2),
                             (400 + BORDER_SIZE * 2),
@@ -140,7 +140,7 @@ void display_setup()
 #endif
 
   scr = SDL_CreateRGBSurface(0,
-                             (2*640 + BORDER_SIZE * 2),
+                             2*(640 + BORDER_SIZE * 2),
                              (400 + BORDER_SIZE * 2),
                              24,
                              rmask, gmask, bmask, amask);
@@ -148,7 +148,7 @@ void display_setup()
   texture = SDL_CreateTexture(renderer,
                               SDL_PIXELFORMAT_RGB24,
                               SDL_TEXTUREACCESS_STREAMING,
-                              (2*640 + BORDER_SIZE * 2),
+                              2*(640 + BORDER_SIZE * 2),
                               (400 + BORDER_SIZE * 2));
 
   build_font();

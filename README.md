@@ -11,9 +11,6 @@ There are a few different build options:
 Normal optimised binary:
 `make`
 
-A binary that boots into a MonST clone:
-`make debugger`
-
 Normal binary with GDB flags:
 `make gdb`
 

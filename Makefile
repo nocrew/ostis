@@ -26,8 +26,10 @@ EMU_OBJ=main.o $(OBJ)
 TEST_SRC=test_main.c $(SRC)
 TEST_OBJ=test_main.o $(OBJ)
 
-LIBCPU=libcpu.a
-LIBDEBUG=libdebug.a
+LIBCPU=cpu/libcpu.a
+LIBDEBUG=debug/libdebug.a
+
+DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 
 LIBTEST=libtests.a
 
@@ -47,7 +49,7 @@ default:
 gdb:
 	make ostis-gdb CFLAGS_EXTRA="-ggdb"
 
-ostis ostis-debug ostis-gdb:	ostis_depends
+ostis ostis-gdb: $(DEPS)
 	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
 
 tests:	$(TEST_PRG)
@@ -61,14 +63,11 @@ $(LIBTEST):
 $(LIBDEBUG):
 	make -C debug
 
-ostis_depends: $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
-
-$(PARSERSRC):	$(PARSER)
 $(PARSEROBJ):	$(PARSERSRC)
 
-$(PARSER):
-	$(LEX) $@.l
-	$(YACC) -b $@ $@.y
+$(PARSERSRC): $(PARSERFILE)
+	$(LEX) $(PARSER).l
+	$(YACC) -b $(PARSER) $(PARSER).y
 
 # $(YSRC): $(YACCFILE)
 #	$(YACC) $<

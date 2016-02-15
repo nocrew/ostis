@@ -31,7 +31,7 @@ void screen_make_texture(const char *scale)
   texture = SDL_CreateTexture(renderer,
 			      SDL_PIXELFORMAT_BGR24,
 			      SDL_TEXTUREACCESS_STREAMING,
-			      512, 314);
+			      2*512, 314);
 }
 
 void screen_init()
@@ -59,11 +59,11 @@ void screen_init()
 #endif
 
   if(debugger) {
-    screen = SDL_CreateRGBSurface(0, 512, 314, 24,
+    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
     				  rmask, gmask, bmask, amask);
   } else {
     window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_RESIZABLE);
-    screen = SDL_CreateRGBSurface(0, 512, 314, 24,
+    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
     				  rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_make_texture(SDL_SCALING_NEAREST);
@@ -108,32 +108,6 @@ void screen_clear()
       }
     }
   }
-}
-
-void screen_putpixel(int x, int y, long c)
-{
-  unsigned char *p;
-
-  if(disable) return;
-
-  p = PADDR(x*2, y*2);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-#if 0
-  p = PADDR(x*2+1, y*2);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-  p = PADDR(x*2, y*2+1);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-  p = PADDR(x*2+1, y*2+1);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-#endif
 }
 
 void screen_swap()

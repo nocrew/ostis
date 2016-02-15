@@ -133,6 +133,10 @@ int event_poll()
     return event_button(ev.button, EVENT_PRESS);
   case SDL_MOUSEBUTTONUP:
     return event_button(ev.button, EVENT_RELEASE);
+  case SDL_WINDOWEVENT:
+    if(ev.window.event == SDL_WINDOWEVENT_RESIZED)
+      screen_make_texture(SDL_SCALING_LINEAR);
+    break;
   case SDL_QUIT:
     if(debugger)
       return EVENT_DEBUG;

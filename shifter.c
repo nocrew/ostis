@@ -508,9 +508,9 @@ void shifter_build_ppm()
 
   for(y=0;y<288;y++) {
     for(x=0;x<384;x++) {
-      frame[c*3+0] = rgbimage[((y+12)*512+x+32)*3+2];
-      frame[c*3+1] = rgbimage[((y+12)*512+x+32)*3+1];
-      frame[c*3+2] = rgbimage[((y+12)*512+x+32)*3+0];
+      frame[c*3+0] = rgbimage[((y+12)*512+x+32)*6+2];
+      frame[c*3+1] = rgbimage[((y+12)*512+x+32)*6+1];
+      frame[c*3+2] = rgbimage[((y+12)*512+x+32)*6+0];
       c++;
     }
   }

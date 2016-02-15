@@ -134,8 +134,12 @@ int event_poll()
   case SDL_MOUSEBUTTONUP:
     return event_button(ev.button, EVENT_RELEASE);
   case SDL_WINDOWEVENT:
-    if(ev.window.event == SDL_WINDOWEVENT_RESIZED)
-      screen_make_texture(SDL_SCALING_LINEAR);
+    if(ev.window.event == SDL_WINDOWEVENT_RESIZED) {
+      if((ev.window.data1 % 512) == 0 && (ev.window.data2 % 314) == 0)
+	screen_make_texture(SDL_SCALING_NEAREST);
+      else
+	screen_make_texture(SDL_SCALING_LINEAR);
+    }
     break;
   case SDL_QUIT:
     if(debugger)

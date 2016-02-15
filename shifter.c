@@ -87,36 +87,43 @@ static void set_pixel_low(int rasterpos, int pnum)
   //  if(pnum == 0) return;
 
   if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
-    rgbimage[rasterpos*3+0] = palette_r[pnum];
-    rgbimage[rasterpos*3+1] = palette_g[pnum];
-    rgbimage[rasterpos*3+2] = palette_b[pnum];
+    rgbimage[rasterpos*6+0] = palette_r[pnum];
+    rgbimage[rasterpos*6+1] = palette_g[pnum];
+    rgbimage[rasterpos*6+2] = palette_b[pnum];
+    rgbimage[rasterpos*6+3] = palette_r[pnum];
+    rgbimage[rasterpos*6+4] = palette_g[pnum];
+    rgbimage[rasterpos*6+5] = palette_b[pnum];
   } else {
-    rgbimage[rasterpos*3+2] = palette_r[pnum];
-    rgbimage[rasterpos*3+1] = palette_g[pnum];
-    rgbimage[rasterpos*3+0] = palette_b[pnum];
+    rgbimage[rasterpos*6+2] = palette_r[pnum];
+    rgbimage[rasterpos*6+1] = palette_g[pnum];
+    rgbimage[rasterpos*6+0] = palette_b[pnum];
+    rgbimage[rasterpos*6+5] = palette_r[pnum];
+    rgbimage[rasterpos*6+4] = palette_g[pnum];
+    rgbimage[rasterpos*6+3] = palette_b[pnum];
   }
 }
 
 static void set_pixel_medium(int rasterpos, int pnum)
 {
-  int r,g,b;
   int c1,c2;
 
   c1 = (pnum>>16);
   c2 = pnum&0xffff;
 
-  r = (palette_r[c1]+palette_r[c2])/2;
-  g = (palette_g[c1]+palette_g[c2])/2;
-  b = (palette_b[c1]+palette_b[c2])/2;
-
   if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
-    rgbimage[rasterpos*3+0] = r;
-    rgbimage[rasterpos*3+1] = g;
-    rgbimage[rasterpos*3+2] = b;
+    rgbimage[rasterpos*6+0] = palette_r[c1];
+    rgbimage[rasterpos*6+1] = palette_g[c1];
+    rgbimage[rasterpos*6+2] = palette_b[c1];
+    rgbimage[rasterpos*6+3] = palette_r[c2];
+    rgbimage[rasterpos*6+4] = palette_g[c2];
+    rgbimage[rasterpos*6+5] = palette_b[c2];
   } else {
-    rgbimage[rasterpos*3+2] = r;
-    rgbimage[rasterpos*3+1] = g;
-    rgbimage[rasterpos*3+0] = b;
+    rgbimage[rasterpos*6+2] = palette_r[c1];
+    rgbimage[rasterpos*6+1] = palette_g[c1];
+    rgbimage[rasterpos*6+0] = palette_b[c1];
+    rgbimage[rasterpos*6+5] = palette_r[c2];
+    rgbimage[rasterpos*6+4] = palette_g[c2];
+    rgbimage[rasterpos*6+3] = palette_b[c2];
   }
 }
 

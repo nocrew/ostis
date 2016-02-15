@@ -31,7 +31,7 @@ void screen_make_texture(const char *scale)
   texture = SDL_CreateTexture(renderer,
 			      SDL_PIXELFORMAT_BGR24,
 			      SDL_TEXTUREACCESS_STREAMING,
-			      512, 314);
+			      2*512, 314);
 }
 
 void screen_init()
@@ -63,7 +63,7 @@ void screen_init()
     				  rmask, gmask, bmask, amask);
   } else {
     window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_RESIZABLE);
-    screen = SDL_CreateRGBSurface(0, 512, 314, 24,
+    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
     				  rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_make_texture(SDL_SCALING_NEAREST);

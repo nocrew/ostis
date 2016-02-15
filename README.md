@@ -18,7 +18,7 @@ Normal binary with GDB flags:
 ### Usage
 
 Command line options:  
-`ostis` [`-a` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [`-d`] [disk image] [`-p`] [`-y`]
+`ostis` [`-a` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [`-d`] [disk image] [`-p`] [`-y`] [`-V`]
 
 `-a`  - Load disk image (.ST or .MSA)  
 `-t`  - TOS image (default: `tos.img`)  
@@ -27,6 +27,7 @@ Command line options:
 `-d`  - Activate MonST clone  
 `-p`  - Dump all video into PPM file (`ostis.ppm`)  
 `-y`  - Dump all audio into raw PCM file (`psg.raw`)
+`-V`  - Try to wait for 50Hz delay between frames
 
 Special keys:  
 `F11`      - save emulator state to file  

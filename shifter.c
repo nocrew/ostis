@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <SDL_endian.h>
+#include <SDL.h>
 #include <fcntl.h>
 #include "common.h"
 #include "cpu.h"
@@ -553,9 +553,13 @@ void shifter_init()
   framecnt = 0;
 }
 
+uint64_t last_vsync_ticks = 0;
+
 void shifter_do_interrupts(struct cpu *cpu, int noint)
 {
   long tmpcpu;
+  uint64_t current_ticks;
+  uint64_t remaining;
 
   tmpcpu = cpu->cycle - lastcpucnt;
   if(tmpcpu < 0) tmpcpu += MAX_CYCLE;
@@ -579,6 +583,14 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     lastrasterpos = 0; /* Restart image building from position 0 */
     if(ppmoutput) {
       shifter_build_ppm();
+    }
+    if(vsync_delay) {
+      current_ticks = SDL_GetTicks();
+      remaining = current_ticks - last_vsync_ticks;
+      if(remaining < 20) {
+        SDL_Delay(remaining);
+      }
+      last_vsync_ticks = current_ticks;
     }
     screen_swap();
     //    if(!noint && (IPL < 4))

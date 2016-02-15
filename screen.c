@@ -110,32 +110,6 @@ void screen_clear()
   }
 }
 
-void screen_putpixel(int x, int y, long c)
-{
-  unsigned char *p;
-
-  if(disable) return;
-
-  p = PADDR(x*2, y*2);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-#if 0
-  p = PADDR(x*2+1, y*2);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-  p = PADDR(x*2, y*2+1);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-  p = PADDR(x*2+1, y*2+1);
-  p[0] = (c>>16)&0xff;
-  p[1] = (c>>8)&0xff;
-  p[2] = c&0xff;
-#endif
-}
-
 void screen_swap()
 {
   SDL_Rect dst;

@@ -38,10 +38,13 @@ void display_put_pixel_screen(int x, int y, long c)
 {
   char *p;
 
-  p = PADDR(scr, x + BORDER_SIZE, y + BORDER_SIZE);
+  p = PADDR(scr, 2*x + BORDER_SIZE, y + BORDER_SIZE);
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
   p[2] = (c&0xff);
+  p[3] = (c>>16)&0xff;
+  p[4] = (c>>8)&0xff;
+  p[5] = (c&0xff);
 }
 
 static void build_char(int c[], SDL_Surface *f, int h, int inv)
@@ -99,10 +102,12 @@ void display_put_char(int x, int y, int f, unsigned char c)
 {
   SDL_Rect dst;
 
-  dst.x = x + BORDER_SIZE;
+  dst.x = 2*x + BORDER_SIZE;
   dst.y = y + BORDER_SIZE;
+  dst.w = 16;
+  dst.h = 8*(f&1)+8;
   
-  SDL_BlitSurface(font[f][c], NULL, scr, &dst);
+  SDL_BlitScaled(font[f][c], NULL, scr, &dst);
 }
 
 void display_setup()
@@ -135,7 +140,7 @@ void display_setup()
 #endif
 
   scr = SDL_CreateRGBSurface(0,
-                             (640 + BORDER_SIZE * 2),
+                             (2*640 + BORDER_SIZE * 2),
                              (400 + BORDER_SIZE * 2),
                              24,
                              rmask, gmask, bmask, amask);
@@ -143,7 +148,7 @@ void display_setup()
   texture = SDL_CreateTexture(renderer,
                               SDL_PIXELFORMAT_RGB24,
                               SDL_TEXTUREACCESS_STREAMING,
-                              (640 + BORDER_SIZE * 2),
+                              (2*640 + BORDER_SIZE * 2),
                               (400 + BORDER_SIZE * 2));
 
   build_font();

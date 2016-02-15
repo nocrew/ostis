@@ -116,6 +116,7 @@ void display_setup()
 
   atexit(SDL_Quit);
 
+  SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
   window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                             (640 + BORDER_SIZE * 2),
                             (400 + BORDER_SIZE * 2),

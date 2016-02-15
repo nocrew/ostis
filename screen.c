@@ -45,6 +45,7 @@ void screen_init()
     screen = SDL_CreateRGBSurface(0, 512, 314, 24,
     				  rmask, gmask, bmask, amask);
   } else {
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_RESIZABLE);
     screen = SDL_CreateRGBSurface(0, 512, 314, 24,
     				  rmask, gmask, bmask, amask);

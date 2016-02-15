@@ -108,8 +108,7 @@ void win_setup_default()
   selwin = 0;
   static char title[80];
 
-  //  sprintf(title, "Registers        MonST3.00 %c HiSoft 1992", 189);
-  sprintf(title, "Registers        oSTis 0.30 %c NoCrew 2004", 189);
+  sprintf(title, "Registers        oSTis 0.80 %c NoCrew 2016", 189);
   win_setup(0, 1, 1, 0, 1, title, 0);
   win_setup(1, 1, 7, 2, 1, "Memory", 0);
   win_setup(2, 2, 6, 1, 1, "Disassembly pc", 0xfc0020);

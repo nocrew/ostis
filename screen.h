@@ -12,6 +12,7 @@ void screen_clear();
 void screen_disable(int);
 int screen_check_disable();
 void *screen_pixels();
+extern int screen_window_id;
 
 #define SDL_SCALING_NEAREST "0"
 #define SDL_SCALING_LINEAR  "1"

@@ -5,6 +5,7 @@
 #include "display.h"
 #include "shifter.h"
 #include "debug.h"
+#include "event.h"
 #include "cpu.h"
 #include "mfp.h"
 
@@ -266,9 +267,15 @@ int debug_event()
     printf("DEBUG: SDL_Event error.\n");
   }
 
+  event_poll();
+  
   switch(ev.type) {
   case SDL_WINDOWEVENT:
-    display_swap_screen();
+    if(ev.window.windowID == debug_window_id) {
+      printf("DEBUG: (debug)Window ID: %d\n", debug_window_id);
+      screen_swap();
+      display_swap_screen();
+    }
     break;
   case SDL_KEYDOWN:
     if(debug_dispatch_keys(ev.key)) {

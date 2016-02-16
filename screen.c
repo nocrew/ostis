@@ -12,6 +12,7 @@ static SDL_Surface *screen;
 static SDL_Texture *texture = NULL;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
+int screen_window_id;
 
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
@@ -58,16 +59,17 @@ void screen_init()
   bmask = 0x00ff0000;
 #endif
 
-  if(debugger) {
-    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
-    				  rmask, gmask, bmask, amask);
-  } else {
-    window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_RESIZABLE);
+  //  if(debugger) {
+  //    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
+  //    				  rmask, gmask, bmask, amask);
+  //  } else {
+    window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
     				  rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
+    screen_window_id = SDL_GetWindowID(window);
     screen_make_texture(SDL_SCALING_NEAREST);
-  }
+    //  }
 
   if(screen == NULL) {
     fprintf(stderr, "Did not get a video mode\n");
@@ -112,10 +114,11 @@ void screen_clear()
 
 void screen_swap()
 {
-  SDL_Rect dst;
+  //  SDL_Rect dst;
 
-  if(disable) return;
+  //  if(disable) return;
 
+#if 0
   if(debugger) {
     SDL_Surface *debug_display;
     dst.x = BORDER_SIZE;
@@ -126,10 +129,15 @@ void screen_swap()
     SDL_BlitSurface(screen, NULL, debug_display, &dst);
     display_render_screen();
   } else {
+#endif
+    printf("DEBUG: Update main screen\n");
+    display_swap_screen();
+    SDL_RaiseWindow(window);
+    SDL_ShowWindow(window);
     SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-  }
+    //  }
 }
 
 void screen_disable(int yes)

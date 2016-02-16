@@ -37,15 +37,21 @@ static int event_key(SDL_KeyboardEvent key, int state)
       }
     }
   } else if(k.sym == SDLK_PRINTSCREEN) {
-    if(state == EVENT_RELEASE) {
-      cprint_all = !cprint_all;
+    if(k.mod & KMOD_ALT) {
+      if(state == EVENT_RELEASE) {
+        printf("DEBUG: Start debugger\n");
+      }
+    } else {
+      if(state == EVENT_RELEASE) {
+        cprint_all = !cprint_all;
+      }
     }
   } else if(k.sym == SDLK_F12) {
     if(state == EVENT_RELEASE) {
       printf("DEBUG: cpu->pc == %08x\n", cpu->pc);
       tend = SDL_GetTicks();
       printf("DEBUG: Speed: %g FPS\n",
-	     (shifter_framecnt(0)*1000.0)/(tend-tstart));
+             (shifter_framecnt(0)*1000.0)/(tend-tstart));
     } else {
       shifter_framecnt(-1);
       tstart = SDL_GetTicks();
@@ -134,11 +140,15 @@ int event_poll()
   case SDL_MOUSEBUTTONUP:
     return event_button(ev.button, EVENT_RELEASE);
   case SDL_WINDOWEVENT:
-    if(ev.window.event == SDL_WINDOWEVENT_RESIZED) {
-      if((ev.window.data1 % 512) == 0 && (ev.window.data2 % 314) == 0)
-	screen_make_texture(SDL_SCALING_NEAREST);
-      else
-	screen_make_texture(SDL_SCALING_LINEAR);
+    if(ev.window.windowID == screen_window_id) {
+      printf("DEBUG: Window ID: %d\n", screen_window_id);
+      if(ev.window.event == SDL_WINDOWEVENT_RESIZED) {
+        if((ev.window.data1 % 512) == 0 && (ev.window.data2 % 314) == 0)
+          screen_make_texture(SDL_SCALING_NEAREST);
+        else
+          screen_make_texture(SDL_SCALING_LINEAR);
+        screen_swap();
+      }
     }
     break;
   case SDL_QUIT:

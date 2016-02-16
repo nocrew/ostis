@@ -4,11 +4,12 @@
 #include "font.h"
 #include "win.h"
 
-static SDL_Window *window;
-static SDL_Surface *scr;
+static SDL_Window *debug_window;
+static SDL_Surface *debug_screen;
 static SDL_Surface *font[4][256];
-static SDL_Texture *texture;
-static SDL_Renderer *renderer;
+static SDL_Texture *debug_texture;
+static SDL_Renderer *debug_renderer;
+int debug_window_id = 0;
 
 #define PADDR(f, x, y) (f->pixels + (y)*f->pitch + (x)*f->format->BytesPerPixel)
 
@@ -17,9 +18,9 @@ void display_clear_screen()
   int i;
   char *p;
 
-  p = scr->pixels;
+  p = debug_screen->pixels;
 
-  for(i=0;i<(scr->w*scr->format->BytesPerPixel*scr->h);i++) {
+  for(i=0;i<(debug_screen->w*debug_screen->format->BytesPerPixel*debug_screen->h);i++) {
     p[i] = 0xff;
   }
 }
@@ -38,7 +39,7 @@ void display_put_pixel_screen(int x, int y, long c)
 {
   char *p;
 
-  p = PADDR(scr, 2*x + BORDER_SIZE, y + BORDER_SIZE);
+  p = PADDR(debug_screen, 2*x + BORDER_SIZE, y + BORDER_SIZE);
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
   p[2] = (c&0xff);
@@ -107,7 +108,20 @@ void display_put_char(int x, int y, int f, unsigned char c)
   dst.w = 16;
   dst.h = 8*(f&1)+8;
   
-  SDL_BlitScaled(font[f][c], NULL, scr, &dst);
+  SDL_BlitScaled(font[f][c], NULL, debug_screen, &dst);
+}
+
+void display_render_screen()
+{
+  SDL_UpdateTexture(debug_texture, NULL, debug_screen->pixels, debug_screen->pitch);
+  SDL_RenderCopy(debug_renderer, debug_texture, NULL, NULL);
+  SDL_RenderPresent(debug_renderer);
+}
+
+void display_swap_screen()
+{
+  win_draw_screen();
+  display_render_screen();
 }
 
 void display_setup()
@@ -122,10 +136,10 @@ void display_setup()
   atexit(SDL_Quit);
 
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, SDL_SCALING_LINEAR);
-  window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                            (640 + BORDER_SIZE * 2),
-                            (400 + BORDER_SIZE * 2),
-                            SDL_WINDOW_RESIZABLE);
+  debug_window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                  (640 + BORDER_SIZE * 2),
+                                  (400 + BORDER_SIZE * 2),
+                                  SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
   amask = 0x00000000;
@@ -139,35 +153,27 @@ void display_setup()
   bmask = 0x00ff0000;
 #endif
 
-  scr = SDL_CreateRGBSurface(0,
-                             2*(640 + BORDER_SIZE * 2),
-                             (400 + BORDER_SIZE * 2),
-                             24,
-                             rmask, gmask, bmask, amask);
-  renderer = SDL_CreateRenderer(window, -1, 0);
-  texture = SDL_CreateTexture(renderer,
-                              SDL_PIXELFORMAT_RGB24,
-                              SDL_TEXTUREACCESS_STREAMING,
-                              2*(640 + BORDER_SIZE * 2),
-                              (400 + BORDER_SIZE * 2));
+  debug_screen = SDL_CreateRGBSurface(0,
+                                      2*(640 + BORDER_SIZE * 2),
+                                      (400 + BORDER_SIZE * 2),
+                                      24,
+                                      rmask, gmask, bmask, amask);
+  debug_renderer = SDL_CreateRenderer(debug_window, -1, 0);
+  debug_texture = SDL_CreateTexture(debug_renderer,
+                                    SDL_PIXELFORMAT_RGB24,
+                                    SDL_TEXTUREACCESS_STREAMING,
+                                    2*(640 + BORDER_SIZE * 2),
+                                    (400 + BORDER_SIZE * 2));
 
+  debug_window_id = SDL_GetWindowID(debug_window);
+
+  display_swap_screen();
+  SDL_ShowWindow(debug_window);
+  
   build_font();
-}
-
-void display_render_screen()
-{
-  SDL_UpdateTexture(texture, NULL, scr->pixels, scr->pitch);
-  SDL_RenderCopy(renderer, texture, NULL, NULL);
-  SDL_RenderPresent(renderer);
-}
-
-void display_swap_screen()
-{
-  win_draw_screen();
-  display_render_screen();
 }
 
 SDL_Surface *display_get_screen()
 {
-  return scr;
+  return debug_screen;
 }

@@ -18,6 +18,7 @@ struct cpu {
   int tracedelay;
   int no_exceptions;
   int exception_pending;
+  int debug_halted;
 };
 
 struct cprint {
@@ -87,6 +88,7 @@ extern int cprint_all;
 
 #define CPU_RUN 0
 #define CPU_TRACE 1
+#define CPU_DEBUG_RUN -1
 
 #define CPU_WATCH_EQ 0
 #define CPU_WATCH_NE 1
@@ -96,6 +98,7 @@ extern int cprint_all;
 #define CPU_WATCH_LE 5
 
 void cpu_init();
+void cpu_halt_for_debug();
 int cpu_step_instr(int);
 void cpu_print_status();
 void cpu_do_cycle(LONG, int);
@@ -107,7 +110,7 @@ void cpu_set_watchpoint(char *, int);
 void cpu_set_breakpoint(LONG, int);
 void cpu_print_breakpoints();
 int cpu_unset_breakpoint(LONG);
-int cpu_run();
+int cpu_run(int);
 
 void cprint_set_label(LONG, char *);
 char *cprint_find_label(LONG);

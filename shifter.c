@@ -592,7 +592,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
       }
       last_vsync_ticks = current_ticks;
     }
-    screen_swap();
+    screen_swap(SCREEN_NORMAL);
     //    if(!noint && (IPL < 4))
     cpu_set_exception(28); /* Set VBL interrupt as pending */
     framecnt++;

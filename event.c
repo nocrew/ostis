@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include "common.h"
 #include "event.h"
+#include "debug/debug.h"
+#include "debug/display.h"
 #include "scancode.h"
 #include "ikbd.h"
 #include "cpu.h"
@@ -120,13 +122,11 @@ static int event_button(SDL_MouseButtonEvent b, int state)
   return EVENT_NONE;
 }
 
-int event_poll()
+int event_parse(SDL_Event ev)
 {
-  SDL_Event ev;
-
-  if(!SDL_PollEvent(&ev)) {
-    return EVENT_NONE;
-  }
+  //  if(!SDL_PollEvent(&ev)) {
+  //    return EVENT_NONE;
+  //  }
 
   switch(ev.type) {
   case SDL_KEYDOWN:
@@ -141,13 +141,11 @@ int event_poll()
     return event_button(ev.button, EVENT_RELEASE);
   case SDL_WINDOWEVENT:
     if(ev.window.windowID == screen_window_id) {
-      printf("DEBUG: Window ID: %d\n", screen_window_id);
       if(ev.window.event == SDL_WINDOWEVENT_RESIZED) {
         if((ev.window.data1 % 512) == 0 && (ev.window.data2 % 314) == 0)
           screen_make_texture(SDL_SCALING_NEAREST);
         else
           screen_make_texture(SDL_SCALING_LINEAR);
-        screen_swap();
       }
     }
     break;
@@ -162,3 +160,30 @@ int event_poll()
 
   return EVENT_NONE;
 }
+
+int event_main()
+{
+  SDL_Event ev;
+  
+  if(!SDL_PollEvent(&ev)) {
+    return EVENT_NONE;
+  }
+
+  if(ev.window.windowID == screen_window_id) {
+    return event_parse(ev);
+  } else if(debugger && ev.window.windowID == debug_window_id) {
+    return debug_event_parse(ev);
+  } else {
+    if(ev.type == SDL_QUIT) {
+      if(debugger && !debug_update_win) {
+        return EVENT_DEBUG;
+      } else {
+        SDL_Quit();
+        exit(0);
+      }
+    }
+  }
+
+  return EVENT_NONE;
+}
+

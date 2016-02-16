@@ -123,7 +123,9 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       debug_breakpoint_next_instr();
       if((win_get_selected() != 2) && (win_get_selected() != 4))
 	win_set_selected(2);
-      ret = cpu_run();
+      debug_update_win = 0;
+      ret = cpu_run(CPU_DEBUG_RUN);
+      debug_update_win = 1;
       if(ret == CPU_BREAKPOINT) {
 	win_set_message("Breakpoint");
       } else if(ret == CPU_WATCHPOINT) {
@@ -136,7 +138,9 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     if(k.mod & KMOD_CTRL) {
       if((win_get_selected() != 2) && (win_get_selected() != 4))
 	win_set_selected(2);
-      ret = cpu_run();
+      debug_update_win = 0;
+      ret = cpu_run(CPU_DEBUG_RUN);
+      debug_update_win = 1;
       if(ret == CPU_BREAKPOINT) {
 	win_set_message("Breakpoint");
       } else if(ret == CPU_WATCHPOINT) {
@@ -197,12 +201,9 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   default:
     break;
   }
-  if(viewmode == VIEW_DISPLAY) {
-    shifter_build_image(0);
-    screen_swap();
-  } else {
-    display_swap_screen();
-  }
+  shifter_build_image(0);
+  screen_swap(DEBUG_INDICATE_RASTERPOS);
+  display_swap_screen();
   return 0;
 }
 
@@ -259,21 +260,17 @@ static int debug_dispatch_keys(SDL_KeyboardEvent key)
   return 0;
 }
 
-int debug_event()
+int debug_event_parse(SDL_Event ev)
 {
-  SDL_Event ev;
 
-  if(!SDL_WaitEvent(&ev)) {
-    printf("DEBUG: SDL_Event error.\n");
-  }
-
-  event_poll();
+  //  if(!SDL_WaitEvent(&ev)) {
+  //    printf("DEBUG: SDL_Event error.\n");
+  //  }
   
   switch(ev.type) {
   case SDL_WINDOWEVENT:
     if(ev.window.windowID == debug_window_id) {
-      printf("DEBUG: (debug)Window ID: %d\n", debug_window_id);
-      screen_swap();
+      screen_swap(DEBUG_NORMAL);
       display_swap_screen();
     }
     break;

@@ -9,6 +9,6 @@
 
 void event_init();
 void event_exit();
-int event_poll();
+int event_main();
 
 #endif

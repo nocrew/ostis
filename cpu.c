@@ -126,6 +126,10 @@ void cpu_state_restore(struct cpu_state *state)
   }
 }
 
+void cpu_halt_for_debug() {
+  cpu->debug_halted = 1;
+}
+
 static void default_instr(struct cpu *cpu, WORD op)
 {
   printf("DEBUG: unknown opcode 0x%04x at 0x%08x\n", op, cpu->pc-2);
@@ -544,7 +548,7 @@ int cpu_step_instr(int trace)
   return CPU_OK;
 }
 
-int cpu_run()
+int cpu_run(int cpu_run_state)
 {
   int stop,ret;
 
@@ -553,8 +557,12 @@ int cpu_run()
   event_init();
 
   while(!stop) {
-    ret = cpu_step_instr(CPU_RUN);
-    if(event_poll() == EVENT_DEBUG) {
+    if(!cpu->debug_halted || cpu_run_state == CPU_DEBUG_RUN) {
+      ret = cpu_step_instr(CPU_RUN);
+    } else {
+      ret = CPU_OK;
+    }
+    if(event_main() == EVENT_DEBUG) {
       stop = CPU_BREAKPOINT;
       break;
     }
@@ -784,6 +792,7 @@ void cpu_init()
   cpu->sr = 0x2300;
   cpu->ssp = cpu->a[7] = mmu_read_long(0);
   cpu->debug = 0;
+  cpu->debug_halted = 0;
   cpu->a[5] = 0xdeadbeef;
   cpu->exception_pending = -1;
   cpu->no_exceptions = 0;

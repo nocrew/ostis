@@ -82,9 +82,11 @@ int main(int argc, char *argv[])
   screen_disable(0);
   screen_init();
   shifter_init();
-  if(debugger)
+  if(debugger) {
     debug_init();
-
+    cpu_halt_for_debug();
+  }
+  
 #if 0
   if(argc > 1) {
     state = state_load(argv[1]);
@@ -115,12 +117,7 @@ int main(int argc, char *argv[])
   if(state != NULL)
     state_restore(state);
 
-  if(debugger) {
-    while(!debug_event());
-    return 0;
-  } else {
-    while(cpu_run());
-  }
+  while(cpu_run(CPU_RUN));
 
   mmu_print_map();
   // cpu_print_status();
@@ -136,7 +133,7 @@ int main(int argc, char *argv[])
   }
   
   while(1) {
-    screen_swap();
+    screen_swap(SCREEN_NORMAL);
   }
   
   return 0;

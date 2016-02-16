@@ -13,6 +13,8 @@ static SDL_Texture *texture = NULL;
 static SDL_Window *window;
 static SDL_Renderer *renderer;
 int screen_window_id;
+static SDL_Texture *rasterpos_indicator[2];
+static int rasterpos_indicator_cnt = 0;
 
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
@@ -21,6 +23,8 @@ int screen_window_id;
 void screen_make_texture(const char *scale)
 {
   static const char *old_scale = "";
+  int pixelformat = SDL_PIXELFORMAT_BGR24;
+  if(debugger) pixelformat = SDL_PIXELFORMAT_RGB24;
 
   if(strcmp(scale, old_scale) == 0)
     return;
@@ -30,9 +34,48 @@ void screen_make_texture(const char *scale)
 
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, scale);
   texture = SDL_CreateTexture(renderer,
-			      SDL_PIXELFORMAT_BGR24,
+			      pixelformat,
 			      SDL_TEXTUREACCESS_STREAMING,
 			      2*512, 314);
+}
+
+SDL_Texture *screen_generate_rasterpos_indicator(int color)
+{
+  Uint32 rmask, gmask, bmask, amask;
+  SDL_Surface *rscreen;
+  SDL_Texture *rtext;
+  int i;
+  char *p;
+  
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+  amask = 0x00000000;
+  rmask = 0x00ff0000;
+  gmask = 0x0000ff00;
+  bmask = 0x000000ff;
+#else
+  amask = 0x00000000;
+  rmask = 0x000000ff;
+  gmask = 0x0000ff00;
+  bmask = 0x00ff0000;
+#endif
+
+  rscreen = SDL_CreateRGBSurface(0, 4, 1, 24, rmask, gmask, bmask, amask);
+
+  p = rscreen->pixels;
+  
+  for(i=0;i<rscreen->w;i++) {
+    p[i*rscreen->format->BytesPerPixel+0] = (color<<16)&0xff;
+    p[i*rscreen->format->BytesPerPixel+1] = (color<<8)&0xff;
+    p[i*rscreen->format->BytesPerPixel+2] = color&0xff;
+  }
+
+  rtext = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR24,
+                            SDL_TEXTUREACCESS_STREAMING,
+                            4, 1);
+  
+  SDL_UpdateTexture(rtext, NULL, rscreen->pixels, rscreen->pitch);
+  
+  return rtext;
 }
 
 void screen_init()
@@ -46,8 +89,7 @@ void screen_init()
   atexit(SDL_Quit);
 #endif
   
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#if SDL_BYTEORDER != SDL_BIG_ENDIAN
   amask = 0x00000000;
   rmask = 0x00ff0000;
   gmask = 0x0000ff00;
@@ -59,6 +101,7 @@ void screen_init()
   bmask = 0x00ff0000;
 #endif
 
+
   //  if(debugger) {
   //    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
   //    				  rmask, gmask, bmask, amask);
@@ -68,6 +111,7 @@ void screen_init()
     				  rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_window_id = SDL_GetWindowID(window);
+    printf("DEBUG: screen_window_id == %d\n", screen_window_id);
     screen_make_texture(SDL_SCALING_NEAREST);
     //  }
 
@@ -75,6 +119,9 @@ void screen_init()
     fprintf(stderr, "Did not get a video mode\n");
     exit(1);
   }
+
+  rasterpos_indicator[0] = screen_generate_rasterpos_indicator(0xffffff);
+  rasterpos_indicator[1] = screen_generate_rasterpos_indicator(0xff0000);
 }
 
 void screen_copyimage(unsigned char *src)
@@ -112,30 +159,26 @@ void screen_clear()
   }
 }
 
-void screen_swap()
+void screen_swap(int indicate_rasterpos)
 {
-  //  SDL_Rect dst;
+  SDL_Rect dst;
+  
+  if(disable) return;
 
-  //  if(disable) return;
-
-#if 0
-  if(debugger) {
-    SDL_Surface *debug_display;
-    dst.x = BORDER_SIZE;
-    dst.y = BORDER_SIZE;
-
-    debug_display = display_get_screen();
-    
-    SDL_BlitSurface(screen, NULL, debug_display, &dst);
-    display_render_screen();
-  } else {
-#endif
-    printf("DEBUG: Update main screen\n");
-    display_swap_screen();
-    SDL_RaiseWindow(window);
-    SDL_ShowWindow(window);
+    if(debugger) {
+      display_swap_screen();
+    }
     SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
+    if(indicate_rasterpos) {
+      int rasterpos = shifter_get_vsync();
+      dst.x = 2*(rasterpos%512)-8;
+      dst.y = 2*(rasterpos/512);
+      dst.w = 8;
+      dst.h = 2;
+      SDL_RenderCopy(renderer, rasterpos_indicator[rasterpos_indicator_cnt&1], NULL, &dst);
+      rasterpos_indicator_cnt++;
+    }
     SDL_RenderPresent(renderer);
     //  }
 }

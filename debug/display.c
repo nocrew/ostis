@@ -10,6 +10,7 @@ static SDL_Surface *font[4][256];
 static SDL_Texture *debug_texture;
 static SDL_Renderer *debug_renderer;
 int debug_window_id = 0;
+int debug_update_win = 1;
 
 #define PADDR(f, x, y) (f->pixels + (y)*f->pitch + (x)*f->format->BytesPerPixel)
 
@@ -120,7 +121,9 @@ void display_render_screen()
 
 void display_swap_screen()
 {
-  win_draw_screen();
+  if(debug_update_win) {
+    win_draw_screen();
+  }
   display_render_screen();
 }
 
@@ -128,13 +131,6 @@ void display_setup()
 {
   Uint32 rmask, gmask, bmask, amask;
   
-  if(SDL_Init(SDL_INIT_VIDEO) == -1) {
-    fprintf(stderr, "Unable to initialize SDL.\n");
-    exit(-2);
-  }
-
-  atexit(SDL_Quit);
-
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, SDL_SCALING_LINEAR);
   debug_window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                                   (640 + BORDER_SIZE * 2),
@@ -166,6 +162,7 @@ void display_setup()
                                     (400 + BORDER_SIZE * 2));
 
   debug_window_id = SDL_GetWindowID(debug_window);
+  printf("DEBUG: debug_window_id == %d\n", debug_window_id);
 
   display_swap_screen();
   SDL_ShowWindow(debug_window);

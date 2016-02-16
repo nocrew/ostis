@@ -9,59 +9,54 @@ export LDFLAGS
 
 YACC=yacc -d
 LEX=lex
+AR=ar
+RANLIB=ranlib
 
 PARSER=expr
 PARSERFILE=expr.y expr.l
 PARSERSRC=expr.tab.c lex.expr.c
-PARSEROBJ=expr.tab.o lex.expr.o
+PARSEROBJ=$(PARSERSRC:.c=.o)
 
 SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
     midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c prefs.c
-OBJ=mmu.o ram.o rom.o cpu.o cartridge.o psg.o mfp.o shifter.o screen.o \
-    midi.o ikbd.o fdc.o rtc.o floppy.o event.o state.o prefs.o
+OBJ=$(SRC:.c=.o)
 
 EMU_SRC=main.c $(SRC)
-EMU_OBJ=main.o $(OBJ)
+EMU_OBJ=$(EMU_SRC:.c=.o)
 
 TEST_SRC=test_main.c $(SRC)
-TEST_OBJ=test_main.o $(OBJ)
+TEST_OBJ=$(TEST_SRC:.c=.o)
 
-LIBCPU=libcpu.a
-LIBDEBUG=libdebug.a
+LIBCPU=cpu/libcpu.a
+LIBDEBUG=debug/libdebug.a
 
 DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 
 LIBTEST=libtests.a
 
-LIB=-Lcpu -lcpu -Ldebug -ldebug `sdl2-config --libs`
-TEST_LIB=-Ltests -ltests -Lcpu -lcpu -Ldebug -ldebug `sdl-config --libs`
+LIB=$(LIBCPU) $(LIBDEBUG) `sdl2-config --libs`
+TEST_LIB=-Ltests -ltests $(LIBCPU) $(LIBDEBUG) `sdl-config --libs`
 
 TEST_PRG=ostistest
 
 %.o:	%.c
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) -c $< -o $@
 
 all:	default
 
 default:
-	make ostis CFLAGS_EXTRA="-O3"
+	$(MAKE) ostis CFLAGS_EXTRA="-O3"
 
 gdb:
-	make ostis-gdb CFLAGS_EXTRA="-ggdb"
+	$(MAKE) ostis-gdb CFLAGS_EXTRA="-ggdb"
 
 ostis ostis-gdb: $(DEPS)
 	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
 
 tests:	$(TEST_PRG)
 
-$(LIBCPU):
-	make -C cpu
-
 $(LIBTEST):
 	make -C tests
-
-$(LIBDEBUG):
-	make -C debug
 
 $(PARSEROBJ):	$(PARSERSRC)
 
@@ -84,7 +79,8 @@ $(PARSERSRC): $(PARSERFILE)
 $(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
 	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJ) $(LOBJ) $(YOBJ) $(TEST_LIB)
 
-clean:
-	make -C cpu clean
-	make -C debug clean
+include cpu/cpu.mk
+include debug/debug.mk
+
+clean::
 	rm -f *.o *~ $(PARSERSRC) expr.tab.h

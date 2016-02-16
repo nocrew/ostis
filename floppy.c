@@ -18,6 +18,9 @@ struct floppy {
 struct floppy floppy[2];
 static BYTE *floppy_raw_data;
 static LONG floppy_raw_data_size;
+static const char *floppy_filename = NULL;
+
+static void floppy_store_raw(long offset);
 
 void floppy_side(int side)
 {
@@ -107,9 +110,58 @@ int floppy_read_sector(LONG addr, int count)
   return FLOPPY_OK;
 }
 
+int floppy_write_sector(LONG addr, int count)
+{
+  int pos,i,j;
+
+  if(!floppy[0].inserted) return FLOPPY_ERROR;
+  if(!floppy_filename) return FLOPPY_ERROR;
+
+  if(floppy[0].sel_sec < 1) floppy[0].sel_sec = 1;
+
+  pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
+  pos += (floppy[0].sel_sec-1)*512;
+  pos += floppy[0].sel_side*floppy[0].sectors*512;
+#if 0
+  printf("--------\n");
+  printf("Write sector:\n");
+  printf(" - Track:  %d\n", floppy[0].sel_trk);
+  printf(" - Side:   %d\n", floppy[0].sel_side);
+  printf(" - Sector: %d\n", floppy[0].sel_sec);
+  printf(" = Pos:    %d\n", pos);
+  printf("--------\n");
+#endif
+
+
+  for(i=0;i<count;i++) {
+    if((pos+i*512) >= (floppy_raw_data_size-512)) return FLOPPY_ERROR;
+    for(j=0;j<512;j++) {
+      floppy_raw_data[pos+i*512+j] = mmu_read_byte(addr+i*512+j);
+    }
+    floppy_store_raw(pos+i*512);
+  }
+  return FLOPPY_OK;
+}
+
 BYTE *floppy_allocate_memory()
 {
   return (BYTE *)malloc(86 * (floppy[0].sides+1) * floppy[0].sectors * 512);
+}
+
+static void floppy_store_raw(long offset)
+{
+  FILE *fp = fopen(floppy_filename, "r+b");
+  if(!fp) return;
+
+  if(fseek(fp, offset, SEEK_SET) != 0) {
+    printf("Error writing to floppy image\n");
+  }
+
+  if(fwrite(floppy_raw_data + offset, 512, 1, fp) != 1) {
+    printf("Error writing to floppy image\n");
+  }
+
+  fclose(fp);
 }
 
 void floppy_load_raw(FILE *fp)
@@ -283,6 +335,7 @@ void floppy_init(char *filename)
   if(header[0] == 0x0e && header[1] == 0x0f) {
     floppy_load_msa(fp);
   } else {
+    floppy_filename = filename;
     floppy_load_raw(fp);
   }
 }

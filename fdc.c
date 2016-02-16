@@ -130,7 +130,7 @@ static void fdc_do_instr()
   mfp_set_GPIP(5);
 
   motoron = 1;
-  fdc_reg[FDC_STATUS] = 0x40|(motoron<<7); /* Motor on, Writeprotected */
+  fdc_reg[FDC_STATUS] = 0x00|(motoron<<7); /* Motor on, not Writeprotected */
 
 #if 0
   printf("DEBUG: Running command: %08x\n", fdc_reg[FDC_INSTR]);
@@ -230,7 +230,33 @@ static void fdc_do_instr()
     }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_WRITESEC) {
-    printf("Write sector not supported\n");
+#if 0
+    printf("DEBUG: FDCI_WRITESEC: 0x%x - %d blocks\n",
+	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
+    printf("---FDC---\n");
+    printf(" - Instr:   %d\n", fdc_reg[FDC_INSTR]);
+    printf(" - Status:  %d\n", fdc_reg[FDC_STATUS]);
+    printf(" - Track:   %d\n", fdc_reg[FDC_TRACK]);
+    printf(" - Sector:  %d\n", fdc_reg[FDC_SECTOR]);
+    printf(" - Seccnt:  %d\n", fdc_reg[FDC_DMASEC]);
+    printf(" - Addr:    %08x\n", fdc_dmaaddr);
+    printf("---------\n");
+#endif
+#if 0
+    printf("DEBUG: FDCI_READSEC: 0x%x - %d block\n",
+	   fdc_dmaaddr, 1);
+#endif
+    fdc_dmastatus = 0x3; /* Sector count != 0, No error */
+    if(floppy_write_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
+      fdc_dmastatus = 0x0; /* Error */
+    } else {
+      fdc_dmastatus = 0x1;
+      if(FDCI_MULTSEC)
+	fdc_dmaaddr += 512*fdc_reg[FDC_DMASEC]; /* Advance multiple sectors */
+      else
+	fdc_dmaaddr += 512; /* Advance one sector */
+    }
+    if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_READTRK) {
     printf("Read track not supported\n");
   } else if(FDCI_WRITETRK) {

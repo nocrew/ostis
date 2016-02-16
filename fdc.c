@@ -201,7 +201,7 @@ static void fdc_do_instr()
 	fdc_reg[FDC_STATUS] |= 0x04;
     }
     if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_READSEC && !FDCI_MULTSEC) {
+  } else if(FDCI_READSEC) {
 #if 0
     printf("DEBUG: FDCI_READSEC: 0x%x - %d blocks\n",
 	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
@@ -222,29 +222,11 @@ static void fdc_do_instr()
     if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
       fdc_dmastatus = 0x0; /* Error */
     } else {
-      fdc_dmastatus = 0x1; 
-      fdc_dmaaddr += 512; /* Advance one sector */
-   }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_READSEC && FDCI_MULTSEC) {
-#if 0
-    printf("DEBUG: FDCI_READSEC (MULTI): 0x%x - %d blocks\n",
-	   fdc_dmaaddr, fdc_reg[FDC_DMASEC]);
-    printf("---FDC---\n");
-    printf(" - Instr:   %d\n", fdc_reg[FDC_INSTR]);
-    printf(" - Status:  %d\n", fdc_reg[FDC_STATUS]);
-    printf(" - Track:   %d\n", fdc_reg[FDC_TRACK]);
-    printf(" - Sector:  %d\n", fdc_reg[FDC_SECTOR]);
-    printf(" - Seccnt:  %d\n", fdc_reg[FDC_DMASEC]);
-    printf(" - Addr:    %08x\n", fdc_dmaaddr);
-    printf("---------\n");
-#endif
-    fdc_dmastatus = 0x3; /* Sector count != 0, No error */
-    if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
-      fdc_dmastatus = 0x0; /* Error */
-    } else {
       fdc_dmastatus = 0x1;
-      fdc_dmaaddr += 512*fdc_reg[FDC_DMASEC]; /* Advance multiple sectors */
+      if(FDCI_MULTSEC)
+	fdc_dmaaddr += 512*fdc_reg[FDC_DMASEC]; /* Advance multiple sectors */
+      else
+	fdc_dmaaddr += 512; /* Advance one sector */
     }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_WRITESEC) {

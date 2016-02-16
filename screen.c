@@ -125,13 +125,10 @@ void screen_swap()
     
     SDL_BlitSurface(screen, NULL, debug_display, &dst);
     display_render_screen();
-    //    SDL_Flip(display_get_screen());
   } else {
     SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
-    SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    //    SDL_Flip(screen);
   }
 }
 

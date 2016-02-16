@@ -157,7 +157,6 @@ void display_setup()
 void display_render_screen()
 {
   SDL_UpdateTexture(texture, NULL, scr->pixels, scr->pitch);
-  SDL_RenderClear(renderer);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
 }

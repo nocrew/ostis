@@ -865,6 +865,7 @@ void cpu_init()
   
   rts_init((void *)instr, (void *)instr_print);
   rte_init((void *)instr, (void *)instr_print);
+  rtr_init((void *)instr, (void *)instr_print);
   
   and_init((void *)instr, (void *)instr_print);
   exg_init((void *)instr, (void *)instr_print); /* overlaps and_init */

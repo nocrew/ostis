@@ -47,6 +47,7 @@ void mulu_init(void *[], void *[]);
 void divu_init(void *[], void *[]);
 void link_init(void *[], void *[]);
 void rte_init(void *[], void *[]);
+void rtr_init(void *[], void *[]);
 void unlk_init(void *[], void *[]);
 void move_from_ccr_init(void *[], void *[]);
 void movec_init(void *[], void *[]);

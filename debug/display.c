@@ -40,13 +40,10 @@ void display_put_pixel_screen(int x, int y, long c)
 {
   char *p;
 
-  p = PADDR(debug_screen, 2*x + BORDER_SIZE, y + BORDER_SIZE);
+  p = PADDR(debug_screen, x + BORDER_SIZE, y + BORDER_SIZE);
   p[0] = (c>>16)&0xff;
   p[1] = (c>>8)&0xff;
   p[2] = (c&0xff);
-  p[3] = (c>>16)&0xff;
-  p[4] = (c>>8)&0xff;
-  p[5] = (c&0xff);
 }
 
 static void build_char(int c[], SDL_Surface *f, int h, int inv)
@@ -104,12 +101,10 @@ void display_put_char(int x, int y, int f, unsigned char c)
 {
   SDL_Rect dst;
 
-  dst.x = 2*x + BORDER_SIZE;
+  dst.x = x + BORDER_SIZE;
   dst.y = y + BORDER_SIZE;
-  dst.w = 16;
-  dst.h = 8*(f&1)+8;
   
-  SDL_BlitScaled(font[f][c], NULL, debug_screen, &dst);
+  SDL_BlitSurface(font[f][c], NULL, debug_screen, &dst);
 }
 
 void display_render_screen()
@@ -150,16 +145,16 @@ void display_setup()
 #endif
 
   debug_screen = SDL_CreateRGBSurface(0,
-                                      2*(640 + BORDER_SIZE * 2),
-                                      (400 + BORDER_SIZE * 2),
+                                      640 + BORDER_SIZE * 2,
+                                      400 + BORDER_SIZE * 2,
                                       24,
                                       rmask, gmask, bmask, amask);
   debug_renderer = SDL_CreateRenderer(debug_window, -1, 0);
   debug_texture = SDL_CreateTexture(debug_renderer,
                                     SDL_PIXELFORMAT_RGB24,
                                     SDL_TEXTUREACCESS_STREAMING,
-                                    2*(640 + BORDER_SIZE * 2),
-                                    (400 + BORDER_SIZE * 2));
+                                    640 + BORDER_SIZE * 2,
+                                    400 + BORDER_SIZE * 2);
 
   debug_window_id = SDL_GetWindowID(debug_window);
   printf("DEBUG: debug_window_id == %d\n", debug_window_id);

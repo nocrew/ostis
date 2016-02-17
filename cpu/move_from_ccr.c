@@ -2,6 +2,8 @@
 #include "cpu.h"
 #include "ea.h"
 
+/* This is really a 68010+ instruction. Not sure why this was implemented :) */
+
 static void move_from_ccr(struct cpu *cpu, WORD op)
 {
   ENTER;

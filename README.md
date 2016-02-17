@@ -30,11 +30,12 @@ Command line options:
 `-V`  - Try to wait for 50Hz delay between frames
 
 Special keys:  
-`F11`      - save emulator state to file  
-`F12`      - print diagnosics  
-`F13`      - temporarily save state  
-`F14`      - restore temporary state
-`PrintScr` - toggle insane amount of debug output (live disassemble)
+`F11`           - save emulator state to file  
+`F12`           - print diagnosics  
+`F13`           - temporarily save state  
+`F14`           - restore temporary state  
+`PrintScr`      - toggle insane amount of debug output (live disassemble)  
+`Ctrl-PrintScr` - toggle window grab (also hides native mouse cursor)  
 
 MonST keys:  
 `Esc` - set window address to pc  

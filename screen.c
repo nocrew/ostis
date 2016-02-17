@@ -15,6 +15,7 @@ static SDL_Renderer *renderer;
 int screen_window_id;
 static SDL_Texture *rasterpos_indicator[2];
 static int rasterpos_indicator_cnt = 0;
+static int screen_grabbed = 0;
 
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
@@ -201,4 +202,16 @@ void *screen_pixels()
   return screen->pixels;
 }
 
+void screen_toggle_grab()
+{
+  if(screen_grabbed) {
+    SDL_SetWindowGrab(window, SDL_FALSE);
+    SDL_ShowCursor(1);
+    screen_grabbed = 0;
+  } else {
+    SDL_SetWindowGrab(window, SDL_TRUE);
+    SDL_ShowCursor(0);
+    screen_grabbed = 1;
+  }
+}
 

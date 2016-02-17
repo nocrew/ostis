@@ -8,6 +8,7 @@
 #include "ikbd.h"
 #include "cpu.h"
 #include "state.h"
+#include "screen.h"
 
 static int tstart;
 static int tend;
@@ -42,6 +43,10 @@ static int event_key(SDL_KeyboardEvent key, int state)
     if(k.mod & KMOD_ALT) {
       if(state == EVENT_RELEASE) {
         printf("DEBUG: Start debugger\n");
+      }
+    } else if(k.mod & KMOD_CTRL) {
+      if(state == EVENT_RELEASE) {
+        screen_toggle_grab();
       }
     } else {
       if(state == EVENT_RELEASE) {

@@ -14,28 +14,73 @@
 
 static BYTE ikbd_control;
 static BYTE ikbd_status = 0x2; /* Always ready */
-static BYTE ikbd_writereg = 0;
 static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
 static int ikbd_intcnt = 0;
 static int lastcpucnt = 0;
 static BYTE ikbd_buttons = 0;
-static BYTE ikbd_waiting_for_cmd = 1;
 static BYTE ikbd_mouse_enabled = 0;
+static BYTE ikbd_cmdbuf[6];
+static BYTE ikbd_cmdcnt = 0;
+static void (*ikbd_cmdfn)(void);
+
+static void ikbd_queue_fifo(BYTE data);
+
+static void ikbd_set_mouse_button_action(void)
+{
+  printf("DEBUG: IKBD set mouse button action %02x\n", ikbd_cmdbuf[0]);
+}
+
+static void ikbd_set_mouse_threshold(void)
+{
+  printf("DEBUG: IKBD set mouse threshold %u %u\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
+}
+
+static void ikbd_reset(void)
+{
+  printf("DEBUG: IKBD reset %02x\n", ikbd_cmdbuf[0]);
+  if(ikbd_cmdbuf[0] == 0x01) {
+    ikbd_queue_fifo(0xf1);
+  }
+}
 
 static void ikbd_set_cmd(BYTE cmd)
 {
-  if(cmd == 0x08) {
+  switch(cmd) {
+  case 0x07:
+    ikbd_cmdfn = ikbd_set_mouse_button_action;
+    ikbd_cmdcnt = 1;
+    break;
+  case 0x08:
     // Enable mouse relative
     ikbd_mouse_enabled = 1;
-    ikbd_waiting_for_cmd = 1;
-  } else if(cmd == 0x12) {
+    printf("DEBUG: IKBD enable mouse relative\n");
+    break;
+  case 0x0b:
+    ikbd_cmdfn = ikbd_set_mouse_threshold;
+    ikbd_cmdcnt = 2;
+    break;
+  case 0x10:
+    // Set Y=0 at top
+    printf("DEBUG: IKBD set y=0 at top\n");
+    break;
+  case 0x12:
     // Disable mouse
     ikbd_mouse_enabled = 0;
-    ikbd_waiting_for_cmd = 1;
-  } else {
+    printf("DEBUG: IKBD disable mouse\n");
+    break;
+  case 0x1a:
+    // Disable joysticks
+    printf("DEBUG: IKBD disable joysticks\n");
+    break;
+  case 0x80:
+    ikbd_cmdfn = ikbd_reset;
+    ikbd_cmdcnt = 1;
+    break;
+  default:
     // Unhandled ikbd commands (nothing for now)
-    ikbd_waiting_for_cmd = 1;
+    printf("ERROR: IKBD unhandled command 0x%02x\n", cmd);
+    break;
   }
 }
 
@@ -119,8 +164,12 @@ static void ikbd_write_byte(LONG addr, BYTE data)
   case 0xfffc02:
     ikbd_status &= ~0x80;
     mfp_set_GPIP(4);
-    if(ikbd_waiting_for_cmd) {
+    if(ikbd_cmdcnt == 0) {
       ikbd_set_cmd(data);
+    } else {
+      ikbd_cmdbuf[--ikbd_cmdcnt] = data;
+      if(ikbd_cmdcnt == 0)
+	ikbd_cmdfn();
     }
     break;
   }
@@ -153,12 +202,13 @@ static int ikbd_state_collect(struct mmu_state *state)
    * ikbd_fifo            == 1*fifosize
    * ikbd_control         == 1
    * ikbd_status          == 1
-   * ikbd_writereg        == 1
    * ikbd_mouse_enabled   == 1
-   * ikbd_waiting_for_cmd == 1
+   * cmdbuf               == cmdbuf size
+   * cmdcnt               == 1
+   * cmdfn                == function pointer size
    */
 
-  state->size = 21+IKBDFIFO;
+  state->size = 20+IKBDFIFO+sizeof ikbd_cmdbuf+sizeof(void (*)(void));
   state->data = (char *)malloc(state->size);
   if(state->data == NULL)
     return STATE_INVALID;
@@ -171,9 +221,12 @@ static int ikbd_state_collect(struct mmu_state *state)
   }
   state_write_mem_byte(&state->data[16+IKBDFIFO], ikbd_control);
   state_write_mem_byte(&state->data[16+IKBDFIFO+1], ikbd_status);
-  state_write_mem_byte(&state->data[16+IKBDFIFO+2], ikbd_writereg);
-  state_write_mem_byte(&state->data[16+IKBDFIFO+3], ikbd_mouse_enabled);
-  state_write_mem_byte(&state->data[16+IKBDFIFO+4], ikbd_waiting_for_cmd);
+  state_write_mem_byte(&state->data[16+IKBDFIFO+2], ikbd_mouse_enabled);
+  state_write_mem_byte(&state->data[16+IKBDFIFO+3], ikbd_cmdcnt);
+  for(r=0;r<sizeof ikbd_cmdbuf;r++) {
+    state_write_mem_byte(&state->data[16+IKBDFIFO+4+r], ikbd_cmdbuf[r]);
+  }
+  state_write_mem_ptr(&state->data[16+IKBDFIFO+4+sizeof ikbd_cmdbuf], ikbd_cmdfn);
   return STATE_VALID;
 }
 
@@ -191,9 +244,12 @@ static void ikbd_state_restore(struct mmu_state *state)
   }
   ikbd_control = state_read_mem_byte(&state->data[16+IKBDFIFO]);
   ikbd_status = state_read_mem_byte(&state->data[16+IKBDFIFO+1]);
-  ikbd_writereg = state_read_mem_byte(&state->data[16+IKBDFIFO+2]);
   ikbd_mouse_enabled = state_read_mem_byte(&state->data[16+IKBDFIFO+3]);
-  ikbd_waiting_for_cmd = state_read_mem_byte(&state->data[16+IKBDFIFO+4]);
+  ikbd_cmdcnt = state_read_mem_byte(&state->data[16+IKBDFIFO+3]);
+  for(r=0;r<sizeof ikbd_cmdbuf;r++) {
+    ikbd_cmdbuf[r] = state_read_mem_byte(&state->data[16+IKBDFIFO+4]);
+  }
+  ikbd_cmdfn = state_read_mem_ptr(&state->data[16+IKBDFIFO+4+sizeof ikbd_cmdbuf]);
 }
 
 void ikbd_queue_key(int key, int state)

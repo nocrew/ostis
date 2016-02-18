@@ -34,8 +34,10 @@ int state_valid_id(char *);
 void state_write_mem_byte(char *, BYTE);
 void state_write_mem_word(char *, WORD);
 void state_write_mem_long(char *, LONG);
+void state_write_mem_ptr(char *, void *);
 BYTE state_read_mem_byte(char *);
 WORD state_read_mem_word(char *);
 LONG state_read_mem_long(char *);
+void *state_read_mem_ptr(char *);
 
 #endif

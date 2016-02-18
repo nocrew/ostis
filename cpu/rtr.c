@@ -13,7 +13,7 @@ static void rtr(struct cpu *cpu, WORD op)
   cpu->a[7] += 2;
   cpu->pc = mmu_read_long(cpu->a[7]);
   cpu->a[7] += 4;
-  cpu_set_sr((cpu->sr&0xffe0)|(ccr|0x1f));
+  cpu_set_sr((cpu->sr&0xffe0)|(ccr&0x1f));
 }
 
 static struct cprint *rtr_print(LONG addr, WORD op)

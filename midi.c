@@ -8,7 +8,7 @@
 #define MIDIBASE 0xfffc04
 
 static BYTE midi_control;
-static BYTE midi_status;
+static BYTE midi_status = 0x02; /* Always ready to receive */
 static BYTE midi_data;
 
 static BYTE midi_read_byte(LONG addr)

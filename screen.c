@@ -204,12 +204,16 @@ void *screen_pixels()
 
 void screen_toggle_grab()
 {
+  int w, h;
+  
   if(screen_grabbed) {
     SDL_SetWindowGrab(window, SDL_FALSE);
     SDL_ShowCursor(1);
     screen_grabbed = 0;
   } else {
     SDL_SetWindowGrab(window, SDL_TRUE);
+    SDL_GetWindowSize(window, &w, &h);
+    SDL_WarpMouseInWindow(window, w/2, h/2);
     SDL_ShowCursor(0);
     screen_grabbed = 1;
   }

@@ -49,6 +49,13 @@ static void debug_skip_next_instr()
   win_set_message("Skip");
 }
 
+static void clear_event_queue()
+{
+  SDL_Event ev;
+  
+  while(SDL_PollEvent(&ev));
+}
+
 static int debug_do_key_normal(SDL_KeyboardEvent key)
 {
   SDL_Keysym k;
@@ -151,6 +158,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       win_set_exwin(EDIT_SETREG);
       edit_setup();
       keymode = KEY_EDIT;
+      clear_event_queue();
     }
     break;
   case SDLK_m:
@@ -158,6 +166,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       win_set_exwin(EDIT_SETADDR);
       edit_setup();
       keymode = KEY_EDIT;
+      clear_event_queue();
     }
     break; 
   case SDLK_v:
@@ -174,12 +183,14 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     }
     edit_setup();
     keymode = KEY_EDIT;
+    clear_event_queue();
     break;
   case SDLK_b:
     if(k.mod & KMOD_ALT) {
       win_set_exwin(EDIT_SETBRK);
       edit_setup();
       keymode = KEY_EDIT;
+      clear_event_queue();
     } else if(k.mod & KMOD_CTRL) {
       if(win[win_get_selected()].type == TYPE_DIS)
 	debug_toggle_breakpoint(win_get_selected());
@@ -192,6 +203,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       win_set_exwin(EDIT_SETWATCH);
       edit_setup();
       keymode = KEY_EDIT;
+      clear_event_queue();
     }
     break;
   case SDLK_c:
@@ -207,29 +219,38 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   return 0;
 }
 
+static int debug_do_text_edit(SDL_TextInputEvent tev)
+{
+  if(((tev.text[0] >= '0') && (tev.text[0] <= '9')) ||
+     ((tev.text[0] >= 'a') && (tev.text[0] <= 'z')) ||
+     ((tev.text[0] >= 'A') && (tev.text[0] <= 'Z')) ||
+     (tev.text[0] == '[') || (tev.text[0] == ']') ||
+     (tev.text[0] == '(') || (tev.text[0] == ')') ||
+     (tev.text[0] == '$') || (tev.text[0] == '-') ||
+     (tev.text[0] == '+') || (tev.text[0] == '*') ||
+     (tev.text[0] == '/') || (tev.text[0] == '_') ||
+     (tev.text[0] == '|') || (tev.text[0] == '&') ||
+     (tev.text[0] == '^') || (tev.text[0] == '~') ||
+     (tev.text[0] == '\\') || (tev.text[0] == '.') ||
+     (tev.text[0] == '!') || (tev.text[0] == '<') ||
+     (tev.text[0] == '>') ||
+     (tev.text[0] == '=') || (tev.text[0] == ',')) {
+    edit_insert_char(tev.text[0]);
+  }
+
+  display_swap_screen();
+  return 0;
+}
+
 static int debug_do_key_edit(SDL_KeyboardEvent key)
 {
-   SDL_Keysym k;
+  SDL_Keysym k;
+
   //  Uint16 u;
 
   k = key.keysym;
 
-  if(((k.sym >= '0') && (k.sym <= '9')) ||
-     ((k.sym >= 'a') && (k.sym <= 'z')) ||
-     ((k.sym >= 'A') && (k.sym <= 'Z')) ||
-     (k.sym == '[') || (k.sym == ']') ||
-     (k.sym == '(') || (k.sym == ')') ||
-     (k.sym == '$') || (k.sym == '-') ||
-     (k.sym == '+') || (k.sym == '*') ||
-     (k.sym == '/') || (k.sym == '_') ||
-     (k.sym == '|') || (k.sym == '&') ||
-     (k.sym == '^') || (k.sym == '~') ||
-     (k.sym == '\\') || (k.sym == '.') ||
-     (k.sym == '!') || (k.sym == '<') ||
-     (k.sym == '>') ||
-     (k.sym == '=') || (k.sym == ',')) {
-    edit_insert_char(k.sym);
-  } else if(k.sym == SDLK_RETURN) {
+  if(k.sym == SDLK_RETURN) {
     if(edit_finish(win_get_exwin()) == EDIT_SUCCESS) {
       win_set_exwin(EDIT_EXIT);
       keymode = KEY_NORMAL;
@@ -249,13 +270,17 @@ static int debug_do_key_edit(SDL_KeyboardEvent key)
   return 0;
 }
 
-static int debug_dispatch_keys(SDL_KeyboardEvent key)
+static int debug_dispatch_keys(SDL_Event ev)
 {
   switch(keymode) {
   case KEY_NORMAL:
-    return debug_do_key_normal(key);
+    return debug_do_key_normal(ev.key);
   case KEY_EDIT:
-    return debug_do_key_edit(key);
+    if(ev.type == SDL_TEXTINPUT) {
+      return debug_do_text_edit(ev.text);
+    } else if(ev.type == SDL_KEYDOWN) {
+      return debug_do_key_edit(ev.key);
+    }
   }
   return 0;
 }
@@ -274,8 +299,9 @@ int debug_event_parse(SDL_Event ev)
       display_swap_screen();
     }
     break;
+  case SDL_TEXTINPUT:
   case SDL_KEYDOWN:
-    if(debug_dispatch_keys(ev.key)) {
+    if(debug_dispatch_keys(ev)) {
       SDL_Quit();
       return 1;
     }

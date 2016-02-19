@@ -85,10 +85,7 @@ void screen_init()
   Uint32 rmask, gmask, bmask, amask;
   
   if(disable) return;
-#if 0
-  SDL_Init(SDL_INIT_VIDEO);
-  atexit(SDL_Quit);
-#endif
+  SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK);
   
 #if SDL_BYTEORDER != SDL_BIG_ENDIAN
   amask = 0x00000000;

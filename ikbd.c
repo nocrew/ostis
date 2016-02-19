@@ -285,6 +285,20 @@ void ikbd_button(int button, int state)
   ikbd_queue_motion(0, 0);
 }
 
+void ikbd_joystick(int direction)
+{
+  if(!ikbd_joystick_enabled) return;
+  ikbd_queue_fifo(0xff);
+  ikbd_queue_fifo(direction);
+}
+
+void ikbd_fire(int state)
+{
+  if(!ikbd_joystick_enabled) return;
+  ikbd_queue_fifo(0xff);
+  ikbd_queue_fifo(state << 7);
+}
+
 void ikbd_init()
 {
   struct mmu *ikbd;

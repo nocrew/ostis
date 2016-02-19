@@ -133,17 +133,31 @@ static int event_button(SDL_MouseButtonEvent b, int state)
 
 static int event_joystick(SDL_JoyAxisEvent a)
 {
-  if (a.axis == 0 && (a.value > 10000 || a.value < -10000))
-    printf("left/right %d\n", a.value);
-  if (a.axis == 1 && (a.value > 10000 || a.value < -10000))
-    printf("up/down %d\n", a.value);
+  static int last = 0;
+  int direction = last;
+  if (a.axis == 0) {
+    direction &= ~(IKBD_JOY_RIGHT | IKBD_JOY_LEFT);
+    if (a.value > 5000)
+      direction |= IKBD_JOY_RIGHT;
+    else if (a.value < -5000)
+      direction |= IKBD_JOY_LEFT;
+  } else if(a.axis == 1) {
+    direction &= ~(IKBD_JOY_UP | IKBD_JOY_DOWN);
+    if (a.value > 5000)
+      direction |= IKBD_JOY_DOWN;
+    else if (a.value < -5000)
+      direction |= IKBD_JOY_UP;
+  } 
+  if (direction != last)
+    ikbd_joystick(direction);
+  last = direction;
   return EVENT_NONE;
 }
 
 static int event_fire(SDL_JoyButtonEvent b)
 {
   if(b.button == 14)
-    printf("fire %d\n", b.state);
+    ikbd_fire(b.state);
   return EVENT_NONE;
 }
 

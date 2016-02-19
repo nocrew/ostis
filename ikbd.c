@@ -20,6 +20,7 @@ static int ikbd_intcnt = 0;
 static int lastcpucnt = 0;
 static BYTE ikbd_buttons = 0;
 static BYTE ikbd_mouse_enabled = 0;
+static BYTE ikbd_joystick_enabled = 0;
 static BYTE ikbd_cmdbuf[6];
 static BYTE ikbd_cmdcnt = 0;
 static void (*ikbd_cmdfn)(void);
@@ -69,9 +70,13 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_mouse_enabled = 0;
     printf("DEBUG: IKBD disable mouse\n");
     break;
+  case 0x14:
+    printf("DEBUG: joystick event reporting\n");
+    ikbd_joystick_enabled = 1;
+    break;
   case 0x1a:
-    // Disable joysticks
     printf("DEBUG: IKBD disable joysticks\n");
+    ikbd_joystick_enabled = 0;
     break;
   case 0x80:
     ikbd_cmdfn = ikbd_reset;

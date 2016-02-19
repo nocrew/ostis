@@ -202,7 +202,9 @@ static void cpu_do_exception(int vnum)
 
   cpu->stopped = 0;
 
-  //  printf("DEBUG: Do exception: %d (PC == %08x)\n", vnum, cpu->pc);
+  //  if(vnum > 0) {
+  //    printf("DEBUG: Do exception: %d [%04x] (PC == %08x)\n", vnum, vnum * 4, cpu->pc);
+  //  }
 
   if(vnum == 2) {
     cprint_all = 0;
@@ -226,7 +228,7 @@ static void cpu_do_exception(int vnum)
       if(interrupt_pending[i]) break;
     }
     if((i >= 0) && (IPL < i)) {
-      //      printf("DEBUG: Do exception: %d (PC == %08x)\n", vnum, cpu->pc);
+      //      printf("DEBUG: Do interrupt: %d [IPL: %d] (PC == %08x)\n", i, IPL, cpu->pc);
       interrupt_pending[i] = 0;
       cpu->a[7] -= 4;
       mmu_write_long(cpu->a[7], cpu->pc);
@@ -245,6 +247,7 @@ static void cpu_do_exception(int vnum)
     cpu->a[7] -= 2;
     mmu_write_word(cpu->a[7], oldsr);
     cpu->pc = mmu_read_long(4*vnum);
+    cpu->sr = (cpu->sr&0xf0ff)|(6<<8);
     cpu_do_cycle(24, 0); /* From Hatari */
   } else {
     //    if(vnum > 25) return;

@@ -99,8 +99,12 @@ static int event_key(SDL_KeyboardEvent key, int state)
   return EVENT_NONE;
 }
 
+static SDL_Joystick *joystick;
+
 void event_init()
 {
+  SDL_JoystickEventState(SDL_ENABLE);
+  joystick = SDL_JoystickOpen(0);
 }
 
 void event_exit()
@@ -127,12 +131,24 @@ static int event_button(SDL_MouseButtonEvent b, int state)
   return EVENT_NONE;
 }
 
+static int event_joystick(SDL_JoyAxisEvent a)
+{
+  if (a.axis == 0 && (a.value > 10000 || a.value < -10000))
+    printf("left/right %d\n", a.value);
+  if (a.axis == 1 && (a.value > 10000 || a.value < -10000))
+    printf("up/down %d\n", a.value);
+  return EVENT_NONE;
+}
+
+static int event_fire(SDL_JoyButtonEvent b)
+{
+  if(b.button == 14)
+    printf("fire %d\n", b.state);
+  return EVENT_NONE;
+}
+
 int event_parse(SDL_Event ev)
 {
-  //  if(!SDL_PollEvent(&ev)) {
-  //    return EVENT_NONE;
-  //  }
-
   switch(ev.type) {
   case SDL_KEYDOWN:
     return event_key(ev.key, EVENT_PRESS);
@@ -144,6 +160,11 @@ int event_parse(SDL_Event ev)
     return event_button(ev.button, EVENT_PRESS);
   case SDL_MOUSEBUTTONUP:
     return event_button(ev.button, EVENT_RELEASE);
+  case SDL_JOYAXISMOTION:
+    return event_joystick(ev.jaxis);
+  case SDL_JOYBUTTONDOWN:
+  case SDL_JOYBUTTONUP:
+    return event_fire(ev.jbutton);
   case SDL_WINDOWEVENT:
     if(ev.window.windowID == screen_window_id) {
       if(ev.window.event == SDL_WINDOWEVENT_RESIZED) {
@@ -179,7 +200,12 @@ int event_main()
   } else if(debugger && ev.window.windowID == debug_window_id) {
     return debug_event_parse(ev);
   } else {
-    if(ev.type == SDL_QUIT) {
+    switch(ev.type) {
+    case SDL_JOYAXISMOTION:
+    case SDL_JOYBUTTONDOWN:
+    case SDL_JOYBUTTONUP:
+      return event_parse(ev);
+    case SDL_QUIT:
       if(debugger && !debug_update_win) {
         return EVENT_DEBUG;
       } else {

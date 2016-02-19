@@ -56,6 +56,13 @@ static void clear_event_queue()
   while(SDL_PollEvent(&ev));
 }
 
+static void debug_set_editmode()
+{
+  edit_setup();
+  keymode = KEY_EDIT;
+  clear_event_queue();
+}
+
 static int debug_do_key_normal(SDL_KeyboardEvent key)
 {
   SDL_Keysym k;
@@ -156,17 +163,13 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       win_move_window_to_pc();
     } else if(k.mod & KMOD_ALT) {
       win_set_exwin(EDIT_SETREG);
-      edit_setup();
-      keymode = KEY_EDIT;
-      clear_event_queue();
+      debug_set_editmode();
     }
     break;
   case SDLK_m:
     if(win_get_selected() > 1) {
       win_set_exwin(EDIT_SETADDR);
-      edit_setup();
-      keymode = KEY_EDIT;
-      clear_event_queue();
+      debug_set_editmode();
     }
     break; 
   case SDLK_v:
@@ -181,16 +184,12 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     } else {
       win_set_exwin(EDIT_LABEL);
     }
-    edit_setup();
-    keymode = KEY_EDIT;
-    clear_event_queue();
+    debug_set_editmode();
     break;
   case SDLK_b:
     if(k.mod & KMOD_ALT) {
       win_set_exwin(EDIT_SETBRK);
-      edit_setup();
-      keymode = KEY_EDIT;
-      clear_event_queue();
+      debug_set_editmode();
     } else if(k.mod & KMOD_CTRL) {
       if(win[win_get_selected()].type == TYPE_DIS)
 	debug_toggle_breakpoint(win_get_selected());
@@ -201,9 +200,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   case SDLK_w:
     if(k.mod & KMOD_ALT) {
       win_set_exwin(EDIT_SETWATCH);
-      edit_setup();
-      keymode = KEY_EDIT;
-      clear_event_queue();
+      debug_set_editmode();
     }
     break;
   case SDLK_c:

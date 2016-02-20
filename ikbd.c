@@ -98,7 +98,7 @@ static int ikbd_pop_fifo()
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0) {
-    mfp_set_GPIP(4);
+    mfp_clr_GPIP(4);
     ikbd_status |= 0x81;
   }
   return tmp;

@@ -81,7 +81,11 @@ extern int cprint_all;
 #define CHKC (cpu->sr & MSKC)
 
 #define IPL ((cpu->sr & 0x700)>>8)
-
+#define IPL_HBL 2
+#define IPL_VBL 4
+#define IPL_MFP 6
+#define IPL_NO_AUTOVECTOR -1
+  
 #define CPU_OK 0
 #define CPU_BREAKPOINT 1
 #define CPU_WATCHPOINT 2
@@ -102,6 +106,7 @@ void cpu_halt_for_debug();
 int cpu_step_instr(int);
 void cpu_print_status();
 void cpu_do_cycle(LONG, int);
+void cpu_set_interrupt(int, int);
 void cpu_set_exception(int);
 void cpu_add_debugpoint(LONG);
 void cpu_set_sr(WORD);

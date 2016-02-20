@@ -594,7 +594,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     }
     screen_swap(SCREEN_NORMAL);
     //    if(!noint && (IPL < 4))
-    cpu_set_exception(28); /* Set VBL interrupt as pending */
+    cpu_set_interrupt(IPL_VBL, IPL_NO_AUTOVECTOR); /* Set VBL interrupt as pending */
     framecnt++;
   }
 
@@ -605,7 +605,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
     hsynccnt += HBLSIZE;
     if(!noint && (IPL < 2))
-      cpu_set_exception(26); /* This _should_ work, but probably won't */
+      cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
 
   }
   

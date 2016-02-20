@@ -386,7 +386,7 @@ static void mfp_do_interrupt(int inum)
     mfp_clr_ISR(inum);
   mfp_clr_IPR(inum);
 
-  cpu_set_exception(vec);
+  cpu_set_interrupt(IPL_MFP, vec);
 }
 
 void mfp_do_interrupts(struct cpu *cpu)

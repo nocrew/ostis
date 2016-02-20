@@ -35,6 +35,7 @@ static struct cprint_label *clabel = NULL;
 static struct cpubrk *brk = NULL;
 static struct cpuwatch *watch = NULL;
 static int interrupt_pending[8];
+static int interrupt_autovector = -1;
 
 int cprint_all = 0;
 
@@ -223,32 +224,34 @@ static void cpu_do_exception(int vnum)
     mmu_write_word(cpu->a[7], oldsr);
     cpu->pc = mmu_read_long(4*vnum);
     cpu_do_cycle(34, 0);
-  } else if(vnum == -2) {
+  } else if(vnum >= 25 && vnum <= 31) {
     for(i=7;i>=0;i--) {
       if(interrupt_pending[i]) break;
     }
     if((i >= 0) && (IPL < i)) {
-      //      printf("DEBUG: Do interrupt: %d [IPL: %d] (PC == %08x)\n", i, IPL, cpu->pc);
-      interrupt_pending[i] = 0;
-      cpu->a[7] -= 4;
-      mmu_write_long(cpu->a[7], cpu->pc);
-      cpu->a[7] -= 2;
-      mmu_write_word(cpu->a[7], oldsr);
-      cpu->pc = mmu_read_long(4*(i+24));
-      cpu_do_cycle(48, 0);
-      cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
+      if(interrupt_autovector == IPL_NO_AUTOVECTOR) {
+        //        printf("DEBUG: Do interrupt: %d [IPL: %d] (PC == %08x)\n", i, IPL, cpu->pc);
+        interrupt_pending[i] = 0;
+        cpu->a[7] -= 4;
+        mmu_write_long(cpu->a[7], cpu->pc);
+        cpu->a[7] -= 2;
+        mmu_write_word(cpu->a[7], oldsr);
+        cpu->pc = mmu_read_long(4*(i+24));
+        cpu_do_cycle(48, 0);
+        cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
+      } else {
+        //        printf("DEBUG: Do interrupt: %d [IPL: %d] Autovector to %08x (PC == %08x)\n", i, IPL, interrupt_autovector, cpu->pc);
+        cpu->a[7] -= 4;
+        mmu_write_long(cpu->a[7], cpu->pc);
+        cpu->a[7] -= 2;
+        mmu_write_word(cpu->a[7], oldsr);
+        cpu->pc = mmu_read_long(4*interrupt_autovector);
+        cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
+        cpu_do_cycle(24, 0); /* From Hatari */
+      }
     } else {
       //      printf("Missed interrupt: %d, IPL == %d\n", i, IPL);
     }
-  } else if(vnum >= 64) {
-    cpu_set_sr((cpu->sr&0xf0ff)|0x600);
-    cpu->a[7] -= 4;
-    mmu_write_long(cpu->a[7], cpu->pc);
-    cpu->a[7] -= 2;
-    mmu_write_word(cpu->a[7], oldsr);
-    cpu->pc = mmu_read_long(4*vnum);
-    cpu->sr = (cpu->sr&0xf0ff)|(6<<8);
-    cpu_do_cycle(24, 0); /* From Hatari */
   } else {
     //    if(vnum > 25) return;
     cpu->a[7] -= 4;
@@ -495,8 +498,11 @@ int cpu_step_instr(int trace)
     }
   }
 #else
-  if(interrupt_pending[2] || interrupt_pending[4])
-    cpu->exception_pending = -2;
+  if(interrupt_pending[2]) {
+    cpu->exception_pending = 2+24;
+  } else if(interrupt_pending[4]) {
+    cpu->exception_pending = 4+24;
+  }
 #endif
 
 #if 0
@@ -618,9 +624,18 @@ void cpu_do_cycle(LONG cnt, int noint)
   mmu_do_interrupts(cpu);
 }
 
+void cpu_set_interrupt(int ipl, int autovector)
+{
+  interrupt_pending[ipl] = 1;
+  cpu->exception_pending = ipl + 24;
+  interrupt_autovector = autovector;
+}
+
 void cpu_set_exception(int vnum)
 {
   if((vnum >= 25) && (vnum <= 31)) {
+    printf("DEBUG: Got exception instead of interrupt: %d\n", vnum-24);
+    exit(-99);
     interrupt_pending[vnum-24] = 1;
     cpu->exception_pending = -2;
   } else {

@@ -97,8 +97,10 @@ static int ikbd_pop_fifo()
   tmp = ikbd_fifo[0];
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
-  if(ikbd_fifocnt > 0)
+  if(ikbd_fifocnt > 0) {
+    mfp_set_GPIP(4);
     ikbd_status |= 0x81;
+  }
   return tmp;
 }
 
@@ -129,6 +131,7 @@ static BYTE ikbd_read_byte(LONG addr)
     return ikbd_status;
   case 0xfffc02:
     ikbd_status &= ~0xa1;
+    mfp_set_GPIP(4);
     if(ikbd_control&0x80)
       ikbd_intcnt = IKBD_INTCNT;
     else

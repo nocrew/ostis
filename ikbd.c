@@ -98,7 +98,7 @@ static int ikbd_pop_fifo()
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0) {
-    mfp_clr_GPIP(4);
+    mfp_clr_GPIP(MFP_GPIP_ACIA);
     ikbd_status |= 0x81;
   }
   return tmp;
@@ -112,7 +112,7 @@ static void ikbd_queue_fifo(BYTE data)
     if(ikbd_control&0x80) {
       ikbd_intcnt = IKBD_INTCNT;
       ikbd_status |= 0x80;
-      mfp_clr_GPIP(4);
+      mfp_clr_GPIP(MFP_GPIP_ACIA);
       //      mfp_do_interrupt(cpu, 6);
     }
   }
@@ -131,7 +131,7 @@ static BYTE ikbd_read_byte(LONG addr)
     return ikbd_status;
   case 0xfffc02:
     ikbd_status &= ~0xa1;
-    mfp_set_GPIP(4);
+    mfp_set_GPIP(MFP_GPIP_ACIA);
     if(ikbd_control&0x80)
       ikbd_intcnt = IKBD_INTCNT;
     else
@@ -171,7 +171,7 @@ static void ikbd_write_byte(LONG addr, BYTE data)
     break;
   case 0xfffc02:
     ikbd_status &= ~0x80;
-    mfp_set_GPIP(4);
+    mfp_set_GPIP(MFP_GPIP_ACIA);
     if(ikbd_cmdcnt == 0) {
       ikbd_set_cmd(data);
     } else {
@@ -348,11 +348,10 @@ void ikbd_do_interrupts(struct cpu *cpu)
       if(ikbd_control&0x80) {
 	if(ikbd_fifocnt > 0) {
 	  ikbd_status |= 0x81;
-	  mfp_clr_GPIP(4);
+	  mfp_clr_GPIP(MFP_GPIP_ACIA);
 	  //printf("DEBUG: sending keyboard interrupt\n");
-	  mfp_set_pending(6);
 	} else {
-	  mfp_set_GPIP(4);
+	  mfp_set_GPIP(MFP_GPIP_ACIA);
 	}
       }
       ikbd_intcnt += IKBD_INTCNT;

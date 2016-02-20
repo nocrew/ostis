@@ -1,6 +1,9 @@
 #ifndef MFP_H
 #define MFP_H
 
+#define MFP_GPIP_ACIA 4
+#define MFP_GPIP_FDC 5
+
 void mfp_init();
 void mfp_print_status();
 void mfp_set_pending(int);

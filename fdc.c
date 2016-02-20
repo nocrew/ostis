@@ -127,7 +127,7 @@ static void fdc_parse_control()
 
 static void fdc_do_instr()
 {
-  mfp_set_GPIP(5);
+  mfp_set_GPIP(MFP_GPIP_FDC);
 
   motoron = 1;
   fdc_reg[FDC_STATUS] = 0x00|(motoron<<7); /* Motor on, not Writeprotected */
@@ -269,7 +269,7 @@ static void fdc_do_instr()
     } else if(FDCI_INTINDEX) {
       abortmode = FDC_ABORT_INT;
     }
-    mfp_clr_GPIP(5);
+    mfp_clr_GPIP(MFP_GPIP_FDC);
   }
   fdc_set_motor(0);
 }
@@ -437,8 +437,7 @@ void fdc_do_interrupts(struct cpu *cpu)
   if(abortpending != -1 && (abortpending <= 0)) {
     //    abortpending = FDC_PENDTIME;
     abortpending = -1;
-    mfp_clr_GPIP(5);
-    mfp_set_pending(7);
+    mfp_clr_GPIP(MFP_GPIP_FDC);
   }
 
   lastcpucnt = cpu->cycle;

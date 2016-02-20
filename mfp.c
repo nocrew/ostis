@@ -291,13 +291,41 @@ static void update_timer(int tnum, long cycles)
   }
 }
 
+static int mfp_get_GPIP(int bnum)
+{
+  return mfpreg[GPIP] & (1<<bnum);
+}
+
+static int mfp_get_AER(int bnum)
+{
+  return mfpreg[AER] & (1<<bnum);
+}
+
 void mfp_set_GPIP(int bnum)
 {
+  /* AER set to interrupt on rising edge */
+  if(!mfp_get_GPIP(bnum) && mfp_get_AER(bnum)) {
+    switch(bnum) {
+    case MFP_GPIP_ACIA: /* IKBD/MIDI */
+      mfp_set_pending(6);
+    case MFP_GPIP_FDC: /* FDC */
+      mfp_set_pending(7);
+    }
+  }
   mfpreg[GPIP] |= (1<<bnum);
 }
 
 void mfp_clr_GPIP(int bnum)
 {
+  /* AER set to interrupt on falling edge */
+  if(mfp_get_GPIP(bnum) && !mfp_get_AER(bnum)) {
+    switch(bnum) {
+    case MFP_GPIP_ACIA: /* IKBD/MIDI */
+      mfp_set_pending(6);
+    case MFP_GPIP_FDC: /* FDC */
+      mfp_set_pending(7);
+    }
+  }
   mfpreg[GPIP] &= ~(1<<bnum);
 }
 

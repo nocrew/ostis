@@ -7,6 +7,7 @@
 #include "scancode.h"
 #include "ikbd.h"
 #include "cpu.h"
+#include "mfp.h"
 #include "state.h"
 #include "screen.h"
 
@@ -55,10 +56,14 @@ static int event_key(SDL_KeyboardEvent key, int state)
     }
   } else if(k.sym == SDLK_F12) {
     if(state == EVENT_RELEASE) {
-      printf("DEBUG: cpu->pc == %08x\n", cpu->pc);
+      printf("-------------------------------------------\n");
+      cpu_print_status();
+      printf("- - - - - - - - - - - - - - - - - - - - - -\n");
+      mfp_print_status();
       tend = SDL_GetTicks();
       printf("DEBUG: Speed: %g FPS\n",
              (shifter_framecnt(0)*1000.0)/(tend-tstart));
+      printf("-------------------------------------------\n");
     } else {
       shifter_framecnt(-1);
       tstart = SDL_GetTicks();
@@ -209,7 +214,7 @@ int event_main()
     return EVENT_NONE;
   }
 
-  if(ev.window.windowID == screen_window_id) {
+  if(ev.window.windowID == screen_window_id && !debug_update_win) {
     return event_parse(ev);
   } else if(debugger && ev.window.windowID == debug_window_id) {
     return debug_event_parse(ev);

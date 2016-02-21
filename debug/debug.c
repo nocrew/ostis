@@ -207,6 +207,12 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     if(k.mod & KMOD_CTRL) return 1;
     screen_clear();
     break;
+  case SDLK_F12:
+    printf("-------------------------------------------\n");
+    cpu_print_status();
+    printf("- - - - - - - - - - - - - - - - - - - - - -\n");
+    mfp_print_status();
+    printf("-------------------------------------------\n");
   default:
     break;
   }

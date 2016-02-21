@@ -648,6 +648,10 @@ void cpu_set_sr(WORD sr)
   if(sr & 0x8000) {
     printf("DEBUG: Setting trace bit in SR\n");
   }
+  if((cpu->sr&0x700) == 0x600 && (sr&0x700) != 0x600) {
+    cpu_print_status();
+    mfp_print_status();
+  }
   if((sr^cpu->sr)&0x2000) {
     if(cpu->sr&0x2000) {
       cpu->ssp = cpu->a[7];

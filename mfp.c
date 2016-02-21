@@ -134,6 +134,9 @@ static void mfp_write_byte(LONG addr, BYTE data)
   if((r != ISRA) && (r != ISRB)) {
     mfpreg[r] = data;
   } else {
+    if(mfpreg[r] != 0x20) {
+      printf("DEBUG: Clearing ISR: %s %02x %02x\n", r==8?"ISRA":"ISRB", mfpreg[r], data);
+    }
     mfpreg[r] &= data;
   }
 }
@@ -228,9 +231,23 @@ void mfp_init()
 void mfp_print_status()
 {
   int i;
-  printf("MFP: ");
-  for(i=0;i<24;i++)
-    printf("%02x ",mfpreg[i]);
+  char *regnames[] = {
+    "GPIP",    "AER",    "DDR",    "IERA",
+    "IERB",    "IPRA",    "IPRB",    "ISRA",
+    "ISRB",    "IMRA",    "IMRB",    "VR",
+    "TACR",    "TBCR",    "TCDCR",    "TADR",
+    "TBDR",    "TCDR",    "TDDR",    "SCR",
+    "UCR",    "RSR",    "TSR",    "UDR"
+  };
+
+  printf("MFP: \n");
+  for(i=0;i<24;i++) {
+    printf("%5s: %02x ",regnames[i], mfpreg[i]);
+    if(i%4 == 3) {
+      printf("\n");
+    }
+  }
+  
   printf("\n");
   for(i=0;i<4;i++)
     printf(" Prediv %c: %ld %d\n", i+'A', precnt[i], timercnt[i]);
@@ -410,8 +427,9 @@ static void mfp_do_interrupt(int inum)
   vec += inum;
   if(mfpreg[VR]&0x08)
     mfp_set_ISR(inum);
-  else
+  else {
     mfp_clr_ISR(inum);
+  }
   mfp_clr_IPR(inum);
 
   cpu_set_interrupt(IPL_MFP, vec);
@@ -456,4 +474,3 @@ void mfp_do_timerb_event(struct cpu *cpu)
     }
   }
 }
-

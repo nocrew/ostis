@@ -8,8 +8,11 @@
 #include "expr.h"
 #include "shifter.h"
 #include "mmu.h"
+#include "ikbd.h"
 #include "instr.h"
 #include "state.h"
+
+#define EXTREME_EXCEPTION_DEBUG 0
 
 struct cpu *cpu;
 
@@ -36,8 +39,13 @@ static struct cpubrk *brk = NULL;
 static struct cpuwatch *watch = NULL;
 static int interrupt_pending[8];
 static int interrupt_autovector = -1;
+static int enter_debugger_after_instr = 0;
 
-int cprint_all = 0;
+#if EXTREME_EXCEPTION_DEBUG == 2
+int cprint_all = 1;
+#else
+int cprint_all;
+#endif
 
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
@@ -196,6 +204,9 @@ static void cpu_debug_check(LONG addr)
 static void cpu_do_exception(int vnum)
 {
   WORD oldsr;
+#if EXTREME_EXCEPTION_DEBUG
+  LONG oldpc;
+#endif
   int i;
   oldsr = cpu->sr;
   cpu_set_sr((cpu->sr|0x2000)&(~0x8000)); /* set supervisor, clear trace */
@@ -208,7 +219,10 @@ static void cpu_do_exception(int vnum)
   //  }
 
   if(vnum == 2) {
-    cprint_all = 0;
+#if EXTREME_EXCEPTION_DEBUG
+    printf("DEBUG: %d Entering BUS ERROR\n", cpu->cycle);
+#endif
+    //    cprint_all = 0;
     if(cpu->debug) {
       printf("DEBUG: Entering Bus Error\n");
     }
@@ -217,6 +231,9 @@ static void cpu_do_exception(int vnum)
     cpu->pc = mmu_read_long(4*vnum);
     cpu_do_cycle(50, 0);
   } else if(vnum == 4) {
+#if EXTREME_EXCEPTION_DEBUG
+  printf("DEBUG: %d Entering ILLEGAL INSTRUCTION\n", cpu->cycle);
+#endif
     printf("ILLEGAL Instruction\n");
     cpu->a[7] -= 4;
     mmu_write_long(cpu->a[7], cpu->pc);
@@ -225,10 +242,8 @@ static void cpu_do_exception(int vnum)
     cpu->pc = mmu_read_long(4*vnum);
     cpu_do_cycle(34, 0);
   } else if(vnum >= 25 && vnum <= 31) {
-    for(i=7;i>=0;i--) {
-      if(interrupt_pending[i]) break;
-    }
-    if((i >= 0) && (IPL < i)) {
+    i = vnum-24;
+    if((interrupt_pending[i] >= 0) && (IPL < i)) {
       if(interrupt_autovector == IPL_NO_AUTOVECTOR) {
         //        printf("DEBUG: Do interrupt: %d [IPL: %d] (PC == %08x)\n", i, IPL, cpu->pc);
         interrupt_pending[i] = 0;
@@ -236,7 +251,13 @@ static void cpu_do_exception(int vnum)
         mmu_write_long(cpu->a[7], cpu->pc);
         cpu->a[7] -= 2;
         mmu_write_word(cpu->a[7], oldsr);
+#if EXTREME_EXCEPTION_DEBUG
+        oldpc = cpu->pc;
+#endif
         cpu->pc = mmu_read_long(4*(i+24));
+#if EXTREME_EXCEPTION_DEBUG
+        printf("DEBUG: %d [%04x] [%08x => %08x] Entering interrupt %d [%02x]\n", cpu->cycle, cpu->sr, oldpc, cpu->pc, vnum, vnum * 4);
+#endif
         cpu_do_cycle(48, 0);
         cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
       } else {
@@ -245,11 +266,23 @@ static void cpu_do_exception(int vnum)
         mmu_write_long(cpu->a[7], cpu->pc);
         cpu->a[7] -= 2;
         mmu_write_word(cpu->a[7], oldsr);
+#if EXTREME_EXCEPTION_DEBUG
+        oldpc = cpu->pc;
+#endif
         cpu->pc = mmu_read_long(4*interrupt_autovector);
+#if EXTREME_EXCEPTION_DEBUG
+        printf("DEBUG: %d [%04x] [%08x => %08x] Entering interrupt %d [%02x] (autovector: %d [%04x])\n", cpu->cycle, cpu->sr, oldpc, cpu->pc, vnum, vnum * 4, interrupt_autovector, interrupt_autovector * 4);
+#endif
         cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
         cpu_do_cycle(24, 0); /* From Hatari */
       }
     } else {
+      cpu->sr = oldsr;
+#if EXTREME_EXCEPTION_DEBUG
+      if(IPL < 7) {
+        printf("DEBUG: Missed interrupt %d [%02x] (autovector: %02x) - %04x\n", vnum, vnum * 4, interrupt_autovector, cpu->sr);
+      }
+#endif
       //      printf("Missed interrupt: %d, IPL == %d\n", i, IPL);
     }
   } else {
@@ -258,7 +291,13 @@ static void cpu_do_exception(int vnum)
     mmu_write_long(cpu->a[7], cpu->pc);
     cpu->a[7] -= 2;
     mmu_write_word(cpu->a[7], oldsr);
+#if EXTREME_EXCEPTION_DEBUG
+    oldpc = cpu->pc;
+#endif
     cpu->pc = mmu_read_long(4*vnum);
+#if EXTREME_EXCEPTION_DEBUG
+    printf("DEBUG: %d [%04x] [%08x => %08x] Entering other %d [%02x]\n", cpu->cycle, cpu->sr, oldpc, cpu->pc, vnum, vnum * 4);
+#endif
     cpu_do_cycle(34, 0);
   }
 }
@@ -470,6 +509,11 @@ void cpu_set_watchpoint(char *cond, int cnt)
   watch = t;
 }
 
+void cpu_enter_debugger()
+{
+  enter_debugger_after_instr = 1;
+}
+
 int cpu_step_instr(int trace)
 {
 #if 0
@@ -498,11 +542,13 @@ int cpu_step_instr(int trace)
     }
   }
 #else
+#if 0
   if(interrupt_pending[2]) {
     cpu->exception_pending = 2+24;
   } else if(interrupt_pending[4]) {
     cpu->exception_pending = 4+24;
   }
+#endif
 #endif
 
 #if 0
@@ -523,7 +569,7 @@ int cpu_step_instr(int trace)
       return CPU_BREAKPOINT;
     }
 #endif
-    
+
     cpu->cyclecomp = 0;
     cpu->icycle = 0;
     cpu->tracedelay = 0;
@@ -531,7 +577,10 @@ int cpu_step_instr(int trace)
     if(cprint_all) {
       struct cprint *cprint;
       cprint = cprint_instr(cpu->pc-2);
-      printf("DEBUG-ASM: %06X      %s %s",
+      printf("DEBUG-ASM: %04x %02x (%d) %06X      %s %s",
+             cpu->sr,
+             mfp_get_ISRB(),
+             ikbd_get_fifocnt(),
              cpu->pc-2,
              cprint->instr,
              cprint->data);
@@ -554,6 +603,11 @@ int cpu_step_instr(int trace)
     cpu_do_exception(cpu->exception_pending);
   }
   if(CHKT && !cpu->tracedelay) cpu_do_exception(9);
+  if(enter_debugger_after_instr) {
+    enter_debugger_after_instr = 0;
+    return CPU_BREAKPOINT;
+  }
+    
   return CPU_OK;
 }
 

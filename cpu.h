@@ -103,6 +103,7 @@ extern int cprint_all;
 
 void cpu_init();
 void cpu_halt_for_debug();
+void cpu_enter_debugger();
 int cpu_step_instr(int);
 void cpu_print_status();
 void cpu_do_cycle(LONG, int);

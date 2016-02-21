@@ -10,14 +10,13 @@
 #define IKBDBASE 0xfffc00
 
 #define IKBDFIFO 32
-#define IKBD_INTCNT 7200
+#define IKBD_INTINTERVAL 1024
 
 static BYTE ikbd_control;
 static BYTE ikbd_status = 0x2; /* Always ready */
 static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
-static int ikbd_intcnt = 0;
-static int lastcpucnt = 0;
+static uint64_t ikbd_next_interrupt_cycle = 0;
 static BYTE ikbd_buttons = 0;
 static BYTE ikbd_mouse_enabled = 0;
 static BYTE ikbd_joystick_enabled = 0;
@@ -27,20 +26,27 @@ static void (*ikbd_cmdfn)(void);
 
 static void ikbd_queue_fifo(BYTE data);
 
+int ikbd_get_fifocnt()
+{
+  return ikbd_fifocnt;
+}
+
 void ikbd_print_status()
 {
   int i;
   printf("IKBD:\n");
   printf("Status: %02x\n", ikbd_status);
   printf("Control: %02x\n", ikbd_control);
+  printf("Next interrupt cycle: %ld\n", ikbd_next_interrupt_cycle);
   printf("FIFO count: %d\n", ikbd_fifocnt);
   printf("FIFO:\n");
-  for(i=0;i<IKBDFIFO;i++) {
+  for(i=0;i<ikbd_fifocnt;i++) {
     printf("%02x ", ikbd_fifo[i]);
     if(i%16 == 15) {
       printf("\n");
     }
   }
+  printf("\n");
 }
 
 static void ikbd_set_mouse_button_action(void)
@@ -114,8 +120,9 @@ static int ikbd_pop_fifo()
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0) {
-    mfp_clr_GPIP(MFP_GPIP_ACIA);
     ikbd_status |= 0x81;
+  } else {
+    mfp_set_GPIP(MFP_GPIP_ACIA);
   }
   return tmp;
 }
@@ -123,17 +130,19 @@ static int ikbd_pop_fifo()
 static void ikbd_queue_fifo(BYTE data)
 {
   if(ikbd_fifocnt == IKBDFIFO) {
-    ikbd_pop_fifo();
+    //    printf("DEBUG: Queue full, ignoring...\n");
+    //    ikbd_pop_fifo();
     ikbd_status |= 0x20;
-    if(ikbd_control&0x80) {
-      ikbd_intcnt = IKBD_INTCNT;
-      ikbd_status |= 0x80;
-      mfp_clr_GPIP(MFP_GPIP_ACIA);
+    //    if(ikbd_control&0x80) {
+      //      ikbd_intcnt = IKBD_INTCNT;
+    //      ikbd_status |= 0x80;
+      //      mfp_clr_GPIP(MFP_GPIP_ACIA);
       //      mfp_do_interrupt(cpu, 6);
-    }
+    //    }
+  } else {
+    ikbd_fifo[ikbd_fifocnt] = data;
+    ikbd_fifocnt++;
   }
-  ikbd_fifo[ikbd_fifocnt] = data;
-  ikbd_fifocnt++;
   ikbd_status |= 0x81;
 }
 
@@ -147,11 +156,11 @@ static BYTE ikbd_read_byte(LONG addr)
     return ikbd_status;
   case 0xfffc02:
     ikbd_status &= ~0xa1;
-    mfp_set_GPIP(MFP_GPIP_ACIA);
-    if(ikbd_control&0x80)
-      ikbd_intcnt = IKBD_INTCNT;
-    else
-      ikbd_intcnt = 0;
+    //    mfp_set_GPIP(MFP_GPIP_ACIA);
+    //    if(ikbd_control&0x80)
+      //      ikbd_intcnt = IKBD_INTCNT;
+    //    else
+      //      ikbd_intcnt = 0;
     tmp = ikbd_pop_fifo();
     if(tmp == -1)
       return last;
@@ -180,14 +189,14 @@ static void ikbd_write_byte(LONG addr, BYTE data)
   switch(addr) {
   case 0xfffc00:
     ikbd_control = data;
-    if(data&0x80)
-      ikbd_intcnt = IKBD_INTCNT;
-    else
-      ikbd_intcnt = 0;
+    //    if(data&0x80)
+    //      ikbd_intcnt = IKBD_INTCNT;
+    //    else
+    //      ikbd_intcnt = 0;
     break;
   case 0xfffc02:
     ikbd_status &= ~0x80;
-    mfp_set_GPIP(MFP_GPIP_ACIA);
+    //    mfp_set_GPIP(MFP_GPIP_ACIA);
     if(ikbd_cmdcnt == 0) {
       ikbd_set_cmd(data);
     } else {
@@ -237,8 +246,8 @@ static int ikbd_state_collect(struct mmu_state *state)
   if(state->data == NULL)
     return STATE_INVALID;
   state_write_mem_long(&state->data[0], ikbd_fifocnt);
-  state_write_mem_long(&state->data[4], ikbd_intcnt);
-  state_write_mem_long(&state->data[8], lastcpucnt);
+  //  state_write_mem_long(&state->data[4], ikbd_intcnt);
+  //  state_write_mem_long(&state->data[8], lastcpucnt);
   state_write_mem_long(&state->data[12], IKBDFIFO);
   for(r=0;r<IKBDFIFO;r++) {
     state_write_mem_byte(&state->data[16+r], ikbd_fifo[r]);
@@ -260,8 +269,8 @@ static void ikbd_state_restore(struct mmu_state *state)
   int fifosize;
 
   ikbd_fifocnt = state_read_mem_long(&state->data[0]);
-  ikbd_intcnt = state_read_mem_long(&state->data[4]);
-  lastcpucnt = state_read_mem_long(&state->data[8]);
+  //  ikbd_intcnt = state_read_mem_long(&state->data[4]);
+  //  lastcpucnt = state_read_mem_long(&state->data[8]);
   fifosize = state_read_mem_long(&state->data[12]);
   for(r=0;r<fifosize;r++) {
     ikbd_fifo[r] = state_read_mem_byte(&state->data[16+r]);
@@ -344,17 +353,34 @@ void ikbd_init()
 
 void ikbd_do_interrupts(struct cpu *cpu)
 {
+#if 0
   long tmpcpu;
   tmpcpu = cpu->cycle - lastcpucnt;
   if(tmpcpu < 0) {
     tmpcpu += MAX_CYCLE;
   }
+#endif
 
+  if(cpu->cycle > ikbd_next_interrupt_cycle) {
+    if(ikbd_control&0x80) {
+      if(ikbd_fifocnt > 0) {
+        ikbd_status |= 0x81;
+        mfp_clr_GPIP(MFP_GPIP_ACIA);
+      } else {
+        ikbd_status &= ~(0x1);
+        mfp_set_GPIP(MFP_GPIP_ACIA);
+      }
+    }
+
+    ikbd_next_interrupt_cycle = cpu->cycle + IKBD_INTINTERVAL;
+  }
+  
+#if 0
   if(ikbd_intcnt > 0) {
     ikbd_intcnt -= tmpcpu;
-    if(cpu->debug) {
-      if(ikbd_fifocnt) {
-	printf("DEBUG: ikbd_intcnt == %d\n", ikbd_intcnt);
+    if(debugger) {
+      if(ikbd_fifocnt > 25) {
+        //	printf("DEBUG: ikbd_intcnt == %d\n", ikbd_intcnt);
 	printf("DEBUG: ikbd_control == %02x\n", ikbd_control);
 	printf("DEBUG: ikbd_fifocnt == %d\n", ikbd_fifocnt);
 	printf("DEBUG: ikbd_status == %02x\n", ikbd_status);
@@ -375,6 +401,7 @@ void ikbd_do_interrupts(struct cpu *cpu)
 	printf("DEBUG: Resetting ikbd_intcnt\n");
     }
   }
-
+  
   lastcpucnt = cpu->cycle;
+#endif
 }

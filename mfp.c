@@ -305,6 +305,11 @@ static void update_timer(int tnum, long cycles)
   }
 }
 
+BYTE mfp_get_ISRB()
+{
+  return mfpreg[ISRB];
+}
+
 static int mfp_get_GPIP(int bnum)
 {
   return mfpreg[GPIP] & (1<<bnum);
@@ -400,6 +405,13 @@ static void mfp_do_interrupt(int inum)
 {
   int vec,tmp;
 
+  if(mfpreg[ISRB]&0x40) {
+    if((cpu->sr&0x700) < 0x600) {
+      printf("DEBUG: We're out of MFP interrupt with ISR still high\n");
+      //      cpu_enter_debugger();
+    }
+  }
+  
   if(!(IER & (1<<inum))) {
     mfp_clr_IPR(inum);
     //    if(inum == intnum[2]) printf("DEBUG: IER not set for %d\n", inum);

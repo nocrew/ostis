@@ -2,9 +2,12 @@
 #include "cpu.h"
 #include "mmu.h"
 
+#define EXTREME_EXCEPTION_DEBUG 0
+
 static void rte(struct cpu *cpu, WORD op)
 {
   WORD sr;
+  LONG pc;
 
   ENTER;
 
@@ -12,8 +15,12 @@ static void rte(struct cpu *cpu, WORD op)
     ADD_CYCLE(20);
     sr = mmu_read_word(cpu->a[7]);
     cpu->a[7] += 2;
-    cpu->pc = mmu_read_long(cpu->a[7]);
+    pc = mmu_read_long(cpu->a[7]);
     cpu->a[7] += 4;
+#if EXTREME_EXCEPTION_DEBUG
+    printf("DEBUG: %d Leaving interrupt [%08x / %04x => %08x / %04x]\n", cpu->cycle, cpu->pc, cpu->sr, pc, sr);
+#endif
+    cpu->pc = pc;
     cpu_set_sr(sr);
     cpu->tracedelay = 1;
   } else {

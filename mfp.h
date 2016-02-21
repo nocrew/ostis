@@ -13,4 +13,6 @@ void mfp_do_timerb_event(struct cpu *);
 void mfp_set_GPIP(int);
 void mfp_clr_GPIP(int);
 
+BYTE mfp_get_ISRB();
+
 #endif

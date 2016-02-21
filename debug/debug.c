@@ -8,6 +8,7 @@
 #include "event.h"
 #include "cpu.h"
 #include "mfp.h"
+#include "ikbd.h"
 
 #define VIEW_DISPLAY 0
 #define VIEW_DEBUG   1
@@ -212,6 +213,8 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     cpu_print_status();
     printf("- - - - - - - - - - - - - - - - - - - - - -\n");
     mfp_print_status();
+    printf("- - - - - - - - - - - - - - - - - - - - - -\n");
+    ikbd_print_status();
     printf("-------------------------------------------\n");
   default:
     break;

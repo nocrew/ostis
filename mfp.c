@@ -134,9 +134,6 @@ static void mfp_write_byte(LONG addr, BYTE data)
   if((r != ISRA) && (r != ISRB)) {
     mfpreg[r] = data;
   } else {
-    if(mfpreg[r] != 0x20) {
-      printf("DEBUG: Clearing ISR: %s %02x %02x\n", r==8?"ISRA":"ISRB", mfpreg[r], data);
-    }
     mfpreg[r] &= data;
   }
 }

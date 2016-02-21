@@ -27,6 +27,22 @@ static void (*ikbd_cmdfn)(void);
 
 static void ikbd_queue_fifo(BYTE data);
 
+void ikbd_print_status()
+{
+  int i;
+  printf("IKBD:\n");
+  printf("Status: %02x\n", ikbd_status);
+  printf("Control: %02x\n", ikbd_control);
+  printf("FIFO count: %d\n", ikbd_fifocnt);
+  printf("FIFO:\n");
+  for(i=0;i<IKBDFIFO;i++) {
+    printf("%02x ", ikbd_fifo[i]);
+    if(i%16 == 15) {
+      printf("\n");
+    }
+  }
+}
+
 static void ikbd_set_mouse_button_action(void)
 {
   printf("DEBUG: IKBD set mouse button action %02x\n", ikbd_cmdbuf[0]);

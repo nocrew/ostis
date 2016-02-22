@@ -7,10 +7,10 @@
 #include "floppy.h"
 #include "mmu.h"
 #include "state.h"
+#include <SDL.h>
 
 #define PSGSIZE 256
 #define PSGBASE 0xff8800
-
 
 #define PSG_APERL  0
 #define PSG_APERH  1
@@ -64,6 +64,11 @@ static int env_held = 0;
 static int env_first = 1;
 static int env_volume;
 static int env_cnt = -1;
+
+#if SDL_HAS_QUEUEAUDIO
+static SDL_AudioDeviceID psg_audio_device;
+static SDL_AudioSpec want,have;
+#endif
 
 #define VOLUME_OFFSET(x) ((x==0)?0:(1+x*2))
 
@@ -238,6 +243,25 @@ void psg_init()
     snd_fd = open("psg.raw", O_WRONLY|O_TRUNC|O_CREAT, 0644);
   }
 
+#if SDL_HAS_QUEUEAUDIO
+  if(play_audio) {
+    int count = SDL_GetNumAudioDevices(0);
+    SDL_memset(&want, 0, sizeof(want));
+    want.freq = PSG_OUTPUT_FREQ;
+    want.format = AUDIO_S16LSB;
+    want.channels = 2;
+    want.samples = 4096;
+  
+    printf("DEBUG: Audio devices: %d\n", count);
+    for (i = 0; i < count; ++i) {
+      SDL_Log("Audio device %d: %s\n", i, SDL_GetAudioDeviceName(i, 0));
+      psg_audio_device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(i, 0), 0,
+                                             &want, &have, 0);
+      break;
+    }
+  
+  }
+#endif
   for(i=0;i<32;i++) {
     psg_volume_voltage[i] /= 2;
   }
@@ -378,6 +402,12 @@ static void psg_generate_samples()
         if(write(snd_fd, &outsign, 2) != 2)
           WARNING(write);
       }
+#if SDL_HAS_QUEUEAUDIO
+      if(play_audio) {
+        SDL_QueueAudio(psg_audio_device, &outsign, 2);
+        //        printf("DEBUG: Audio device: %d\n", psg_audio_device);
+      }
+#endif
     }
     psg_presamplestart += PSG_PRESAMPLES_PER_SAMPLE;
     if(psg_presamplestart > (PSG_PRESAMPLESIZE-1)) {
@@ -401,7 +431,11 @@ void psg_do_interrupts(struct cpu *cpu)
     tmpcpu += MAX_CYCLE;
   }
 
-  if(psgoutput) {
+  if(psgoutput
+#if SDL_HAS_QUEUEAUDIO     
+     || play_audio
+#endif
+     ) {
     psg_generate_presamples(tmpcpu/4);
     psg_generate_samples();
   }

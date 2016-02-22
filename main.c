@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include "common.h"
 #include "mmu.h"
 #include "ram.h"
 #include "rom.h"
@@ -22,6 +23,9 @@ int debugger = 0;
 int ppmoutput = 0;
 int psgoutput = 0;
 int vsync_delay = 0;
+#if SDL_HAS_QUEUEAUDIO
+int play_audio = 0;
+#endif
 
 int main(int argc, char *argv[])
 {
@@ -31,7 +35,7 @@ int main(int argc, char *argv[])
   prefs_init();
 
   while(1) {
-    c = getopt(argc, argv, "a:t:s:hdpyV");
+    c = getopt(argc, argv, "a:t:s:hdpyVA");
     if(c == -1) break;
 
     switch(c) {
@@ -56,6 +60,11 @@ int main(int argc, char *argv[])
     case 'V':
       vsync_delay = 1;
       break;
+#if SDL_HAS_QUEUEAUDIO
+    case 'A':
+      play_audio = 1;
+      break;
+#endif
     case 'h':
     default:
       printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage] [-h] [-d] [-p]\n",
@@ -67,6 +76,8 @@ int main(int argc, char *argv[])
 
   if((prefs.diskimage == NULL) && (argv[optind] != NULL))
     prefs_set("diskimage", argv[optind]);
+
+  SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK|SDL_INIT_AUDIO);
 
   mmu_init(); /* Must run before hardware module inits */
   ram_init();

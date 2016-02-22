@@ -10,7 +10,7 @@ struct cpu {
   LONG ssp;
   LONG pc;
   WORD sr;
-  LONG cycle;
+  uint64_t cycle;
   LONG icycle;
   int cyclecomp;
   int debug;

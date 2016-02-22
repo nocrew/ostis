@@ -60,7 +60,7 @@ static instr_print_t *instr_print[65536];
 #define STATE_PC      (STATE_SSP+4)
 #define STATE_SR      (STATE_PC+4)
 #define STATE_CYCLE   (STATE_SR+2)
-#define STATE_STOPPED (STATE_CYCLE+4)
+#define STATE_STOPPED (STATE_CYCLE+8)
 #define STATE_INTPEND (STATE_STOPPED+4)
 #define STATE_END     (STATE_INTPEND+4*8)
 
@@ -82,7 +82,7 @@ struct cpu_state *cpu_state_collect()
    * ssp      == 4
    * pc       == 4
    * sr       == 2
-   * cycle    == 4 (possibly 8)
+   * cycle    == 8
    * stopped  == 4
    * int[8]   == 4*8 (pending interrupts)
    * ----------------
@@ -105,7 +105,7 @@ struct cpu_state *cpu_state_collect()
   state_write_mem_long(&new->data[STATE_SSP], cpu->ssp);
   state_write_mem_long(&new->data[STATE_PC], cpu->pc);
   state_write_mem_word(&new->data[STATE_SR], cpu->sr);
-  state_write_mem_long(&new->data[STATE_CYCLE], cpu->cycle);
+  state_write_mem_uint64(&new->data[STATE_CYCLE], cpu->cycle);
   state_write_mem_long(&new->data[STATE_STOPPED], cpu->stopped);
   for(r=0;r<8;r++) {
     state_write_mem_long(&new->data[STATE_INTPEND+r*4], interrupt_pending[r]);
@@ -128,7 +128,7 @@ void cpu_state_restore(struct cpu_state *state)
   cpu->ssp = state_read_mem_long(&state->data[STATE_SSP]);
   cpu->pc = state_read_mem_long(&state->data[STATE_PC]);
   cpu->sr = state_read_mem_word(&state->data[STATE_SR]);
-  cpu->cycle = state_read_mem_long(&state->data[STATE_CYCLE]);
+  cpu->cycle = state_read_mem_uint64(&state->data[STATE_CYCLE]);
   cpu->stopped = state_read_mem_long(&state->data[STATE_STOPPED]);
   for(r=0;r<8;r++) {
     interrupt_pending[r] = state_read_mem_long(&state->data[STATE_INTPEND+r*4]);
@@ -660,7 +660,7 @@ void cpu_print_status()
 
   printf("PC: %08x  USP: %08x  SSP: %08x\n", cpu->pc, cpu->usp, cpu->ssp);
   printf("SR: %04x\n", cpu->sr);
-  printf("C:  %d\n", cpu->cycle);
+  printf("C:  %ld\n", cpu->cycle);
   printf("BUS: %08x\n", mmu_read_long(8));
 }
 

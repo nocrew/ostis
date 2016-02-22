@@ -35,6 +35,18 @@ void state_write_mem_long(char *ptr, LONG data)
   ptr[3] = data;
 }
 
+void state_write_mem_uint64(char *ptr, uint64_t data)
+{
+  ptr[0] = data>>56;
+  ptr[1] = data>>48;
+  ptr[2] = data>>40;
+  ptr[3] = data>>32;
+  ptr[4] = data>>24;
+  ptr[5] = data>>16;
+  ptr[6] = data>>8;
+  ptr[7] = data;
+}
+
 void state_write_mem_ptr(char *ptr, void *data)
 {
   intptr_t x = (intptr_t)data;
@@ -58,6 +70,17 @@ WORD state_read_mem_word(char *ptr)
 LONG state_read_mem_long(char *ptr)
 {
   return (ptr[0]<<24)|(ptr[1]<<16)|(ptr[2]<<8)|ptr[3];
+}
+
+uint64_t state_read_mem_uint64(char *ptr)
+{
+  uint64_t value = 0;
+  int i;
+  for(i=0;i<8;i++) {
+    value <<= 8;
+    value |= ptr[i];
+  }
+  return value;
 }
 
 void *state_read_mem_ptr(char *ptr)

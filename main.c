@@ -23,9 +23,7 @@ int debugger = 0;
 int ppmoutput = 0;
 int psgoutput = 0;
 int vsync_delay = 0;
-#if SDL_HAS_QUEUEAUDIO
 int play_audio = 0;
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -60,11 +58,9 @@ int main(int argc, char *argv[])
     case 'V':
       vsync_delay = 1;
       break;
-#if SDL_HAS_QUEUEAUDIO
     case 'A':
       play_audio = 1;
       break;
-#endif
     case 'h':
     default:
       printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage] [-h] [-d] [-p]\n",

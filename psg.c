@@ -65,10 +65,10 @@ static int env_first = 1;
 static int env_volume;
 static int env_cnt = -1;
 
-#if SDL_HAS_QUEUEAUDIO
 static SDL_AudioDeviceID psg_audio_device;
 static SDL_AudioSpec want,have;
-#endif
+static Uint16 psg_audio_buffer[PSG_OUTPUT_FREQ*2*2];
+static int psg_audio_buffer_cnt = 0;
 
 #define VOLUME_OFFSET(x) ((x==0)?0:(1+x*2))
 
@@ -91,6 +91,8 @@ static int psg_presamplestart = 0;
 static long lastcpucnt = 0;
 static int snd_fd;
 static int psg_running = 1;
+
+static void psg_audio_callback(void *, Uint8 *, int);
 
 static int psg_set_period(int channel)
 {
@@ -243,7 +245,6 @@ void psg_init()
     snd_fd = open("psg.raw", O_WRONLY|O_TRUNC|O_CREAT, 0644);
   }
 
-#if SDL_HAS_QUEUEAUDIO
   if(play_audio) {
     int count = SDL_GetNumAudioDevices(0);
     SDL_memset(&want, 0, sizeof(want));
@@ -251,17 +252,18 @@ void psg_init()
     want.format = AUDIO_S16LSB;
     want.channels = 2;
     want.samples = 4096;
+    want.callback = psg_audio_callback;
   
     printf("DEBUG: Audio devices: %d\n", count);
     for (i = 0; i < count; ++i) {
       SDL_Log("Audio device %d: %s\n", i, SDL_GetAudioDeviceName(i, 0));
       psg_audio_device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(i, 0), 0,
                                              &want, &have, 0);
+      SDL_PauseAudioDevice(psg_audio_device, 0);
       break;
     }
   
   }
-#endif
   for(i=0;i<32;i++) {
     psg_volume_voltage[i] /= 2;
   }
@@ -402,12 +404,12 @@ static void psg_generate_samples()
         if(write(snd_fd, &outsign, 2) != 2)
           WARNING(write);
       }
-#if SDL_HAS_QUEUEAUDIO
       if(play_audio) {
-        SDL_QueueAudio(psg_audio_device, &outsign, 2);
-        //        printf("DEBUG: Audio device: %d\n", psg_audio_device);
+        if(psg_audio_buffer_cnt < sizeof(psg_audio_buffer)-2) {
+          psg_audio_buffer[psg_audio_buffer_cnt++] = out;
+          psg_audio_buffer[psg_audio_buffer_cnt++] = out;
+        }
       }
-#endif
     }
     psg_presamplestart += PSG_PRESAMPLES_PER_SAMPLE;
     if(psg_presamplestart > (PSG_PRESAMPLESIZE-1)) {
@@ -431,11 +433,7 @@ void psg_do_interrupts(struct cpu *cpu)
     tmpcpu += MAX_CYCLE;
   }
 
-  if(psgoutput
-#if SDL_HAS_QUEUEAUDIO     
-     || play_audio
-#endif
-     ) {
+  if(psgoutput || play_audio) {
     psg_generate_presamples(tmpcpu/4);
     psg_generate_samples();
   }
@@ -443,5 +441,11 @@ void psg_do_interrupts(struct cpu *cpu)
   lastcpucnt = cpu->cycle;
 }
 
-
+static void psg_audio_callback(void *userdata, Uint8 *stream, int len)
+{
+  Uint8 *psgbuftmp = (Uint8 *)&psg_audio_buffer[0];
+  memcpy(stream, psgbuftmp, len);
+  memcpy(psgbuftmp, psgbuftmp + len, len);
+  psg_audio_buffer_cnt = 0;
+}
 

@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <SDL.h>
 #include "screen.h"
 
 typedef uint8_t BYTE;
@@ -36,12 +35,6 @@ typedef int32_t SLONG;
 
 #endif
 
-#if SDL_VERSION_ATLEAST(2, 0, 4)
-#define SDL_HAS_QUEUEAUDIO 1
-#else
-#define SDL_HAS_QUEUEAUDIO 0
-#endif
-
 #define SCREEN_NORMAL 0
 
 #define MAX(x, y) (((x)>(y))?(x):(y))
@@ -54,9 +47,7 @@ extern int debugger;
 extern int ppmoutput;
 extern int psgoutput;
 extern int vsync_delay;
-#if SDL_HAS_QUEUEAUDIO
 extern int play_audio;
-#endif
 
 #endif
 

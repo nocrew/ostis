@@ -868,6 +868,7 @@ void cpu_init()
   cpu->a[5] = 0xdeadbeef;
   cpu->exception_pending = -1;
   cpu->no_exceptions = 0;
+  cpu->cycle = 0;
   cpu->stopped = 0;
 
   for(i=0;i<65536;i++) {

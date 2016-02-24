@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <SDL_mouse.h>
 #include "common.h"
 #include "event.h"
 #include "mmu.h"
@@ -19,6 +20,8 @@ static int ikbd_fifocnt = 0;
 static uint64_t ikbd_next_interrupt_cycle = 0;
 static BYTE ikbd_buttons = 0;
 static BYTE ikbd_mouse_enabled = 0;
+static int ikbd_absolute_x = 0;
+static int ikbd_absolute_y = 0;
 static BYTE ikbd_joystick_enabled = 0;
 static BYTE ikbd_cmdbuf[6];
 static BYTE ikbd_cmdcnt = 0;
@@ -54,6 +57,46 @@ static void ikbd_set_mouse_button_action(void)
   printf("DEBUG: IKBD set mouse button action %02x\n", ikbd_cmdbuf[0]);
 }
 
+static void ikbd_set_absolute_mouse_positioning(void)
+{
+  ikbd_absolute_x = (ikbd_cmdbuf[3] << 8) + ikbd_cmdbuf[2];
+  ikbd_absolute_y = (ikbd_cmdbuf[1] << 8) + ikbd_cmdbuf[0];
+  ikbd_mouse_enabled = 0;
+  printf("DEBUG: IKBD absolute max %d %d\n", ikbd_absolute_x, ikbd_absolute_y);
+}
+
+static void ikbd_set_mouse_scale(void)
+{
+  printf("DEBUG: IKBD set mouse scale %u %u\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
+}
+
+static void ikbd_mouse_report(void)
+{
+  int x, y, b, but = 0;
+  b = SDL_GetMouseState(&x, &y);
+  if (b & 1)
+    but |= 4;
+  else
+    but |= 8;
+  if (b & 4)
+    but |= 1;
+  else
+    but |= 2;
+  ikbd_queue_fifo(0xf7);
+  ikbd_queue_fifo(but);
+  x = (int)(((float)x * ikbd_absolute_x) / 1024.0);
+  y = (int)(((float)y * ikbd_absolute_y) / 628.0);
+  ikbd_queue_fifo(x >> 8);
+  ikbd_queue_fifo(x & 0xff);
+  ikbd_queue_fifo(y >> 8);
+  ikbd_queue_fifo(y & 0xff);
+}
+
+static void ikbd_load_mouse_position(void)
+{
+  printf("DEBUG: IKBD load mouse position %d %d\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
+}
+
 static void ikbd_set_mouse_threshold(void)
 {
   printf("DEBUG: IKBD set mouse threshold %u %u\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
@@ -79,9 +122,24 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_mouse_enabled = 1;
     printf("DEBUG: IKBD enable mouse relative\n");
     break;
+  case 0x09:
+    ikbd_cmdfn = ikbd_set_absolute_mouse_positioning;
+    ikbd_cmdcnt = 4;
+    break;
   case 0x0b:
     ikbd_cmdfn = ikbd_set_mouse_threshold;
     ikbd_cmdcnt = 2;
+    break;
+  case 0x0c:
+    ikbd_cmdfn = ikbd_set_mouse_scale;
+    ikbd_cmdcnt = 2;
+    break;
+  case 0x0d:
+    ikbd_mouse_report();
+    break;
+  case 0x0e:
+    ikbd_cmdfn = ikbd_load_mouse_position;
+    ikbd_cmdcnt = 5;
     break;
   case 0x10:
     // Set Y=0 at top

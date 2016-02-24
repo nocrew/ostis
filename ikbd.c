@@ -209,6 +209,8 @@ static BYTE ikbd_read_byte(LONG addr)
   static BYTE last = 0;
   int tmp;
 
+  ADD_CYCLE(6);
+
   switch(addr) {
   case 0xfffc00:
     return ikbd_status;
@@ -244,6 +246,8 @@ static LONG ikbd_read_long(LONG addr)
 
 static void ikbd_write_byte(LONG addr, BYTE data)
 {
+  ADD_CYCLE(6);
+
   switch(addr) {
   case 0xfffc00:
     ikbd_control = data;

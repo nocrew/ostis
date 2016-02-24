@@ -327,8 +327,10 @@ void mfp_set_GPIP(int bnum)
     switch(bnum) {
     case MFP_GPIP_ACIA: /* IKBD/MIDI */
       mfp_set_pending(6);
+      break;
     case MFP_GPIP_FDC: /* FDC */
       mfp_set_pending(7);
+      break;
     }
   }
   mfpreg[GPIP] |= (1<<bnum);
@@ -341,8 +343,10 @@ void mfp_clr_GPIP(int bnum)
     switch(bnum) {
     case MFP_GPIP_ACIA: /* IKBD/MIDI */
       mfp_set_pending(6);
+      break;
     case MFP_GPIP_FDC: /* FDC */
       mfp_set_pending(7);
+      break;
     }
   }
   mfpreg[GPIP] &= ~(1<<bnum);

@@ -10,6 +10,8 @@
 #include "mmu.h"
 #include "state.h"
 
+/* Used to prevent extra cycle counts when reading from memory for the only purpose of printing the value */
+int mmu_print_state = 0; 
 static struct mmu *memory[65536];
 static struct mmu_module *modules = NULL;
 
@@ -106,6 +108,7 @@ void mmu_send_bus_error(LONG addr)
 BYTE mmu_read_byte_print(LONG addr)
 {
   struct mmu *t;
+  BYTE value;
 
   addr &= 0xffffff;
 
@@ -116,12 +119,16 @@ BYTE mmu_read_byte_print(LONG addr)
   if(!t->read_byte) {
     return 0;
   }
-  return t->read_byte(addr);
+  mmu_print_state = 1;
+  value = t->read_byte(addr);
+  mmu_print_state = 0;
+  return value;
 }
 
 WORD mmu_read_word_print(LONG addr)
 {
   struct mmu *t;
+  WORD value;
 
   addr &= 0xffffff;
 
@@ -132,13 +139,17 @@ WORD mmu_read_word_print(LONG addr)
   if(!t->read_word) {
     return 0;
   }
-  return t->read_word(addr);
+  mmu_print_state = 1;
+  value = t->read_word(addr);
+  mmu_print_state = 0;
+  return value;
 }
 
 LONG mmu_read_long_print(LONG addr)
 {
   struct mmu *t;
-
+  LONG value;
+  
   addr &= 0xffffff;
 
   t = dispatch(addr);
@@ -148,7 +159,10 @@ LONG mmu_read_long_print(LONG addr)
   if(!t->read_long) {
     return 0;
   }
-  return t->read_long(addr);
+  mmu_print_state = 1;
+  value = t->read_long(addr);
+  mmu_print_state = 0;
+  return value;
 }
 
 BYTE mmu_read_byte(LONG addr)
@@ -208,7 +222,7 @@ LONG mmu_read_long(LONG addr)
 void mmu_write_byte(LONG addr, BYTE data)
 {
   struct mmu *t;
-
+  
   addr &= 0xffffff;
 
   t = dispatch(addr);

@@ -851,6 +851,13 @@ void cprint_load_labels(char *file)
   fclose(f);
 }
 
+void cpu_add_extra_cycles(int cycle_count)
+{
+  if(!mmu_print_state) {
+    ADD_CYCLE(cycle_count);
+  }
+}
+
 void cpu_init()
 {
   int i;

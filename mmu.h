@@ -51,5 +51,6 @@ void mmu_write_byte(LONG, BYTE);
 void mmu_write_word(LONG, WORD);
 void mmu_write_long(LONG, LONG);
 
+extern int mmu_print_state;
 
 #endif

@@ -181,7 +181,7 @@ static void psg_write_byte(LONG addr, BYTE data)
   if(addr&1) return;
   addr &= 2;
 
-  ADD_CYCLE(2);
+  cpu_add_extra_cycles(2);
 
   switch(addr) {
   case 0:

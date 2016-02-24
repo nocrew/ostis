@@ -319,6 +319,11 @@ static void shifter_gen_picture(int rasterpos)
   lastrasterpos = i;
 }
 
+void shifter_force_gen_picture()
+{
+  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
+}
+
 void shifter_build_image(int debug)
 {
   

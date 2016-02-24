@@ -869,6 +869,7 @@ void cpu_init()
   cpu->exception_pending = -1;
   cpu->no_exceptions = 0;
   cpu->cycle = 0;
+  cpu->icycle = 0;
   cpu->stopped = 0;
 
   for(i=0;i<65536;i++) {

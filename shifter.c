@@ -174,12 +174,56 @@ static void set_pixel_medium(int rasterpos, int pnum)
   }
 }
 
+static void set_pixel_high(int rasterpos, int pnum)
+{
+  int c1,c2,c3,c4;
+
+  c1 = (pnum>>24)&1;
+  c2 = (pnum>>16)&1;
+  c3 = (pnum>>8)&1;
+  c4 = pnum&1;
+
+  if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
+    rgbimage[rasterpos*12+0] = (c1 ? 0 : 0xff);
+    rgbimage[rasterpos*12+1] = (c1 ? 0 : 0xff);
+    rgbimage[rasterpos*12+2] = (c1 ? 0 : 0xff);
+    rgbimage[rasterpos*12+3] = (c2 ? 0 : 0xff);
+    rgbimage[rasterpos*12+4] = (c2 ? 0 : 0xff);
+    rgbimage[rasterpos*12+5] = (c2 ? 0 : 0xff);
+    rgbimage[rasterpos*12+6] = (c3 ? 0 : 0xff);
+    rgbimage[rasterpos*12+7] = (c3 ? 0 : 0xff);
+    rgbimage[rasterpos*12+8] = (c3 ? 0 : 0xff);
+    rgbimage[rasterpos*12+9] = (c4 ? 0 : 0xff);
+    rgbimage[rasterpos*12+10] = (c4 ? 0 : 0xff);
+    rgbimage[rasterpos*12+11] = (c4 ? 0 : 0xff);
+  } else {
+    rgbimage[rasterpos*12+2] = (c1 ? 0 : 0xff);
+    rgbimage[rasterpos*12+1] = (c1 ? 0 : 0xff);
+    rgbimage[rasterpos*12+0] = (c1 ? 0 : 0xff);
+    rgbimage[rasterpos*12+5] = (c2 ? 0 : 0xff);
+    rgbimage[rasterpos*12+4] = (c2 ? 0 : 0xff);
+    rgbimage[rasterpos*12+3] = (c2 ? 0 : 0xff);
+    rgbimage[rasterpos*12+8] = (c3 ? 0 : 0xff);
+    rgbimage[rasterpos*12+7] = (c3 ? 0 : 0xff);
+    rgbimage[rasterpos*12+6] = (c3 ? 0 : 0xff);
+    rgbimage[rasterpos*12+11] = (c4 ? 0 : 0xff);
+    rgbimage[rasterpos*12+10] = (c4 ? 0 : 0xff);
+    rgbimage[rasterpos*12+9] = (c4 ? 0 : 0xff);
+  }
+}
+
 static void set_pixel(int rasterpos, int pnum)
 {
-  if(resolution&1) {
-    return set_pixel_medium(rasterpos, pnum);
-  } else {
+  switch(resolution&3) {
+  case 0:
     return set_pixel_low(rasterpos, pnum);
+  case 1:
+    return set_pixel_medium(rasterpos, pnum);
+  case 2:
+    return set_pixel_high(rasterpos, pnum);
+  case 3:
+    printf("FATAL: bad video mode\n");
+    exit(99);
   }
 }
 
@@ -245,13 +289,63 @@ static int get_pixel_medium(int videooffset, int pxlnum)
   return c;
 }
 
+static int get_pixel_high(int videooffset, int pxlnum)
+{
+  int c,c1,c2,c3,c4;
+  static int lastpos = 0;
+  static WORD d[4];
+
+  if((curaddr+videooffset) != lastpos) {
+    d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
+    d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
+    d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
+    d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+    lastpos = curaddr+videooffset;
+  }
+
+  if(pxlnum < 4) {
+    c1 = (d[3]>>(15-(pxlnum*4)))&1;
+    c2 = (d[3]>>(15-(pxlnum*4+1)))&1;
+    c3 = (d[3]>>(15-(pxlnum*4+2)))&1;
+    c4 = (d[3]>>(15-(pxlnum*4+3)))&1;
+  } else if(pxlnum < 8) {
+    pxlnum -= 4;
+    c1 = (d[2]>>(15-(pxlnum*4)))&1;
+    c2 = (d[2]>>(15-(pxlnum*4+1)))&1;
+    c3 = (d[2]>>(15-(pxlnum*4+2)))&1;
+    c4 = (d[2]>>(15-(pxlnum*4+3)))&1;
+  } else if(pxlnum < 12) {
+    pxlnum -= 8;
+    c1 = (d[1]>>(15-(pxlnum*4)))&1;
+    c2 = (d[1]>>(15-(pxlnum*4+1)))&1;
+    c3 = (d[1]>>(15-(pxlnum*4+2)))&1;
+    c4 = (d[1]>>(15-(pxlnum*4+3)))&1;
+  } else {
+    pxlnum -= 12;
+    c1 = (d[0]>>(15-(pxlnum*4)))&1;
+    c2 = (d[0]>>(15-(pxlnum*4+1)))&1;
+    c3 = (d[0]>>(15-(pxlnum*4+2)))&1;
+    c4 = (d[0]>>(15-(pxlnum*4+3)))&1;
+  }
+
+  c = (c1<<24)|(c2<<16)|(c3<<8)|c4;
+
+  return c;
+}
+
 static int get_pixel(int videooffset, int pxlnum)
 {
-  if(resolution&1) {
-    return get_pixel_medium(videooffset, pxlnum);
-  } else {
+  switch(resolution&3) {
+  case 0:
     return get_pixel_low(videooffset, pxlnum);
+  case 1:
+    return get_pixel_medium(videooffset, pxlnum);
+  case 2:
+    return get_pixel_high(videooffset, pxlnum);
+  case 3:
+    printf("FATAL: bad video mode\n");
   }
+  return 0;
 }
 
 static void set_16pxl(int rasterpos, int videooffset)

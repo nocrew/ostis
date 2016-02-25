@@ -7,6 +7,10 @@
 #include "shifter.h"
 #include "debug/display.h"
 
+struct monitor {
+  int width, height, lines;
+};
+
 static int disable = 0;
 static SDL_Surface *screen;
 static SDL_Texture *texture = NULL;
@@ -16,6 +20,13 @@ int screen_window_id;
 static SDL_Texture *rasterpos_indicator[2];
 static int rasterpos_indicator_cnt = 0;
 static int screen_grabbed = 0;
+
+struct monitor monitors[] = {
+  { 1024, 626, 313 },
+  { 896, 501, 501 }
+};
+
+struct monitor mon;
 
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
@@ -27,6 +38,11 @@ void screen_make_texture(const char *scale)
   int pixelformat = SDL_PIXELFORMAT_BGR24;
   if(debugger) pixelformat = SDL_PIXELFORMAT_RGB24;
 
+  if (monitor_sm124)
+    mon = monitors[1];
+  else
+    mon = monitors[0];
+
   if(strcmp(scale, old_scale) == 0)
     return;
 
@@ -37,7 +53,7 @@ void screen_make_texture(const char *scale)
   texture = SDL_CreateTexture(renderer,
 			      pixelformat,
 			      SDL_TEXTUREACCESS_STREAMING,
-			      2*512, 314);
+			      mon.width, mon.lines);
 }
 
 SDL_Texture *screen_generate_rasterpos_indicator(int color)
@@ -98,14 +114,23 @@ void screen_init()
   bmask = 0x00ff0000;
 #endif
 
+  if (monitor_sm124)
+    mon = monitors[1];
+  else
+    mon = monitors[0];
 
   //  if(debugger) {
   //    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
   //    				  rmask, gmask, bmask, amask);
   //  } else {
-    window = SDL_CreateWindow("Main screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 628, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
-    				  rmask, gmask, bmask, amask);
+    window = SDL_CreateWindow("Main screen",
+			      SDL_WINDOWPOS_UNDEFINED,
+			      SDL_WINDOWPOS_UNDEFINED,
+			      mon.width,
+			      mon.height,
+			      SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    screen = SDL_CreateRGBSurface(0, mon.width, mon.lines,
+				  24, rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_window_id = SDL_GetWindowID(window);
     printf("DEBUG: screen_window_id == %d\n", screen_window_id);

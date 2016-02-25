@@ -23,6 +23,49 @@
 #define VBLSCR 200
 #define VBLPOST 40
 
+static struct resolution_data res_data[] = {
+  {
+    // Low resolution
+    .hblsize = HBLSIZE,
+    .hblpre = HBLPRE,
+    .hblscr = HBLSCR,
+    .hblpost = HBLPOST,
+    .vblsize = VBLSIZE,
+    .vblpre = VBLPRE,
+    .vblscr = VBLSCR,
+    .voff_shift = 1,
+    .border = 16
+  },
+  {
+    // Medium resolution
+    .hblsize = HBLSIZE,
+    .hblpre = HBLPRE,
+    .hblscr = HBLSCR,
+    .hblpost = HBLPOST,
+    .vblsize = VBLSIZE,
+    .vblpre = VBLPRE,
+    .vblscr = VBLSCR,
+    .voff_shift = 1,
+    .border = (16 << 16) + 16
+  },
+  {
+    // High resolution
+    .hblsize = 224,
+    .hblpre = 30,
+    .hblscr = 160,
+    .hblpost = 30,
+    .vblsize = 501,
+    .vblpre = 50,
+    .vblscr = 400,
+    .voff_shift = 2,
+    .border = ~0
+  },
+  {
+    // Whoops, bad resolution
+    0
+  }
+};
+
 #define SCR_BYTES_PER_LINE 160
 
 #define BORDERTOP 28
@@ -32,9 +75,9 @@
 
 
 static long linenum = 0;
-static long linecnt = HBLSIZE+432; /* Cycle count per line, for timer-b event */
-static long vsynccnt = VBLSIZE*HBLSIZE; /* 160256 cycles in one screen */
-static long hsynccnt = HBLSIZE+16; /* Offset for first hbl interrupt */
+static long linecnt;
+static long vsynccnt = 0; /* 160256 cycles in one screen */
+static long hsynccnt; /* Offset for first hbl interrupt */
 static long lastrasterpos = 0;
 static long lastcpucnt;
 
@@ -47,12 +90,13 @@ static LONG curaddr; /* Current address used for display */
 static LONG scraddr; /* Address for next VBL */
 static LONG scrptr;  /* Actual screen pointer, read only from emulator */
 static BYTE syncreg; /* 50/60Hz + Internal/External Sync flags */
-static BYTE resolution; /* Low, medium or high resolution. Only low now. */
+static BYTE resolution; /* Low, medium or high resolution. */
+static struct resolution_data res;
 
-static int vblpre = VBLPRE;
-static int vblscr = VBLSCR;
-static int hblpre = HBLPRE;
-static int hblscr = HBLSCR;
+static int vblpre = 0;
+static int vblscr = 0;
+static int hblpre = 0;
+static int hblscr = 0;
 static int scr_bytes_per_line = SCR_BYTES_PER_LINE;
 static int framecnt;
 
@@ -233,8 +277,8 @@ int shifter_on_display(int rasterpos)
 {
   int line,linepos;
 
-  line = rasterpos/HBLSIZE;
-  linepos = rasterpos%HBLSIZE;
+  line = rasterpos/res.hblsize;
+  linepos = rasterpos%res.hblsize;
   
   if((line < vblpre) || (line >= (vblpre+vblscr)) ||
      (linepos < hblpre) || (linepos >= (hblpre+hblscr))) {
@@ -247,10 +291,11 @@ static long get_videooffset(int rasterpos)
 {
   int line,linepos,voff;
 
-  line = rasterpos/HBLSIZE;
-  linepos = rasterpos%HBLSIZE;
+  line = rasterpos/res.hblsize;
+  linepos = rasterpos%res.hblsize;
 
-  voff = (line-vblpre)*scr_bytes_per_line/2;
+  voff = (line-vblpre)*scr_bytes_per_line;
+  voff >>= res.voff_shift;
   voff += ((linepos-hblpre)/16)*4; /* Mainly stolen from hatari */
 
   return voff;
@@ -260,8 +305,8 @@ static void gen_scrptr(int rasterpos)
 {
   int line,linepos,voff;
 
-  line = rasterpos/HBLSIZE;
-  linepos = rasterpos%HBLSIZE;
+  line = rasterpos/res.hblsize;
+  linepos = rasterpos%res.hblsize;
 
   if(shifter_on_display(rasterpos)) {
     voff = (line-vblpre)*scr_bytes_per_line;
@@ -286,18 +331,14 @@ static void shifter_gen_pixel(int rasterpos)
 {
   int linepos;
 
-  linepos = rasterpos%HBLSIZE;
+  linepos = rasterpos%res.hblsize;
 
   if(shifter_on_display(rasterpos)) {
     set_pixel(rasterpos,
 	      get_pixel(get_videooffset(rasterpos),
 			(linepos-hblpre)&15));
   } else {
-    if(ppmoutput) {
-      set_pixel(rasterpos, 0); /* Background in border */
-    } else {
-      set_pixel(rasterpos, 16); /* Background in border */
-    }
+    set_pixel(rasterpos, res.border); /* Background in border */
   }
 }
 
@@ -324,12 +365,22 @@ static void shifter_gen_picture(int rasterpos)
 
 void shifter_force_gen_picture()
 {
-  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
+  shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
 }
 
 void shifter_build_image(int debug)
 {
   
+}
+
+static void shifter_set_resolution(BYTE data)
+{
+  resolution = data;
+
+  res = res_data[data&3];
+
+  if(ppmoutput)
+    res.border = 0;
 }
 
 static BYTE shifter_read_byte(LONG addr)
@@ -340,13 +391,13 @@ static BYTE shifter_read_byte(LONG addr)
   case 0xff8203:
     return (scraddr&0xff00)>>8;
   case 0xff8205:
-    gen_scrptr(VBLSIZE*HBLSIZE-vsynccnt);
+    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
     return (scrptr&0xff0000)>>16;
   case 0xff8207:
-    gen_scrptr(VBLSIZE*HBLSIZE-vsynccnt);
+    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
     return (scrptr&0xff00)>>8;
   case 0xff8209:
-    gen_scrptr(VBLSIZE*HBLSIZE-vsynccnt);
+    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
     return scrptr&0xff;
   case 0xff820a:
     return syncreg;
@@ -390,19 +441,19 @@ static void shifter_write_byte(LONG addr, BYTE data)
     scraddr = (scraddr&0xff0000)|(data<<8);
     return;
   case 0xff820a:
-    if((160256-vsynccnt) < (HBLSIZE*VBLPRE)) {
-      vblpre = VBLPRE-BORDERTOP;
-      vblscr = VBLSCR+BORDERTOP;
-    } else if((160256-vsynccnt) > ((HBLSIZE*(vblpre+vblscr))-HBLPOST)) {
-      if(vblscr != VBLSCR) {
+    if((160256-vsynccnt) < (res.hblsize*res.vblpre)) {
+      vblpre = res.vblpre-BORDERTOP;
+      vblscr = res.vblscr+BORDERTOP;
+    } else if((160256-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
+      if(vblscr != res.vblscr) {
 	vblscr = BORDERTOP;
       }
-      vblscr = VBLSCR+BORDERBOTTOM;
+      vblscr = res.vblscr+BORDERBOTTOM;
     }
     syncreg = data;
     return;
   case 0xff8260:
-    resolution = data;
+    shifter_set_resolution(data);
     return;
   default:
     if((addr >= 0xff8240) &&
@@ -426,7 +477,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
 static void shifter_write_word(LONG addr, WORD data)
 {
   if((addr >= 0xff8240) && (addr <= 0xff825f))
-    shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
+    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
 }
@@ -434,7 +485,7 @@ static void shifter_write_word(LONG addr, WORD data)
 static void shifter_write_long(LONG addr, LONG data)
 {
   if((addr >= 0xff8240) && (addr <= 0xff825f)) {
-    shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
+    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
   }
   shifter_write_byte(addr, (data&0xff000000)>>24);
   shifter_write_byte(addr+1, (data&0xff0000)>>16);
@@ -552,6 +603,11 @@ void shifter_init()
   shifter->state_collect = shifter_state_collect;
   shifter->state_restore = shifter_state_restore;
 
+  shifter_set_resolution(0);
+
+  linecnt = res.hblsize+432; /* Cycle count per line, for timer-b event */
+  hsynccnt = res.hblsize+16; /* Offset for first hbl interrupt */
+
   mmu_register(shifter);
 
   rgbimage = screen_pixels();
@@ -577,17 +633,17 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   linecnt -= tmpcpu;
   
   /* VBL Interrupt */
-  //  shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
+  //  shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
   if(vsynccnt < 0) {
-    vblpre = VBLPRE;
-    vblscr = VBLSCR;
-    shifter_gen_picture(VBLSIZE*HBLSIZE);
+    vblpre = res.vblpre;
+    vblscr = res.vblscr;
+    shifter_gen_picture(res.vblsize*res.hblsize);
     scrptr = curaddr = scraddr;
-    vsynccnt += VBLSIZE*HBLSIZE;
+    vsynccnt += res.vblsize*res.hblsize;
     linenum = 0;
-    hsynccnt += HBLSIZE;
-    //    hsynccnt = HBLSIZE+(160);
-    //    linecnt = HBLSIZE-(HBLSIZE-HBLPRE-HBLSCR-HBLPOST);
+    hsynccnt += res.hblsize;
+    //    hsynccnt = res.hblsize+(160);
+    //    linecnt = res.hblsize-(res.hblsize-res.hblpre-res.hblscr-res.hblpost);
     lastrasterpos = 0; /* Restart image building from position 0 */
     if(ppmoutput) {
       shifter_build_ppm();
@@ -607,10 +663,10 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 
   /* HBL Interrupt */
   if(hsynccnt < 0) {
-    hblpre = HBLPRE;
-    hblscr = HBLSCR;
-    shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
-    hsynccnt += HBLSIZE;
+    hblpre = res.hblpre;
+    hblscr = res.hblscr;
+    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    hsynccnt += res.hblsize;
     hbl_triggered = 1;
     cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
   }
@@ -627,13 +683,13 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   
   /* Line Interrupt */
   if(linecnt < 0) {
-    linecnt += HBLSIZE;
+    linecnt += res.hblsize;
     if((linenum >= vblpre) && (linenum < (vblpre+vblscr)))
       mfp_do_timerb_event(cpu);
 #if 0
-    rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+0] = 0xff;
-    rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+1] = 0x00;
-    rgbimage[(VBLSIZE*HBLSIZE-vsynccnt)*3+2] = 0x00;
+    rgbimage[(res.vblsize*res.hblsize-vsynccnt)*3+0] = 0xff;
+    rgbimage[(res.vblsize*res.hblsize-vsynccnt)*3+1] = 0x00;
+    rgbimage[(res.vblsize*res.hblsize-vsynccnt)*3+2] = 0x00;
 #endif
     linenum++;
   }
@@ -643,7 +699,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 
 int shifter_get_vsync()
 {
-  return VBLSIZE*HBLSIZE-vsynccnt;
+  return res.vblsize*res.hblsize-vsynccnt;
 }
 
 int shifter_framecnt(int c)

@@ -212,6 +212,7 @@ static void cpu_do_exception(int vnum)
   cpu_set_sr((cpu->sr|0x2000)&(~0x8000)); /* set supervisor, clear trace */
   fflush(stdout);
 
+  cpu->exception_pending = -1;
   cpu->stopped = 0;
 
   //  if(vnum > 0) {
@@ -599,7 +600,7 @@ int cpu_step_instr(int trace)
   }
   cpu_do_cycle(cpu->icycle, 0);
 
-  if(cpu->exception_pending != -1) {
+  while(cpu->exception_pending != -1) {
     cpu_do_exception(cpu->exception_pending);
   }
   if(CHKT && !cpu->tracedelay) cpu_do_exception(9);

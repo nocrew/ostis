@@ -409,11 +409,9 @@ static void mfp_do_interrupt(int inum)
 {
   int vec,tmp;
 
-  if(mfpreg[ISRB]&0x40) {
-    if((cpu->sr&0x700) < 0x600) {
-      printf("DEBUG: We're out of MFP interrupt with ISR still high\n");
-      //      cpu_enter_debugger();
-    }
+  if((ISR & (1<<inum)) && (cpu->sr&0x700) < 0x600) {
+    printf("DEBUG: servicing MFP interrupt %d, but IPL is at %d\n", inum, IPL);
+    //      cpu_enter_debugger();
   }
   
   if(!(IER & (1<<inum))) {

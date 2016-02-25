@@ -258,8 +258,8 @@ static void cpu_do_exception(int vnum)
 #if EXTREME_EXCEPTION_DEBUG
         printf("DEBUG: %d [%04x] [%08x => %08x] Entering interrupt %d [%02x]\n", cpu->cycle, cpu->sr, oldpc, cpu->pc, vnum, vnum * 4);
 #endif
-        cpu_do_cycle(48, 0);
         cpu->sr = (cpu->sr&0xf0ff)|(i<<8);
+        cpu_do_cycle(48, 0);
       } else {
         //        printf("DEBUG: Do interrupt: %d [IPL: %d] Autovector to %08x (PC == %08x)\n", i, IPL, interrupt_autovector, cpu->pc);
         cpu->a[7] -= 4;

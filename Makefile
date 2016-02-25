@@ -24,20 +24,12 @@ OBJ=$(SRC:.c=.o)
 EMU_SRC=main.c $(SRC)
 EMU_OBJ=$(EMU_SRC:.c=.o)
 
-TEST_SRC=test_main.c $(SRC)
-TEST_OBJ=$(TEST_SRC:.c=.o)
-
 LIBCPU=cpu/libcpu.a
 LIBDEBUG=debug/libdebug.a
 
 DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 
-LIBTEST=libtests.a
-
 LIB=$(LIBCPU) $(LIBDEBUG) `sdl2-config --libs`
-TEST_LIB=-Ltests -ltests $(LIBCPU) $(LIBDEBUG) `sdl-config --libs`
-
-TEST_PRG=ostistest
 
 %.o:	%.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -52,11 +44,6 @@ gdb:
 
 ostis ostis-gdb: $(DEPS)
 	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
-
-tests:	$(TEST_PRG)
-
-$(LIBTEST):
-	make -C tests
 
 $(PARSEROBJ):	$(PARSERSRC)
 
@@ -75,9 +62,6 @@ $(PARSERSRC): $(PARSERFILE)
 
 # $(LSRC): $(LEXFILE) expr.tab.h
 #	$(LEX) $<
-
-$(TEST_PRG):	$(TEST_OBJ) $(LIBTEST) $(LIBCPU) $(LIBDEBUG) $(LOBJ) $(YOBJ)
-	$(CC) $(LDFLAGS) -o $@ $(TEST_OBJ) $(LOBJ) $(YOBJ) $(TEST_LIB)
 
 include cpu/cpu.mk
 include debug/debug.mk

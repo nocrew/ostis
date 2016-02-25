@@ -37,7 +37,7 @@ void mmu_state_restore(struct mmu_state *);
 
 void mmu_init();
 void mmu_register(struct mmu *);
-void mmu_send_bus_error(LONG);
+void mmu_send_bus_error(int, LONG);
 void mmu_print_map();
 void mmu_do_interrupts(struct cpu *);
 

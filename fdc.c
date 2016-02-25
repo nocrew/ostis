@@ -418,8 +418,6 @@ void fdc_do_interrupts(struct cpu *cpu)
   if(motorcnt > 0) {
     motorcnt -= tmpcpu;
   }
-  if(cpu->debug)
-    printf("DEBUG: left on motor: %d\n", motorcnt);
   if(motorcnt <= 0) {
     motorcnt = 0;
     motoron = 0;
@@ -431,8 +429,6 @@ void fdc_do_interrupts(struct cpu *cpu)
   if(abortpending > 0) {
     abortpending -= tmpcpu;
   }
-  if(cpu->debug)
-    printf("DEBUG: left on abort: %d\n", abortpending);
 
   if(abortpending != -1 && (abortpending <= 0)) {
     //    abortpending = FDC_PENDTIME;

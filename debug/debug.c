@@ -94,7 +94,6 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     break;
   case SDLK_d:
     if(debugmode) debugmode = 0; else debugmode = 1;
-    if(cpu->debug) cpu->debug = 0; else cpu->debug = 1;
     break;
   case SDLK_t:
     if(k.mod & KMOD_ALT)
@@ -120,7 +119,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
 	win_set_selected(2);
       ret = cpu_step_instr(CPU_TRACE);
       if(debugmode) {
-	cpu_print_status();
+	cpu_print_status(CPU_USE_CURRENT_PC);
 	mfp_print_status();
       }
       if(ret == CPU_BREAKPOINT) {
@@ -212,7 +211,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     break;
   case SDLK_F12:
     printf("-------------------------------------------\n");
-    cpu_print_status();
+    cpu_print_status(CPU_USE_CURRENT_PC);
     printf("- - - - - - - - - - - - - - - - - - - - - -\n");
     mfp_print_status();
     printf("- - - - - - - - - - - - - - - - - - - - - -\n");

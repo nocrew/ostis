@@ -13,11 +13,8 @@ struct cpu {
   uint64_t cycle;
   LONG icycle;
   int cyclecomp;
-  int debug;
   int stopped;
   int tracedelay;
-  int no_exceptions;
-  int exception_pending;
   int debug_halted;
 };
 
@@ -85,7 +82,17 @@ extern int cprint_all;
 #define IPL_VBL 4
 #define IPL_MFP 6
 #define IPL_NO_AUTOVECTOR -1
-  
+#define IPL_EXCEPTION_VECTOR_OFFSET 24
+
+#define VEC_BUSERR 2
+#define CPU_BUSERR_READ  0x10
+#define CPU_BUSERR_WRITE 0
+#define CPU_BUSERR_INSTR 0
+#define CPU_BUSERR_DATA  0x08
+
+#define CPU_USE_CURRENT_PC 0
+#define CPU_USE_LAST_PC    1
+
 #define CPU_OK 0
 #define CPU_BREAKPOINT 1
 #define CPU_WATCHPOINT 2
@@ -93,6 +100,9 @@ extern int cprint_all;
 #define CPU_RUN 0
 #define CPU_TRACE 1
 #define CPU_DEBUG_RUN -1
+
+#define CPU_DO_INTS 0
+#define CPU_NO_INTS 1
 
 #define CPU_WATCH_EQ 0
 #define CPU_WATCH_NE 1
@@ -105,10 +115,12 @@ void cpu_init();
 void cpu_halt_for_debug();
 void cpu_enter_debugger();
 int cpu_step_instr(int);
-void cpu_print_status();
-void cpu_do_cycle(LONG, int);
+void cpu_print_status(int);
+void cpu_do_cycle(LONG);
+void cpu_check_for_pending_interrupts();
 void cpu_set_interrupt(int, int);
 void cpu_set_exception(int);
+void cpu_set_bus_error(int, LONG);
 void cpu_add_debugpoint(LONG);
 void cpu_set_sr(WORD);
 int cpu_find_breakpoint_lowest_cnt(LONG);

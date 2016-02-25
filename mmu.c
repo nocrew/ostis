@@ -98,11 +98,25 @@ void mmu_init()
   }
 }
 
-void mmu_send_bus_error(LONG addr)
+void mmu_send_bus_error(int reading, LONG addr)
 {
+  int flags = 0;
+
+  if(reading) {
+    flags |= CPU_BUSERR_READ;
+  } else {
+    flags |= CPU_BUSERR_WRITE;
+  }
+  if(cpu->pc == addr) {
+    flags |= CPU_BUSERR_INSTR;
+  } else {
+    flags |= CPU_BUSERR_DATA;
+  }
+  
   fprintf(stdout, "BUS ERROR at 0x%08x\n", addr);
-  cpu_print_status();
-  cpu_set_exception(2);
+  cpu_print_status(CPU_USE_LAST_PC);
+  
+  cpu_set_bus_error(flags, addr);
 }
 
 BYTE mmu_read_byte_print(LONG addr)
@@ -173,11 +187,11 @@ BYTE mmu_read_byte(LONG addr)
 
   t = dispatch(addr);
   if(!t) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
   if(!t->read_byte) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
   return t->read_byte(addr);
@@ -191,11 +205,11 @@ WORD mmu_read_word(LONG addr)
 
   t = dispatch(addr);
   if(!t) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
   if(!t->read_word) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
   return t->read_word(addr);
@@ -209,11 +223,11 @@ LONG mmu_read_long(LONG addr)
 
   t = dispatch(addr);
   if(!t) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
   if(!t->read_long) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
   return t->read_long(addr);
@@ -227,11 +241,11 @@ void mmu_write_byte(LONG addr, BYTE data)
 
   t = dispatch(addr);
   if(!t) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
   if(!t->write_byte) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
   t->write_byte(addr, data);
@@ -245,11 +259,11 @@ void mmu_write_word(LONG addr, WORD data)
 
   t = dispatch(addr);
   if(!t) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
   if(!t->write_word) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
   t->write_word(addr, data);
@@ -263,11 +277,11 @@ void mmu_write_long(LONG addr, LONG data)
 
   t = dispatch(addr);
   if(!t) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
   if(!t->write_long) {
-    mmu_send_bus_error(addr);
+    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
   t->write_long(addr, data);

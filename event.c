@@ -57,7 +57,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
   } else if(k.sym == SDLK_F12) {
     if(state == EVENT_RELEASE) {
       printf("-------------------------------------------\n");
-      cpu_print_status();
+      cpu_print_status(CPU_USE_CURRENT_PC);
       printf("- - - - - - - - - - - - - - - - - - - - - -\n");
       mfp_print_status();
       printf("- - - - - - - - - - - - - - - - - - - - - -\n");

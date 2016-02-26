@@ -84,7 +84,17 @@ extern int cprint_all;
 #define IPL_NO_AUTOVECTOR -1
 #define IPL_EXCEPTION_VECTOR_OFFSET 24
 
-#define VEC_BUSERR 2
+#define VEC_BUSERR  2
+#define VEC_ILLEGAL 4
+#define VEC_ZERODIV 5
+#define VEC_CHK     6
+#define VEC_TRAPV   7
+#define VEC_PRIV    8
+#define VEC_TRACE   9
+#define VEC_LINEA  10
+#define VEC_LINEF  11
+#define VEC_SPUR   24
+
 #define CPU_BUSERR_READ  0x10
 #define CPU_BUSERR_WRITE 0
 #define CPU_BUSERR_INSTR 0

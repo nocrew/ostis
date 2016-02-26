@@ -88,17 +88,20 @@ static void cpu_exception_reset_sr()
 
 static void cpu_exception_bus_error()
 {
+  WORD oldsr;
+
+  oldsr = cpu->sr;
+  cpu_exception_reset_sr();
   cpu->a[7] -= 4;
   mmu_write_long(cpu->a[7], last_pc);
   cpu->a[7] -= 2;
-  mmu_write_word(cpu->a[7], cpu->sr);
+  mmu_write_word(cpu->a[7], oldsr);
   cpu->a[7] -= 2;
   mmu_write_word(cpu->a[7], mmu_read_word(cpu->pc));
   cpu->a[7] -= 4;
   mmu_write_long(cpu->a[7], bus_error_address);
   cpu->a[7] -= 2;
   mmu_write_word(cpu->a[7], bus_error_flags);
-  cpu_exception_reset_sr();
   cpu->pc = mmu_read_long(4*VEC_BUSERR);
   cpu_clr_exception(VEC_BUSERR);
   cpu_do_cycle(50);
@@ -106,10 +109,14 @@ static void cpu_exception_bus_error()
 
 static void cpu_exception_general(int vnum)
 {
+  WORD oldsr;
+
+  oldsr = cpu->sr;
+  cpu_exception_reset_sr();
   cpu->a[7] -= 4;
   mmu_write_long(cpu->a[7], cpu->pc);
   cpu->a[7] -= 2;
-  mmu_write_word(cpu->a[7], cpu->sr);
+  mmu_write_word(cpu->a[7], oldsr);
   cpu_exception_reset_sr();
   cpu->pc = mmu_read_long(4*vnum);
   cpu_clr_exception(vnum);
@@ -118,16 +125,19 @@ static void cpu_exception_general(int vnum)
 
 static void cpu_exception_interrupt(int vnum)
 {
+  WORD oldsr;
+
+  oldsr = cpu->sr;
   int inum = vnum-IPL_EXCEPTION_VECTOR_OFFSET;
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
+  cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
     mmu_write_long(cpu->a[7], cpu->pc);
     cpu->a[7] -= 2;
-    mmu_write_word(cpu->a[7], cpu->sr);
-    cpu_exception_reset_sr();
+    mmu_write_word(cpu->a[7], oldsr);
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
     cpu->pc = mmu_read_long(4*vnum);
     cpu_clr_exception(vnum);
@@ -136,7 +146,7 @@ static void cpu_exception_interrupt(int vnum)
     cpu->a[7] -= 4;
     mmu_write_long(cpu->a[7], cpu->pc);
     cpu->a[7] -= 2;
-    mmu_write_word(cpu->a[7], cpu->sr);
+    mmu_write_word(cpu->a[7], oldsr);
     cpu_exception_reset_sr();
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
     cpu->pc = mmu_read_long(4*interrupt_autovector[inum]);
@@ -209,13 +219,33 @@ int cpu_step_instr(int trace)
   cpu_check_for_pending_interrupts();
   //  cpu_print_status(CPU_USE_LAST_PC);
 
-  for(vnum=0;vnum<256;vnum++) {
-    if(exception_pending[vnum]) {
-      cpu_do_exception(vnum);
-    }
-  }
+  /* If we get Bus Error, just ignore everything else */
+  if(exception_pending[VEC_BUSERR]) {
+    cpu_do_exception(VEC_BUSERR);
+    cprint_all = 0;
+  } else {
+    /* We check for trace, interrupt, illegal and priv in that order,
+       then any other exception,  but we trigger them in reverse order 
+       because the last one runs first */
 
-  if(CHKT && !cpu->tracedelay) cpu_do_exception(9);
+    /* Check TRAP */
+    for(vnum=32;vnum<48;vnum++) {
+      if(exception_pending[vnum]) { cpu_do_exception(vnum); }
+    }
+    
+    if(exception_pending[VEC_ZERODIV]) { cpu_do_exception(VEC_ZERODIV); }
+    if(exception_pending[VEC_CHK]) { cpu_do_exception(VEC_CHK); }
+    if(exception_pending[VEC_TRAPV]) { cpu_do_exception(VEC_TRAPV); }
+    if(exception_pending[VEC_LINEA]) { cpu_do_exception(VEC_LINEA); }
+    if(exception_pending[VEC_LINEF]) { cpu_do_exception(VEC_LINEF); }
+    if(exception_pending[VEC_PRIV]) { cpu_do_exception(VEC_PRIV); }
+    if(exception_pending[VEC_ILLEGAL]) { cpu_do_exception(VEC_ILLEGAL); }    
+    /* Check interrupts, in reverse order, to prevent lower IPLs to trigger */
+    for(vnum=31;vnum>=25;vnum--) {
+      if(exception_pending[vnum]) { cpu_do_exception(vnum); }
+    }
+    if(exception_pending[VEC_TRACE]) { cpu_do_exception(VEC_TRACE); }
+  }
 
   if(enter_debugger_after_instr) {
     enter_debugger_after_instr = 0;

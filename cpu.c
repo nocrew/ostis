@@ -41,7 +41,7 @@ static int bus_error_flags = 0;
 static int bus_error_address = 0;
 static LONG last_pc = 0;
 
-int cprint_all = 1;
+int cprint_all = 0;
 
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
@@ -100,7 +100,7 @@ static void cpu_exception_bus_error()
   mmu_write_word(cpu->a[7], bus_error_flags);
   cpu_exception_reset_sr();
   cpu->pc = mmu_read_long(4*VEC_BUSERR);
-  exception_pending[VEC_BUSERR] = 0;
+  cpu_clr_exception(VEC_BUSERR);
   cpu_do_cycle(50);
 }
 
@@ -112,7 +112,7 @@ static void cpu_exception_general(int vnum)
   mmu_write_word(cpu->a[7], cpu->sr);
   cpu_exception_reset_sr();
   cpu->pc = mmu_read_long(4*vnum);
-  exception_pending[vnum] = 0;
+  cpu_clr_exception(vnum);
   cpu_do_cycle(34);
 }
 
@@ -130,7 +130,7 @@ static void cpu_exception_interrupt(int vnum)
     cpu_exception_reset_sr();
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
     cpu->pc = mmu_read_long(4*vnum);
-    exception_pending[vnum] = 0;
+    cpu_clr_exception(vnum);
     cpu_do_cycle(48);
   } else {
     cpu->a[7] -= 4;
@@ -141,7 +141,7 @@ static void cpu_exception_interrupt(int vnum)
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
     cpu->pc = mmu_read_long(4*interrupt_autovector[inum]);
     interrupt_autovector[inum] = -1;
-    exception_pending[vnum] = 0;
+    cpu_clr_exception(vnum);
     cpu_do_cycle(24);
   }
 }
@@ -170,10 +170,6 @@ int cpu_step_instr(int trace)
   if(cpu_dec_breakpoint(cpu->pc, trace)) return CPU_BREAKPOINT;
   if(cpu_dec_watchpoint(trace)) return CPU_WATCHPOINT;
 
-  if(cpu->pc == 0xfc04ea) {
-    exit(-999);
-  }
-  
   if(!cpu->stopped) {
     op = fetch_instr(cpu);
 
@@ -211,6 +207,7 @@ int cpu_step_instr(int trace)
   }
   cpu_do_cycle(cpu->icycle);
   cpu_check_for_pending_interrupts();
+  //  cpu_print_status(CPU_USE_LAST_PC);
 
   for(vnum=0;vnum<256;vnum++) {
     if(exception_pending[vnum]) {
@@ -267,8 +264,8 @@ void cpu_do_cycle(LONG cnt)
 
 void cpu_check_for_pending_interrupts()
 {
-  shifter_do_interrupts(cpu, CPU_DO_INTS);
   mmu_do_interrupts(cpu);
+  shifter_do_interrupts(cpu, CPU_DO_INTS);
 }
 
 void cpu_add_extra_cycles(int cycle_count)
@@ -280,13 +277,18 @@ void cpu_add_extra_cycles(int cycle_count)
 
 void cpu_set_interrupt(int ipl, int autovector)
 {
-  exception_pending[ipl+IPL_EXCEPTION_VECTOR_OFFSET] = 1;
+  cpu_set_exception(ipl+IPL_EXCEPTION_VECTOR_OFFSET);
   interrupt_autovector[ipl] = autovector;
 }
 
 void cpu_set_exception(int vnum)
 {
   exception_pending[vnum] = 1;
+}
+
+void cpu_clr_exception(int vnum)
+{
+  exception_pending[vnum] = 0;
 }
 
 void cpu_set_bus_error(int flags, LONG addr)
@@ -491,6 +493,12 @@ void cpu_print_status(int which_pc)
   printf("SR: %04x\n", cpu->sr);
   printf("C:  %ld\n", cpu->cycle);
   printf("BUS: %08x\n", mmu_read_long(8));
+
+  for(i=0;i<256;i++) {
+    if(exception_pending[i]) {
+      printf("Pending exception: %d [%04x]\n", i, i*4);
+    }
+  }
 }
 
 /* Functions for printing cpu state and instructions */

@@ -59,6 +59,9 @@ static int framecnt;
 static int ppm_fd;
 static unsigned char *rgbimage;
 
+static int vbl_triggered = 0;
+static int hbl_triggered = 0;
+
 static void set_palette(int pnum, int value, int part)
 {
   int c;
@@ -598,8 +601,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
       last_vsync_ticks = current_ticks;
     }
     screen_swap(SCREEN_NORMAL);
-    //    if(!noint && (IPL < 4))
-    cpu_set_interrupt(IPL_VBL, IPL_NO_AUTOVECTOR); /* Set VBL interrupt as pending */
+    vbl_triggered = 1;
     framecnt++;
   }
 
@@ -609,9 +611,18 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     hblscr = HBLSCR;
     shifter_gen_picture(VBLSIZE*HBLSIZE-vsynccnt);
     hsynccnt += HBLSIZE;
-    if(!noint && (IPL < 2))
-      cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
+    hbl_triggered = 1;
+    cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
+  }
 
+  if(!noint && (IPL < 4) && vbl_triggered) {
+    vbl_triggered = 0;
+    cpu_set_interrupt(IPL_VBL, IPL_NO_AUTOVECTOR); /* Set VBL interrupt as pending */
+  }
+
+  if(!noint && (IPL < 2) && hbl_triggered) {
+    hbl_triggered = 0;
+    cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* Set HBL interrupt as pending */
   }
   
   /* Line Interrupt */

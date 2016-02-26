@@ -120,6 +120,7 @@ void cpu_do_cycle(LONG);
 void cpu_check_for_pending_interrupts();
 void cpu_set_interrupt(int, int);
 void cpu_set_exception(int);
+void cpu_clr_exception(int);
 void cpu_set_bus_error(int, LONG);
 void cpu_add_debugpoint(LONG);
 void cpu_set_sr(WORD);

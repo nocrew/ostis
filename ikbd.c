@@ -415,14 +415,6 @@ void ikbd_init()
 
 void ikbd_do_interrupts(struct cpu *cpu)
 {
-#if 0
-  long tmpcpu;
-  tmpcpu = cpu->cycle - lastcpucnt;
-  if(tmpcpu < 0) {
-    tmpcpu += MAX_CYCLE;
-  }
-#endif
-
   if(cpu->cycle > ikbd_next_interrupt_cycle) {
     if(ikbd_control&0x80) {
       if(ikbd_fifocnt > 0) {
@@ -436,34 +428,4 @@ void ikbd_do_interrupts(struct cpu *cpu)
 
     ikbd_next_interrupt_cycle = cpu->cycle + IKBD_INTINTERVAL;
   }
-  
-#if 0
-  if(ikbd_intcnt > 0) {
-    ikbd_intcnt -= tmpcpu;
-    if(debugger) {
-      if(ikbd_fifocnt > 25) {
-        //	printf("DEBUG: ikbd_intcnt == %d\n", ikbd_intcnt);
-	printf("DEBUG: ikbd_control == %02x\n", ikbd_control);
-	printf("DEBUG: ikbd_fifocnt == %d\n", ikbd_fifocnt);
-	printf("DEBUG: ikbd_status == %02x\n", ikbd_status);
-      }
-    }
-    if(ikbd_intcnt <= 0) {
-      if(ikbd_control&0x80) {
-	if(ikbd_fifocnt > 0) {
-	  ikbd_status |= 0x81;
-	  mfp_clr_GPIP(MFP_GPIP_ACIA);
-	  //printf("DEBUG: sending keyboard interrupt\n");
-	} else {
-	  mfp_set_GPIP(MFP_GPIP_ACIA);
-	}
-      }
-      ikbd_intcnt += IKBD_INTCNT;
-      if(cpu->debug)
-	printf("DEBUG: Resetting ikbd_intcnt\n");
-    }
-  }
-  
-  lastcpucnt = cpu->cycle;
-#endif
 }

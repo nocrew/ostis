@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
   psg_init();
   midi_init();
   ikbd_init();
-  rtc_init();
+  //  rtc_init();
   fdc_init();
   mfp_init();
   screen_disable(0);

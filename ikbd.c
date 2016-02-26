@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <SDL_mouse.h>
 #include "common.h"
 #include "event.h"
@@ -102,6 +103,38 @@ static void ikbd_set_mouse_threshold(void)
   printf("DEBUG: IKBD set mouse threshold %u %u\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
 }
 
+static void ikbd_return_clock(void)
+{
+  time_t now;
+  struct tm clock;
+  int year,month,day,hour,min,sec;
+  int bcd_year,bcd_month,bcd_day,bcd_hour,bcd_min,bcd_sec;
+
+  time(&now);
+  localtime_r(&now, &clock);
+  year = clock.tm_year + 1900;
+  month = clock.tm_mon + 1;
+  day = clock.tm_mday;
+  hour = clock.tm_hour;
+  min = clock.tm_min;
+  sec = clock.tm_sec;
+
+  bcd_year = (((year/10)%10)<<4)|year%10;
+  bcd_month = (((month/10)%10)<<4)|month%10;
+  bcd_day = (((day/10)%10)<<4)|day%10;
+  bcd_hour = (((hour/10)%10)<<4)|hour%10;
+  bcd_min = (((min/10)%10)<<4)|min%10;
+  bcd_sec = (((sec/10)%10)<<4)|sec%10;
+  
+  ikbd_queue_fifo(0xfc);
+  ikbd_queue_fifo(bcd_year);
+  ikbd_queue_fifo(bcd_month);
+  ikbd_queue_fifo(bcd_day);
+  ikbd_queue_fifo(bcd_hour);
+  ikbd_queue_fifo(bcd_min);
+  ikbd_queue_fifo(bcd_sec);
+}
+
 static void ikbd_reset(void)
 {
   printf("DEBUG: IKBD reset %02x\n", ikbd_cmdbuf[0]);
@@ -158,6 +191,8 @@ static void ikbd_set_cmd(BYTE cmd)
     printf("DEBUG: IKBD disable joysticks\n");
     ikbd_joystick_enabled = 0;
     break;
+  case 0x1c:
+    ikbd_return_clock();
   case 0x80:
     ikbd_cmdfn = ikbd_reset;
     ikbd_cmdcnt = 1;

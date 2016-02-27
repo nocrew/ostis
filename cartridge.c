@@ -60,21 +60,22 @@ void cartridge_init(char *filename)
   }
 
   fp = fopen(filename, "rb");
-  if(!fp) return;
-  fseek(fp, 0, SEEK_END);
-  file_size = ftell(fp);
-  rewind(fp);
+  if(fp) {
+    fseek(fp, 0, SEEK_END);
+    file_size = ftell(fp);
+    rewind(fp);
 
-  if(file_size <= CARTRIDGESIZE) {
-    if(fread(memory, 1, file_size, fp) != file_size) {
-      printf("Cartridge: Unable to load %d bytes from %s\n", file_size, filename);
-      /* Making sure cartridge memory area doesn't start with boot sequence */
-      memory[0] = '\0';
+    if(file_size <= CARTRIDGESIZE) {
+      if(fread(memory, 1, file_size, fp) != file_size) {
+        printf("Cartridge: Unable to load %d bytes from %s\n", file_size, filename);
+        /* Making sure cartridge memory area doesn't start with boot sequence */
+        memory[0] = '\0';
+      }
+    } else {
+      printf("Cartridge: Cannot load file larger than cartridge memory area\n");
     }
-  } else {
-    printf("Cartridge: Cannot load file larger than cartridge memory area\n");
+    fclose(fp);
   }
-  fclose(fp);
   
   cartridge->start = CARTRIDGEBASE;
   cartridge->size = CARTRIDGESIZE;

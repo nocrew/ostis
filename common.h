@@ -48,6 +48,9 @@ extern int ppmoutput;
 extern int psgoutput;
 extern int vsync_delay;
 extern int play_audio;
+#if TEST_BUILD
+extern char *testcase_name;
+#endif
 
 #endif
 

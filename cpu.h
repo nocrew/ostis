@@ -1,6 +1,8 @@
 #ifndef CPU_H
 #define CPU_H
 
+struct cpu;
+
 #include "common.h"
 
 struct cpu {

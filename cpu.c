@@ -11,6 +11,9 @@
 #include "ikbd.h"
 #include "instr.h"
 #include "state.h"
+#if TEST_BUILD
+#include "tests/test_main.h"
+#endif
 
 struct cpu *cpu;
 
@@ -204,6 +207,7 @@ int cpu_step_instr(int trace)
              cprint->data);
       free(cprint);
     }
+
     instr[op](cpu, op);
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
@@ -502,6 +506,10 @@ void cpu_init()
   instr_print[0x4e7b] = illegal_instr_print;
 
   instr[0x42c0] = illegal_instr;
+
+#if TEST_BUILD
+  test_cpu_init((void *)instr, (void *)instr_print);
+#endif
 }
 
 void cpu_print_status(int which_pc)

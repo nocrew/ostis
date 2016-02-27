@@ -11,4 +11,5 @@ ostis.ppm
 ostis.state
 ostis
 ostis-gdb
+ostis-test
 core

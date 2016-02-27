@@ -20,12 +20,22 @@
 #include "debug/debug.h"
 #include "cartridge.h"
 #include "state.h"
+#if TEST_BUILD
+#include "tests/test_main.h"
+#endif
 
 int debugger = 0;
 int ppmoutput = 0;
 int psgoutput = 0;
 int vsync_delay = 0;
 int play_audio = 0;
+
+#if TEST_BUILD
+int test_mode = 0;
+char *test_case_name;
+#define OPT_TEST_MODE            99999
+#endif
+
 
 #define OPT_CART                 10000
 #define OPT_FORCE_EXTREME_DISASM 10001
@@ -34,7 +44,9 @@ int main(int argc, char *argv[])
 {
   int i,c;
   struct state *state = NULL;
-
+#if TEST_BUILD
+  struct test_case *test_case;
+#endif
   prefs_init();
 
   while(1) {
@@ -42,6 +54,9 @@ int main(int argc, char *argv[])
     static struct option long_options[] = {
       {"cart",                  required_argument, 0, OPT_CART },
       {"force-extreme-disasm",  no_argument,       0, OPT_FORCE_EXTREME_DISASM },
+#if TEST_BUILD
+      {"test-case",             required_argument, 0, OPT_TEST_MODE},
+#endif
       {0,                       0,                 0, 0 }
     };
     c = getopt_long(argc, argv, "a:t:s:hdpyVA", long_options, &option_index);
@@ -63,6 +78,12 @@ int main(int argc, char *argv[])
     case OPT_FORCE_EXTREME_DISASM:
       cprint_all = 1;
       break;
+#if TEST_BUILD
+    case OPT_TEST_MODE:
+      test_case_name = strdup(optarg);
+      test_mode = 1;
+      break;
+#endif
     case 'd':
       debugger = 1;
       break;
@@ -92,6 +113,18 @@ int main(int argc, char *argv[])
 
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK|SDL_INIT_AUDIO);
 
+#if TEST_BUILD
+  if(test_mode) {
+    test_case = test_init(test_case_name);
+    if(test_case->cartridge_name) {
+      prefs_set("cartimage", test_case->cartridge_name);
+    }
+    if(test_case->floppy_name) {
+      prefs_set("diskimage", test_case->floppy_name);
+    }
+  }
+#endif
+  
   /* Must run before hardware module inits */
   mmu_init();
 

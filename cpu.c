@@ -86,7 +86,7 @@ static void cpu_exception_reset_sr()
   cpu_set_sr((cpu->sr|0x2000)&(~0x8000));
 }
 
-static void cpu_exception_bus_error()
+static void cpu_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
@@ -102,8 +102,8 @@ static void cpu_exception_bus_error()
   mmu_write_long(cpu->a[7], bus_error_address);
   cpu->a[7] -= 2;
   mmu_write_word(cpu->a[7], bus_error_flags);
-  cpu->pc = mmu_read_long(4*VEC_BUSERR);
-  cpu_clr_exception(VEC_BUSERR);
+  cpu->pc = mmu_read_long(4*vnum);
+  cpu_clr_exception(vnum);
   cpu_do_cycle(50);
 }
 
@@ -161,8 +161,8 @@ static void cpu_do_exception(int vnum)
 {
   cpu->stopped = 0;
 
-  if(vnum == 2) {
-    cpu_exception_bus_error();
+  if(vnum == 2 || vnum == 3) {
+    cpu_exception_full_stacked(vnum);
   } else if(vnum == 4) {
     cpu_exception_general(4);
   } else if(vnum >= 25 && vnum <= 31) {
@@ -222,7 +222,8 @@ int cpu_step_instr(int trace)
   /* If we get Bus Error, just ignore everything else */
   if(exception_pending[VEC_BUSERR]) {
     cpu_do_exception(VEC_BUSERR);
-    cprint_all = 0;
+  } else if(exception_pending[VEC_ADDRERR]) {
+    cpu_do_exception(VEC_ADDRERR);
   } else {
     /* We check for trace, interrupt, illegal and priv in that order,
        then any other exception,  but we trigger them in reverse order 
@@ -321,10 +322,10 @@ void cpu_clr_exception(int vnum)
   exception_pending[vnum] = 0;
 }
 
-void cpu_set_bus_error(int flags, LONG addr)
+static void cpu_set_full_stacked_exception(int vnum, int flags, LONG addr)
 {
   bus_error_flags = flags;
-  if((flags&0x08) == CPU_BUSERR_DATA) {
+  if((flags&0x08) == CPU_STACKFRAME_DATA) {
     bus_error_flags |= 0x1;
   } else {
     bus_error_flags |= 0x2;
@@ -333,7 +334,17 @@ void cpu_set_bus_error(int flags, LONG addr)
     bus_error_flags |= 0x4;
   }
   bus_error_address = addr;
-  exception_pending[VEC_BUSERR] = 1;
+  exception_pending[vnum] = 1;
+}
+
+void cpu_set_bus_error(int flags, LONG addr)
+{
+  cpu_set_full_stacked_exception(VEC_BUSERR, flags, addr);
+}
+
+void cpu_set_address_error(int flags, LONG addr)
+{
+  cpu_set_full_stacked_exception(VEC_ADDRERR, flags, addr);
 }
 
 void cpu_set_sr(WORD sr)

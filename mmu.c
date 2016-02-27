@@ -119,6 +119,27 @@ void mmu_send_bus_error(int reading, LONG addr)
   cpu_set_bus_error(flags, addr);
 }
 
+void mmu_send_address_error(int reading, LONG addr)
+{
+  int flags = 0;
+
+  if(reading) {
+    flags |= CPU_ADDRERR_READ;
+  } else {
+    flags |= CPU_ADDRERR_WRITE;
+  }
+  if(cpu->pc == addr) {
+    flags |= CPU_ADDRERR_INSTR;
+  } else {
+    flags |= CPU_ADDRERR_DATA;
+  }
+  
+  fprintf(stdout, "ADDRESS ERROR at 0x%08x\n", addr);
+  cpu_print_status(CPU_USE_LAST_PC);
+  
+  cpu_set_address_error(flags, addr);
+}
+
 BYTE mmu_read_byte_print(LONG addr)
 {
   struct mmu *t;
@@ -212,6 +233,10 @@ WORD mmu_read_word(LONG addr)
     mmu_send_bus_error(CPU_BUSERR_READ, addr);
     return 0;
   }
+  if(addr&1) {
+    mmu_send_address_error(CPU_ADDRERR_READ, addr);
+    return 0;
+  }
   return t->read_word(addr);
 }
 
@@ -228,6 +253,10 @@ LONG mmu_read_long(LONG addr)
   }
   if(!t->read_long) {
     mmu_send_bus_error(CPU_BUSERR_READ, addr);
+    return 0;
+  }
+  if(addr&1) {
+    mmu_send_address_error(CPU_ADDRERR_READ, addr);
     return 0;
   }
   return t->read_long(addr);
@@ -266,6 +295,10 @@ void mmu_write_word(LONG addr, WORD data)
     mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
     return;
   }
+  if(addr&1) {
+    mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
+    return;
+  }
   t->write_word(addr, data);
 }
 
@@ -282,6 +315,10 @@ void mmu_write_long(LONG addr, LONG data)
   }
   if(!t->write_long) {
     mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
+    return;
+  }
+  if(addr&1) {
+    mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
     return;
   }
   t->write_long(addr, data);

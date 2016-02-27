@@ -85,6 +85,7 @@ extern int cprint_all;
 #define IPL_EXCEPTION_VECTOR_OFFSET 24
 
 #define VEC_BUSERR  2
+#define VEC_ADDRERR 2
 #define VEC_ILLEGAL 4
 #define VEC_ZERODIV 5
 #define VEC_CHK     6
@@ -95,10 +96,17 @@ extern int cprint_all;
 #define VEC_LINEF  11
 #define VEC_SPUR   24
 
+#define CPU_STACKFRAME_DATA  0x08
+
 #define CPU_BUSERR_READ  0x10
 #define CPU_BUSERR_WRITE 0
 #define CPU_BUSERR_INSTR 0
 #define CPU_BUSERR_DATA  0x08
+
+#define CPU_ADDRERR_READ  0x10
+#define CPU_ADDRERR_WRITE 0
+#define CPU_ADDRERR_INSTR 0
+#define CPU_ADDRERR_DATA  0x08
 
 #define CPU_USE_CURRENT_PC 0
 #define CPU_USE_LAST_PC    1
@@ -132,6 +140,7 @@ void cpu_set_interrupt(int, int);
 void cpu_set_exception(int);
 void cpu_clr_exception(int);
 void cpu_set_bus_error(int, LONG);
+void cpu_set_address_error(int, LONG);
 void cpu_add_debugpoint(LONG);
 void cpu_set_sr(WORD);
 int cpu_find_breakpoint_lowest_cnt(LONG);

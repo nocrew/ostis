@@ -5,13 +5,16 @@
 static void andi_to_ccr(struct cpu *cpu, WORD op)
 {
   WORD d;
+  WORD sr;
 
   ENTER;
 
   ADD_CYCLE(20);
   d = mmu_read_word(cpu->pc)&0x1f;
   cpu->pc += 2;
-  cpu_set_sr(cpu->sr&d);
+  sr = cpu->sr;
+  sr = (sr&0xff00)|((sr&0xff)&d);
+  cpu_set_sr(sr);
 }
 
 static struct cprint *andi_to_ccr_print(LONG addr, WORD op)

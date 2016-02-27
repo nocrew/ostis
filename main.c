@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <getopt.h>
 #include "common.h"
 #include "mmu.h"
 #include "mmu_fallback.h"
@@ -26,6 +27,9 @@ int psgoutput = 0;
 int vsync_delay = 0;
 int play_audio = 0;
 
+#define OPT_CART                 10000
+#define OPT_FORCE_EXTREME_DISASM 10001
+
 int main(int argc, char *argv[])
 {
   int i,c;
@@ -34,7 +38,13 @@ int main(int argc, char *argv[])
   prefs_init();
 
   while(1) {
-    c = getopt(argc, argv, "a:t:s:hdpyVA");
+    int option_index = 0;
+    static struct option long_options[] = {
+      {"cart",                  required_argument, 0, OPT_CART },
+      {"force-extreme-disasm",  no_argument,       0, OPT_FORCE_EXTREME_DISASM },
+      {0,                       0,                 0, 0 }
+    };
+    c = getopt_long(argc, argv, "a:t:s:hdpyVA", long_options, &option_index);
     if(c == -1) break;
 
     switch(c) {
@@ -46,6 +56,12 @@ int main(int argc, char *argv[])
       break;
     case 's':
       prefs_set("stateimage", optarg);
+      break;
+    case OPT_CART:
+      prefs_set("cartimage", optarg);
+      break;
+    case OPT_FORCE_EXTREME_DISASM:
+      cprint_all = 1;
       break;
     case 'd':
       debugger = 1;
@@ -88,7 +104,11 @@ int main(int argc, char *argv[])
   ram_init();
   rom_init();
   cpu_init();
-  cartridge_init();
+  if(prefs.cartimage) {
+    cartridge_init(prefs.cartimage);
+  } else {
+    cartridge_init(NULL);
+  }
   psg_init();
   midi_init();
   ikbd_init();

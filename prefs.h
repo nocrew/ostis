@@ -5,6 +5,7 @@ struct prefs {
   char *tosimage;
   char *stateimage;
   char *diskimage;
+  char *cartimage;
 };
 
 extern struct prefs prefs;

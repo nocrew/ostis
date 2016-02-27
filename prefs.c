@@ -31,6 +31,12 @@ void prefs_set(char *key, char *value)
       prefs.diskimage = strdup(value);
     else
       prefs.diskimage = NULL;
+  } else if(!strncasecmp("cartimage", key, 9)) {
+    if(prefs.cartimage != NULL) free(prefs.cartimage);
+    if(value != NULL)
+      prefs.cartimage = strdup(value);
+    else
+      prefs.cartimage = NULL;
   }
 }
 

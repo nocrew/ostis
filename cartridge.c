@@ -43,9 +43,11 @@ static void cartridge_state_restore(struct mmu_state *state)
 {
 }
 
-void cartridge_init()
+void cartridge_init(char *filename)
 {
   struct mmu *cartridge;
+  FILE *fp;
+  int file_size = 0;
 
   memory = (BYTE *)malloc(sizeof(BYTE) * CARTRIDGESIZE);
   if(!memory) {
@@ -56,19 +58,24 @@ void cartridge_init()
     free(memory);
     return;
   }
+
+  fp = fopen(filename, "rb");
+  if(!fp) return;
+  fseek(fp, 0, SEEK_END);
+  file_size = ftell(fp);
+  rewind(fp);
+
+  if(file_size <= CARTRIDGESIZE) {
+    if(fread(memory, 1, file_size, fp) != file_size) {
+      printf("Cartridge: Unable to load %d bytes from %s\n", file_size, filename);
+      /* Making sure cartridge memory area doesn't start with boot sequence */
+      memory[0] = '\0';
+    }
+  } else {
+    printf("Cartridge: Cannot load file larger than cartridge memory area\n");
+  }
+  fclose(fp);
   
-  /* Cartridge signature: 0xfa52235f
-   *
-   * Only for testing purposes...
-   */
-
-#if 0
-  memory[0] = 0xfa;
-  memory[1] = 0x52;
-  memory[2] = 0x23;
-  memory[3] = 0x5f;
-#endif
-
   cartridge->start = CARTRIDGEBASE;
   cartridge->size = CARTRIDGESIZE;
   memcpy(cartridge->id, "CART", 4);

@@ -17,7 +17,7 @@ PARSERFILE=expr.y expr.l
 PARSERSRC=expr.tab.c lex.expr.c
 PARSEROBJ=$(PARSERSRC:.c=.o)
 
-SRC=mmu.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
+SRC=mmu.c mmu_fallback.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
     midi.c ikbd.c fdc.c rtc.c floppy.c event.c state.c prefs.c
 OBJ=$(SRC:.c=.o)
 

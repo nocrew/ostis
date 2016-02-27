@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include "common.h"
 #include "mmu.h"
+#include "mmu_fallback.h"
 #include "ram.h"
 #include "rom.h"
 #include "cpu.h"
@@ -75,7 +76,15 @@ int main(int argc, char *argv[])
 
   SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK|SDL_INIT_AUDIO);
 
-  mmu_init(); /* Must run before hardware module inits */
+  /* Must run before hardware module inits */
+  mmu_init();
+
+  /* This must also be run before hardware modules.
+     It gives a dummy area for some memory regions to not
+     cause bus errors */
+  mmu_fallback_init(); 
+
+  /* Actual hardware */
   ram_init();
   rom_init();
   cpu_init();

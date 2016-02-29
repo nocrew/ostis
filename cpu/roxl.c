@@ -2,9 +2,93 @@
 #include "cpu.h"
 #include "ea.h"
 
+static BYTE roxl_byte_one(BYTE value, int x, int *carry)
+{
+  *carry = 0;
+  *carry = (value&0x80)>>7;
+  value = value<<1;
+  value |= x;
+  return value;
+}
+
+static BYTE roxl_byte_count(BYTE value, int count, int x, int *carry)
+{
+  int i;
+
+  if(count == 0) {
+    *carry = x;
+    return value;
+  }
+    
+  for(i=0;i<count;i++) {
+    value = roxl_byte_one(value, x, carry);
+    x = *carry;
+  }
+  return value;
+}
+
+static WORD roxl_word_one(WORD value, int x, int *carry)
+{
+  *carry = 0;
+  *carry = (value&0x8000)>>15;
+  value = value<<1;
+  value |= x;
+  return value;
+}
+
+static WORD roxl_word_count(WORD value, int count, int x, int *carry)
+{
+  int i;
+  
+  if(count == 0) {
+    *carry = x;
+    return value;
+  }
+    
+  for(i=0;i<count;i++) {
+    value = roxl_word_one(value, x, carry);
+    x = *carry;
+  }
+  return value;
+}
+
+static LONG roxl_long_one(LONG value, int x, int *carry)
+{
+  *carry = 0;
+  *carry = (value&0x80000000)>>31;
+  value = value<<1;
+  value |= x;
+  return value;
+}
+
+static LONG roxl_long_count(LONG value, int count, int x, int *carry)
+{
+  int i;
+  
+  if(count == 0) {
+    *carry = x;
+    return value;
+  }
+    
+  for(i=0;i<count;i++) {
+    value = roxl_long_one(value, x, carry);
+    x = *carry;
+  }
+  return value;
+}
+
+static void roxl_set_flags(struct cpu *cpu, int xflag, int cflag, int nflag, int zflag)
+{
+  CLRV;
+  if(xflag) SETX; else CLRX;
+  if(cflag) SETC; else CLRC;
+  if(nflag) SETN; else CLRN;
+  if(zflag) SETZ; else CLRZ;
+}
+
 static void roxl_r(struct cpu *cpu, WORD op)
 {
-  int c,r,x;
+  int c,r,x,carry;
   BYTE b;
   WORD w;
   LONG l;
@@ -17,19 +101,19 @@ static void roxl_r(struct cpu *cpu, WORD op)
 
   switch((op&0xc0)>>6) {
   case 0:
-    b = ((cpu->d[r]&0xff)<<c)|((x<<c)>>1)|((cpu->d[r]&0xff)>>(9-c));
-    cpu_set_flags_roxl(cpu, b&0x80, b, c, ((cpu->d[r]&0xff)<<(c-1))&0x80);
+    b = roxl_byte_count(cpu->d[r]&0xff, c, x, &carry);
+    roxl_set_flags(cpu, carry, carry, b&80, !b);
     cpu->d[r] = (cpu->d[r]&0xffffff00)|b;
     break;
   case 1:
-    w = ((cpu->d[r]&0xffff)<<c)|((x<<c)>>1)|((cpu->d[r]&0xffff)>>(17-c));
-    cpu_set_flags_roxl(cpu, w&0x8000, w, c, ((cpu->d[r]&0xffff)<<(c-1))&0x8000);
+    w = roxl_word_count(cpu->d[r]&0xffff, c, x, &carry);
+    roxl_set_flags(cpu, carry, carry, w&8000, !w);
     cpu->d[r] = (cpu->d[r]&0xffff0000)|w;
     break;
   case 2:
     ADD_CYCLE(2);
-    l = (cpu->d[r]<<c)|((x<<c)>>1)|(cpu->d[r]>>(33-c));
-    cpu_set_flags_roxl(cpu, l&0x80000000, l, c, (cpu->d[r]<<(c-1))&0x80000000);
+    l = roxl_long_count(cpu->d[r], c, x, &carry);
+    roxl_set_flags(cpu, carry, carry, l&80000000, !l);
     cpu->d[r] = l;
     break;
   }
@@ -37,7 +121,7 @@ static void roxl_r(struct cpu *cpu, WORD op)
 
 static void roxl_i(struct cpu *cpu, WORD op)
 {
-  int c,r,x;
+  int c,r,x,carry;
   BYTE b;
   WORD w;
   LONG l;
@@ -51,19 +135,19 @@ static void roxl_i(struct cpu *cpu, WORD op)
 
   switch((op&0xc0)>>6) {
   case 0:
-    b = ((cpu->d[r]&0xff)<<c)|((x<<c)>>1)|((cpu->d[r]&0xff)>>(9-c));
-    cpu_set_flags_roxl(cpu, b&0x80, b, c, ((cpu->d[r]&0xff)<<(c-1))&0x80);
+    b = roxl_byte_count(cpu->d[r]&0xff, c, x, &carry);
+    roxl_set_flags(cpu, carry, carry, b&80, !b);
     cpu->d[r] = (cpu->d[r]&0xffffff00)|b;
     break;
   case 1:
-    w = ((cpu->d[r]&0xffff)<<c)|((x<<c)>>1)|((cpu->d[r]&0xffff)>>(17-c));
-    cpu_set_flags_roxl(cpu, w&0x8000, w, c, ((cpu->d[r]&0xffff)<<(c-1))&0x8000);
+    w = roxl_word_count(cpu->d[r]&0xffff, c, x, &carry);
+    roxl_set_flags(cpu, carry, carry, w&8000, !w);
     cpu->d[r] = (cpu->d[r]&0xffff0000)|w;
     break;
   case 2:
     ADD_CYCLE(2);
-    l = (cpu->d[r]<<c)|((x<<c)>>1)|(cpu->d[r]>>(33-c));
-    cpu_set_flags_roxl(cpu, l&0x80000000, l, c, (cpu->d[r]<<(c-1))&0x80000000);
+    l = roxl_long_count(cpu->d[r], c, x, &carry);
+    roxl_set_flags(cpu, carry, carry, l&80000000, !l);
     cpu->d[r] = l;
     break;
   }
@@ -72,13 +156,13 @@ static void roxl_i(struct cpu *cpu, WORD op)
 static void roxl_m(struct cpu *cpu, WORD op)
 {
   WORD d;
-  int x;
+  int x,carry;
 
   if(CHKX) x = 1; else x = 0;
 
   d = ea_read_word(cpu, op&0x3f, 1);
-  cpu_set_flags_roxl(cpu, (d<<1)&0x8000, d<<1, 1, d&0x8000);
-  d = (d<<1)|x|(d>>16);
+  d = roxl_word_count(d, 1, x, &carry);
+  roxl_set_flags(cpu, carry, carry, d&8000, !d);
   ea_write_word(cpu, op&0x3f, d);
 
   ADD_CYCLE(8);

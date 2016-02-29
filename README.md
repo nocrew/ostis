@@ -29,7 +29,8 @@ Command line options:
 `-d`  - Activate MonST clone  
 `-p`  - Dump all video into PPM file (`ostis.ppm`)  
 `-y`  - Dump all audio into raw PCM file (`psg.raw`)  
-`-V`  - Try to wait for 50Hz delay between frames
+`-V`  - Try to wait for 50Hz delay between frames  
+`-M`  - Monochrome mode.
 
 Special keys:  
 `F11`           - save emulator state to file  

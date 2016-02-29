@@ -3,6 +3,20 @@
 
 #include "cpu.h"
 
+struct resolution_data {
+  // int (*get_pixel)(int, int);
+  // void (*set_pixel)(int, int);
+  long hblsize;
+  long hblpre;
+  long hblscr;
+  long hblpost;
+  long vblsize;
+  long vblpre;
+  long vblscr;
+  int voff_shift;
+  int border;
+};
+
 void shifter_init();
 void shifter_do_interrupts(struct cpu *, int);
 void shifter_build_image(int);

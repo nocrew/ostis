@@ -64,7 +64,7 @@ static BYTE mfp_read_byte(LONG addr)
 
   switch(r) {
   case GPIP:
-    return mfpreg[GPIP]|0x80;
+    return mfpreg[GPIP] | (monitor_sm124 ? 0 : 0x80);
   case TADR:
   case TBDR:
   case TCDR:

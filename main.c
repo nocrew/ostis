@@ -29,6 +29,7 @@ int ppmoutput = 0;
 int psgoutput = 0;
 int vsync_delay = 0;
 int play_audio = 0;
+int monitor_sm124 = 0;
 
 #if TEST_BUILD
 int test_mode = 0;
@@ -59,7 +60,7 @@ int main(int argc, char *argv[])
 #endif
       {0,                       0,                 0, 0 }
     };
-    c = getopt_long(argc, argv, "a:t:s:hdpyVA", long_options, &option_index);
+    c = getopt_long(argc, argv, "a:t:s:hdpyVAM", long_options, &option_index);
     if(c == -1) break;
 
     switch(c) {
@@ -98,6 +99,9 @@ int main(int argc, char *argv[])
       break;
     case 'A':
       play_audio = 1;
+      break;
+    case 'M':
+      monitor_sm124 = 1;
       break;
     case 'h':
     default:

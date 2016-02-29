@@ -120,11 +120,16 @@ int main(int argc, char *argv[])
 #if TEST_BUILD
   if(test_mode) {
     test_case = test_init(test_case_name);
-    if(test_case->cartridge_name) {
-      prefs_set("cartimage", test_case->cartridge_name);
-    }
-    if(test_case->floppy_name) {
-      prefs_set("diskimage", test_case->floppy_name);
+    if(test_case) {
+      if(test_case->cartridge_name) {
+        prefs_set("cartimage", test_case->cartridge_name);
+      }
+      if(test_case->floppy_name) {
+        prefs_set("diskimage", test_case->floppy_name);
+      }
+    } else {
+      printf("DEBUG: Could not load test case %s\n", test_case_name);
+      exit(-3);
     }
   }
 #endif

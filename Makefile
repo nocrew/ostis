@@ -48,7 +48,7 @@ gdb:
 	$(MAKE) ostis-gdb CFLAGS_EXTRA="-ggdb"
 
 test:
-	$(MAKE) ostis-test CFLAGS_EXTRA="-O3 -DTEST_BUILD"
+	$(MAKE) ostis-test CFLAGS_EXTRA="-ggdb -DTEST_BUILD"
 
 ostis ostis-gdb: $(DEPS)
 	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)

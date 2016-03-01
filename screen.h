@@ -13,6 +13,8 @@ void screen_disable(int);
 int screen_check_disable();
 void *screen_pixels();
 void screen_toggle_grab();
+void screen_toggle_fullscreen();
+
 extern int screen_window_id;
 
 #define SDL_SCALING_NEAREST "0"

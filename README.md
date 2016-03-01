@@ -38,7 +38,8 @@ Special keys:
 `F13`           - temporarily save state  
 `F14`           - restore temporary state  
 `PrintScr`      - toggle insane amount of debug output (live disassemble)  
-`Ctrl-PrintScr` - toggle window grab (also hides native mouse cursor)  
+`Pause`         - toggle window grab (also hides native mouse cursor)  
+`Ctrl-Pause`    - toggle fullscreen
 
 MonST keys:  
 `Esc` - set window address to pc  

@@ -20,6 +20,7 @@ int screen_window_id;
 static SDL_Texture *rasterpos_indicator[2];
 static int rasterpos_indicator_cnt = 0;
 static int screen_grabbed = 0;
+static int screen_fullscreen = 0;
 
 struct monitor monitors[] = {
   { 1024, 626, 313 },
@@ -207,20 +208,31 @@ void *screen_pixels()
   return screen->pixels;
 }
 
-void screen_toggle_grab()
+static void set_screen_grabbed(int grabbed)
 {
   int w, h;
-  
-  if(screen_grabbed) {
-    SDL_SetWindowGrab(window, SDL_FALSE);
-    SDL_ShowCursor(1);
-    screen_grabbed = 0;
-  } else {
+
+  if(grabbed) {
     SDL_SetWindowGrab(window, SDL_TRUE);
     SDL_GetWindowSize(window, &w, &h);
     SDL_WarpMouseInWindow(window, w/2, h/2);
     SDL_ShowCursor(0);
     screen_grabbed = 1;
+  } else {
+    SDL_SetWindowGrab(window, SDL_FALSE);
+    SDL_ShowCursor(1);
+    screen_grabbed = 0;
   }
 }
 
+void screen_toggle_grab()
+{
+  set_screen_grabbed(!screen_grabbed);
+}
+
+void screen_toggle_fullscreen()
+{
+  screen_fullscreen = !screen_fullscreen;
+  SDL_SetWindowFullscreen(window, screen_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+  set_screen_grabbed(screen_fullscreen);
+}

@@ -44,6 +44,7 @@ extern int psgoutput;
 extern int vsync_delay;
 extern int play_audio;
 extern int monitor_sm124;
+extern int crop_screen;
 #if TEST_BUILD
 extern char *testcase_name;
 #endif

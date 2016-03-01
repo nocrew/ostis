@@ -471,7 +471,7 @@ static void shifter_set_resolution(BYTE data)
 
   res = res_data[data&3];
 
-  if(ppmoutput)
+  if(ppmoutput || crop_screen)
     res.border = 0;
 }
 

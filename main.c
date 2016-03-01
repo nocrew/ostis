@@ -32,6 +32,7 @@ int psgoutput = 0;
 int vsync_delay = 0;
 int play_audio = 0;
 int monitor_sm124 = 0;
+int crop_screen = 0;
 
 #if TEST_BUILD
 int test_mode = 0;
@@ -42,6 +43,7 @@ char *test_case_name;
 
 #define OPT_CART                 10000
 #define OPT_FORCE_EXTREME_DISASM 10001
+#define OPT_CROP_SCREEN          10002
 
 int main(int argc, char *argv[])
 {
@@ -57,6 +59,7 @@ int main(int argc, char *argv[])
     static struct option long_options[] = {
       {"cart",                  required_argument, 0, OPT_CART },
       {"force-extreme-disasm",  no_argument,       0, OPT_FORCE_EXTREME_DISASM },
+      {"crop-screen",           no_argument,       0, OPT_CROP_SCREEN },
 #if TEST_BUILD
       {"test-case",             required_argument, 0, OPT_TEST_MODE},
 #endif
@@ -80,6 +83,9 @@ int main(int argc, char *argv[])
       break;
     case OPT_FORCE_EXTREME_DISASM:
       cprint_all = 1;
+      break;
+    case OPT_CROP_SCREEN:
+      crop_screen = 1;
       break;
 #if TEST_BUILD
     case OPT_TEST_MODE:
@@ -114,6 +120,11 @@ int main(int argc, char *argv[])
     }
   }
 
+  /* Do not crop screen while debugging */
+  if(debugger) {
+    crop_screen = 0;
+  }
+  
   if((prefs.diskimage == NULL) && (argv[optind] != NULL))
     prefs_set("diskimage", argv[optind]);
 

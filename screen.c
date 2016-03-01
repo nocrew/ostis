@@ -8,7 +8,9 @@
 #include "debug/display.h"
 
 struct monitor {
-  int width, height, lines;
+  int width, height, columns, lines;
+  int crop_offset_x, crop_offset_y;
+  int crop_width, crop_height;
 };
 
 static int disable = 0;
@@ -23,8 +25,8 @@ static int screen_grabbed = 0;
 static int screen_fullscreen = 0;
 
 struct monitor monitors[] = {
-  { 1024, 626, 313 },
-  { 896, 501, 501 }
+  { 1024, 626, 1024, 313, 64, 33, 768, 560 },
+  { 896, 501, 896, 501, 0, 0, 896, 501 }
 };
 
 struct monitor mon;
@@ -54,7 +56,7 @@ void screen_make_texture(const char *scale)
   texture = SDL_CreateTexture(renderer,
 			      pixelformat,
 			      SDL_TEXTUREACCESS_STREAMING,
-			      mon.width, mon.lines);
+			      mon.columns, mon.lines);
 }
 
 SDL_Texture *screen_generate_rasterpos_indicator(int color)
@@ -120,13 +122,18 @@ void screen_init()
   else
     mon = monitors[0];
 
+  if (crop_screen) {
+    mon.width = mon.crop_width;
+    mon.height = mon.crop_height;
+  }
+  
     window = SDL_CreateWindow("Main screen",
 			      SDL_WINDOWPOS_UNDEFINED,
 			      SDL_WINDOWPOS_UNDEFINED,
 			      mon.width,
 			      mon.height,
 			      SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    screen = SDL_CreateRGBSurface(0, mon.width, mon.lines,
+    screen = SDL_CreateRGBSurface(0, mon.columns, mon.lines,
 				  24, rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_window_id = SDL_GetWindowID(window);
@@ -169,7 +176,7 @@ void screen_clear()
 
 void screen_swap(int indicate_rasterpos)
 {
-  SDL_Rect dst;
+  SDL_Rect dst,src;
   
   if(disable) return;
 
@@ -177,7 +184,15 @@ void screen_swap(int indicate_rasterpos)
       display_swap_screen();
     }
     SDL_UpdateTexture(texture, NULL, screen->pixels, screen->pitch);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    if(crop_screen) {
+      src.x = mon.crop_offset_x;
+      src.y = mon.crop_offset_y;
+      src.w = mon.crop_width;
+      src.h = mon.crop_height;
+      SDL_RenderCopy(renderer, texture, &src, NULL);
+    } else {
+      SDL_RenderCopy(renderer, texture, NULL, NULL);
+    }
     if(indicate_rasterpos) {
       int rasterpos = shifter_get_vsync();
       dst.x = 2*(rasterpos%512)-8;

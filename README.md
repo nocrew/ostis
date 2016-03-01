@@ -57,6 +57,7 @@ MonST keys:
 `Ctrl-M` - set window address  
 `Ctrl-V` - toggle display  
 `L` - set label  
+`Shift-L` - Save/Load labels to/from file  
 `Alt-B` - set breakpoint  
 `Ctrl-B` - set breakpoint at window  
 `Alt-W` - Set watchpoint  

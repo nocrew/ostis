@@ -40,6 +40,10 @@ static int event_key(SDL_KeyboardEvent key, int state)
 	exit(0);
       }
     }
+  } else if(k.sym == SDLK_PAUSE) {
+    if(state == EVENT_RELEASE) {
+      screen_toggle_grab();
+    }
   } else if(k.sym == SDLK_PRINTSCREEN) {
     if(k.mod & KMOD_ALT) {
       if(state == EVENT_RELEASE) {

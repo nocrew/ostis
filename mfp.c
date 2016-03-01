@@ -290,8 +290,6 @@ static void update_timer(int tnum, long cycles)
 
   if(!d) return;
 
-  //  printf("DEBUG: Calling update_timer(%d, %ld)\n", tnum, cycles);
-
   precnt[tnum] -= cycles;
   if(precnt[tnum] < 0) {
     precnt[tnum] += d*313;
@@ -412,27 +410,22 @@ static void mfp_do_interrupt(int inum)
   if(mfpreg[ISRB]&0x40) {
     if((cpu->sr&0x700) < 0x600) {
       printf("DEBUG: We're out of MFP interrupt with ISR still high\n");
-      //      cpu_enter_debugger();
     }
   }
   
   if(!(IER & (1<<inum))) {
     mfp_clr_IPR(inum);
-    //    if(inum == intnum[2]) printf("DEBUG: IER not set for %d\n", inum);
     return;
   }
-#if 1
+
   if((tmp = mfp_higher_ISR(inum))) {
-    //    if(inum == intnum[2]) printf("DEBUG: Higher ISR active for %d (%d higher)\n", inum, tmp);
     return;
   }
-#endif
+
   if(!(IMR & (1<<inum))) {
-    //    if(inum == intnum[2]) printf("DEBUG: IMR not set for %d\n", inum);
     return;
   }
   if(IPL >= 6) {
-    // printf("DEBUG: IPL not low enough for %d (IPL == %d)\n", inum, IPL);
     return;
   }
 

@@ -10,7 +10,9 @@
 #include "psg.h"
 #include "midi.h"
 #include "ikbd.h"
+#if INCLUDE_RTC
 #include "rtc.h"
+#endif
 #include "fdc.h"
 #include "mfp.h"
 #include "prefs.h"
@@ -43,7 +45,7 @@ char *test_case_name;
 
 int main(int argc, char *argv[])
 {
-  int i,c;
+  int c;
   struct state *state = NULL;
 #if TEST_BUILD
   struct test_case *test_case;
@@ -154,7 +156,9 @@ int main(int argc, char *argv[])
   psg_init();
   midi_init();
   ikbd_init();
-  //  rtc_init();
+#if INCLUDE_RTC
+  rtc_init();
+#endif
   fdc_init();
   mfp_init();
   screen_disable(0);
@@ -165,23 +169,6 @@ int main(int argc, char *argv[])
     cpu_halt_for_debug();
   }
   
-#if 0
-  if(argc > 1) {
-    state = state_load(argv[1]);
-    if(state == NULL) {
-      floppy_init(argv[1]);
-    } else {
-      if(argc > 2) {
-	floppy_init(argv[2]);
-      } else {
-	floppy_init("");
-      }
-    }
-  } else {
-    floppy_init("");
-  }
-#endif
-
   if(prefs.diskimage) {
     floppy_init(prefs.diskimage);
   } else {
@@ -196,23 +183,5 @@ int main(int argc, char *argv[])
     state_restore(state);
 
   while(cpu_run(CPU_RUN));
-
-  mmu_print_map();
-  // cpu_print_status();
-  //  cpu_add_debugpoint(0xfc0280);
-  // cpu_add_debugpoint(0xfc4dc2);
-  //  cpu_add_debugpoint(0xfc2dca);
-  //  cpu_add_debugpoint(0xfc0020);
-  //  cpu_add_debugpoint(0xe00030);
-  for(i=0;i<100000000;i++) {
-    cpu_step_instr(CPU_TRACE);
-    // cpu_print_status();
-    // mfp_print_status();
-  }
-  
-  while(1) {
-    screen_swap(SCREEN_NORMAL);
-  }
-  
   return 0;
 }

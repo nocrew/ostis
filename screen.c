@@ -119,10 +119,6 @@ void screen_init()
   else
     mon = monitors[0];
 
-  //  if(debugger) {
-  //    screen = SDL_CreateRGBSurface(0, 2*512, 314, 24,
-  //    				  rmask, gmask, bmask, amask);
-  //  } else {
     window = SDL_CreateWindow("Main screen",
 			      SDL_WINDOWPOS_UNDEFINED,
 			      SDL_WINDOWPOS_UNDEFINED,
@@ -135,7 +131,6 @@ void screen_init()
     screen_window_id = SDL_GetWindowID(window);
     printf("DEBUG: screen_window_id == %d\n", screen_window_id);
     screen_make_texture(SDL_SCALING_NEAREST);
-    //  }
 
   if(screen == NULL) {
     fprintf(stderr, "Did not get a video mode\n");
@@ -148,16 +143,6 @@ void screen_init()
 
 void screen_copyimage(unsigned char *src)
 {
-#if 0
-  int i;
-#endif
-
-  //  memcpy(screen->pixels, src, 512*314*3);
-#if 0
-  for(i=0;i<314;i++) {
-    memcpy(PADDR(0, i), src+512*3*i, 512*3);
-  }
-#endif
 }
 
 void screen_clear()
@@ -202,7 +187,6 @@ void screen_swap(int indicate_rasterpos)
       rasterpos_indicator_cnt++;
     }
     SDL_RenderPresent(renderer);
-    //  }
 }
 
 void screen_disable(int yes)

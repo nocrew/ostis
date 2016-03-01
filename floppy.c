@@ -52,14 +52,11 @@ int floppy_seek(int track)
   floppy[0].sel_trk = track;
   if(track < 0)
     floppy[0].sel_trk = 0;
-#if 1
+
   if(track >= floppy[0].tracks) {
     floppy[0].sel_trk = floppy[0].tracks-1;
   }
   if(track > floppy[0].tracks) return FLOPPY_ERROR;
-#else
-  if(track > 86) floppy[0].sel_trk = 86;
-#endif
 
   return FLOPPY_OK;
 }
@@ -70,12 +67,8 @@ int floppy_seek_rel(int off)
   floppy[0].sel_trk += off;
   if(floppy[0].sel_trk < 0)
     floppy[0].sel_trk = 0;
-#if 0
-  if(floppy[0].sel_trk >= floppy[0].tracks)
-    floppy[0].sel_trk = floppy[0].tracks-1;
-#else
+
   if(floppy[0].sel_trk > 86) floppy[0].sel_trk = 86;
-#endif
 
   return FLOPPY_OK;
 }
@@ -90,16 +83,6 @@ int floppy_read_sector(LONG addr, int count)
   pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
   pos += (floppy[0].sel_sec-1)*512;
   pos += floppy[0].sel_side*floppy[0].sectors*512;
-#if 0
-  printf("--------\n");
-  printf("Read sector:\n");
-  printf(" - Track:  %d\n", floppy[0].sel_trk);
-  printf(" - Side:   %d\n", floppy[0].sel_side);
-  printf(" - Sector: %d\n", floppy[0].sel_sec);
-  printf(" = Pos:    %d\n", pos);
-  printf("--------\n");
-#endif
-
 
   for(i=0;i<count;i++) {
     if((pos+i*512) >= (floppy_raw_data_size-512)) return FLOPPY_ERROR;
@@ -122,16 +105,6 @@ int floppy_write_sector(LONG addr, int count)
   pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
   pos += (floppy[0].sel_sec-1)*512;
   pos += floppy[0].sel_side*floppy[0].sectors*512;
-#if 0
-  printf("--------\n");
-  printf("Write sector:\n");
-  printf(" - Track:  %d\n", floppy[0].sel_trk);
-  printf(" - Side:   %d\n", floppy[0].sel_side);
-  printf(" - Sector: %d\n", floppy[0].sel_sec);
-  printf(" = Pos:    %d\n", pos);
-  printf("--------\n");
-#endif
-
 
   for(i=0;i<count;i++) {
     if((pos+i*512) >= (floppy_raw_data_size-512)) return FLOPPY_ERROR;
@@ -209,15 +182,6 @@ void floppy_load_raw(FILE *fp)
   fclose(floppy[0].fp);
   floppy[0].fp = NULL;
   floppy[0].inserted = 1;
-  
-#if 0
-  printf("---FLOPPY LAYOUT---\n");
-  printf(" - Tracks:  %d\n", floppy[0].tracks);
-  printf(" - Sides:   %d\n", floppy[0].sides+1);
-  printf(" - Sectors: %d\n", floppy[0].sectors);
-  printf("--------\n");
-#endif
-  
 }
 
 void floppy_load_msa(FILE *fp)
@@ -243,14 +207,6 @@ void floppy_load_msa(FILE *fp)
   }
   ending_track = (msa_header[8]<<8)|msa_header[9];
   floppy[0].tracks = ending_track - starting_track + 1;
-
-#if 1
-  printf("---FLOPPY LAYOUT---\n");
-  printf(" - Tracks:  %d\n", floppy[0].tracks);
-  printf(" - Sides:   %d\n", floppy[0].sides+1);
-  printf(" - Sectors: %d\n", floppy[0].sectors);
-  printf("--------\n");
-#endif
 
   track_size = floppy[0].sectors * 512;
   

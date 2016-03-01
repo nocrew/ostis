@@ -119,26 +119,6 @@ void rom_init()
   rom->state_collect = rom_state_collect;
   rom->state_restore = rom_state_restore;
 
-#if 0
-  memory[0xfc0d60-ROMBASE] = 0x4e;
-  memory[0xfc0d61-ROMBASE] = 0x75;
-
-  memory[0xfc1384-ROMBASE] = 0x4e;
-  memory[0xfc1385-ROMBASE] = 0x71;
-  memory[0xfc1386-ROMBASE] = 0x4e;
-  memory[0xfc1387-ROMBASE] = 0x71;
-  memory[0xfc1388-ROMBASE] = 0x4e;
-  memory[0xfc1389-ROMBASE] = 0x71;
-
-  memory[0xfc03d6-ROMBASE] = 0x4e;
-  memory[0xfc03d7-ROMBASE] = 0x71;
-  memory[0xfc03d8-ROMBASE] = 0x4e;
-  memory[0xfc03d9-ROMBASE] = 0x71;
-
-  //  memory[0xfc1bf6-ROMBASE] = 0x42;
-  //  memory[0xfc1bf7-ROMBASE] = 0x46;
-#endif
-
   mmu_register(rom);
 
   memory2 = (BYTE *)malloc(sizeof(BYTE) * ROMSIZE2);

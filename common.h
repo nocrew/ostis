@@ -15,6 +15,8 @@ typedef int8_t SBYTE;
 typedef int16_t SWORD;
 typedef int32_t SLONG;
 
+#define INCLUDE_RTC 0
+
 #define SIZE_B 0
 #define SIZE_W 1
 #define SIZE_L 2
@@ -24,16 +26,9 @@ typedef int32_t SLONG;
 
 #include "shifter.h"
 
-#if 0
-#define ENTER do { if(cpu->debug) printf("----\nDEBUG: Entering: %s()\n----\n\n", __func__); } while(0);
-#define EXIT do { if(cpu->debug) printf("DEBUG: Exiting: %s()\n", __func__); } while(0);
-#define ENDLOOP do { shifter_build_image(1); screen_swap(); } while(1);
-#else
 #define ENTER 
 #define EXIT 
 #define ENDLOOP
-
-#endif
 
 #define SCREEN_NORMAL 0
 

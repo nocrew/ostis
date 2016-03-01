@@ -253,8 +253,6 @@ static int debug_do_key_edit(SDL_KeyboardEvent key)
 {
   SDL_Keysym k;
 
-  //  Uint16 u;
-
   k = key.keysym;
 
   if(k.sym == SDLK_RETURN) {
@@ -294,11 +292,6 @@ static int debug_dispatch_keys(SDL_Event ev)
 
 int debug_event_parse(SDL_Event ev)
 {
-
-  //  if(!SDL_WaitEvent(&ev)) {
-  //    printf("DEBUG: SDL_Event error.\n");
-  //  }
-  
   switch(ev.type) {
   case SDL_WINDOWEVENT:
     if(ev.window.windowID == debug_window_id) {

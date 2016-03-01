@@ -96,9 +96,6 @@ static void ramcfg_write_byte(LONG addr, BYTE data)
 void ram_init()
 {
   struct mmu *ram,*cfg;
-#if 0
-  int i;
-#endif
 
   memory = (BYTE *)malloc(sizeof(BYTE) * RAMSIZE);
   if(!memory) {
@@ -121,24 +118,6 @@ void ram_init()
   ram->write_long = ram_write_long;
   ram->state_collect = ram_state_collect;
   ram->state_restore = ram_state_restore;
-
-#if 0
-  ram_write_long(0x420, 0x752019f3);
-  ram_write_long(0x43a, 0x237698aa);
-  ram_write_long(0x51a, 0x5555aaaa);
-  ram_write_byte(0x424, 10);
-  ram_write_byte(0x436, RAMSIZE+RAMBASE-0x8000);
-  ram_write_long(0x42e, RAMSIZE+RAMBASE);
-#endif
-
-#if 0
-  for(i=0;i<RAMSIZE;i+=4) {
-    memory[i] = 0xde;
-    memory[i+1] = 0xad;
-    memory[i+2] = 0xbe;
-    memory[i+3] = 0xef;
-  }
-#endif
 
   mmu_register(ram);
 

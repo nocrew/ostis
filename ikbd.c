@@ -223,15 +223,7 @@ static int ikbd_pop_fifo()
 static void ikbd_queue_fifo(BYTE data)
 {
   if(ikbd_fifocnt == IKBDFIFO) {
-    //    printf("DEBUG: Queue full, ignoring...\n");
-    //    ikbd_pop_fifo();
     ikbd_status |= 0x20;
-    //    if(ikbd_control&0x80) {
-      //      ikbd_intcnt = IKBD_INTCNT;
-    //      ikbd_status |= 0x80;
-      //      mfp_clr_GPIP(MFP_GPIP_ACIA);
-      //      mfp_do_interrupt(cpu, 6);
-    //    }
   } else {
     ikbd_fifo[ikbd_fifocnt] = data;
     ikbd_fifocnt++;
@@ -251,11 +243,6 @@ static BYTE ikbd_read_byte(LONG addr)
     return ikbd_status;
   case 0xfffc02:
     ikbd_status &= ~0xa1;
-    //    mfp_set_GPIP(MFP_GPIP_ACIA);
-    //    if(ikbd_control&0x80)
-      //      ikbd_intcnt = IKBD_INTCNT;
-    //    else
-      //      ikbd_intcnt = 0;
     tmp = ikbd_pop_fifo();
     if(tmp == -1)
       return last;
@@ -286,14 +273,9 @@ static void ikbd_write_byte(LONG addr, BYTE data)
   switch(addr) {
   case 0xfffc00:
     ikbd_control = data;
-    //    if(data&0x80)
-    //      ikbd_intcnt = IKBD_INTCNT;
-    //    else
-    //      ikbd_intcnt = 0;
     break;
   case 0xfffc02:
     ikbd_status &= ~0x80;
-    //    mfp_set_GPIP(MFP_GPIP_ACIA);
     if(ikbd_cmdcnt == 0) {
       ikbd_set_cmd(data);
     } else {

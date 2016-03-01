@@ -131,8 +131,6 @@ static void set_palette(int pnum, int value, int part)
 
 static void set_pixel_low(int rasterpos, int pnum)
 {
-  //  if(pnum == 0) return;
-
   if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
     rgbimage[rasterpos*6+0] = palette_r[pnum];
     rgbimage[rasterpos*6+1] = palette_g[pnum];
@@ -727,7 +725,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   linecnt -= tmpcpu;
   
   /* VBL Interrupt */
-  //  shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
   if(vsynccnt < 0) {
     vblpre = res.vblpre;
     vblscr = res.vblscr;
@@ -736,8 +733,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     vsynccnt += res.vblsize*res.hblsize;
     linenum = 0;
     hsynccnt += res.hblsize;
-    //    hsynccnt = res.hblsize+(160);
-    //    linecnt = res.hblsize-(res.hblsize-res.hblpre-res.hblscr-res.hblpost);
     lastrasterpos = 0; /* Restart image building from position 0 */
     if(ppmoutput) {
       shifter_build_ppm();
@@ -780,11 +775,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     linecnt += res.hblsize;
     if((linenum >= vblpre) && (linenum < (vblpre+vblscr)))
       mfp_do_timerb_event(cpu);
-#if 0
-    rgbimage[(res.vblsize*res.hblsize-vsynccnt)*3+0] = 0xff;
-    rgbimage[(res.vblsize*res.hblsize-vsynccnt)*3+1] = 0x00;
-    rgbimage[(res.vblsize*res.hblsize-vsynccnt)*3+2] = 0x00;
-#endif
     linenum++;
   }
 

@@ -4,9 +4,11 @@
 #include "cpu.h"
 
 #define TEST_OK 0
-#define TEST_HOOK_INIT    0
-#define TEST_HOOK_EXIT    7
-#define TEST_HOOK_MAXCODE 8
+#define TEST_HOOK_INIT         0
+#define TEST_HOOK_EXIT         7
+#define TEST_HOOK_BEFORE_INSTR 8
+#define TEST_HOOK_AFTER_INSTR  9
+#define TEST_HOOK_MAXCODE     10
 
 typedef void (*test_case_function)(struct cpu *);
 

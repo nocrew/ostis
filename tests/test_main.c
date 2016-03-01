@@ -56,6 +56,13 @@ void test_cpu_init(void *instr[], void *print[])
   }
 }
 
+void test_call_hooks(int hooknum, struct cpu *cpu)
+{
+  if(current_case && current_case->hooks[hooknum]) {
+    current_case->hooks[hooknum](cpu);
+  }
+}
+
 static void find_data_file(char *case_name, struct test_case *test_case)
 {
   struct stat buf;

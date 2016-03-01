@@ -183,6 +183,9 @@ int cpu_step_instr(int trace)
   if(cpu_dec_watchpoint(trace)) return CPU_WATCHPOINT;
 
   if(!cpu->stopped) {
+#if TEST_BUILD
+    test_call_hooks(TEST_HOOK_BEFORE_INSTR, cpu);
+#endif
     op = fetch_instr(cpu);
 
     if(instr[op] == default_instr) {
@@ -208,6 +211,9 @@ int cpu_step_instr(int trace)
     }
 
     instr[op](cpu, op);
+#if TEST_BUILD
+    test_call_hooks(TEST_HOOK_AFTER_INSTR, cpu);
+#endif
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
   }

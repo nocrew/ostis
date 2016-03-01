@@ -41,17 +41,19 @@ static int event_key(SDL_KeyboardEvent key, int state)
       }
     }
   } else if(k.sym == SDLK_PAUSE) {
-    if(state == EVENT_RELEASE) {
-      screen_toggle_grab();
+    if(k.mod & KMOD_CTRL) {
+      if(state == EVENT_RELEASE) {
+        screen_toggle_fullscreen();
+      }
+    } else {
+      if(state == EVENT_RELEASE) {
+        screen_toggle_grab();
+      }
     }
   } else if(k.sym == SDLK_PRINTSCREEN) {
     if(k.mod & KMOD_ALT) {
       if(state == EVENT_RELEASE) {
         printf("DEBUG: Start debugger\n");
-      }
-    } else if(k.mod & KMOD_CTRL) {
-      if(state == EVENT_RELEASE) {
-        screen_toggle_grab();
       }
     } else {
       if(state == EVENT_RELEASE) {

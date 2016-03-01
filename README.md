@@ -84,3 +84,12 @@ be used to prepare things before the test
 
 `BKPT #7` will run the exit hook (`test_moveq_hook_exit()`) which will then compare the current
 state to the expected one and exit with 0 (SUCCESS) or -1 (FAIL).
+
+The source for the cartridge images are provided alongside the .cart files. These files can be
+assembled into the cartridge image using the asmx tool (or probably pretty much any other
+68k assembler as well).
+
+ASMX: http://xi6.com/projects/asmx/
+
+To assemble:
+`asmx -C 68k -b -o test_moveq.cart test_moveq.s`

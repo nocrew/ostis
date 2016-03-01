@@ -158,7 +158,7 @@ static void roxr_m(struct cpu *cpu, WORD op)
   WORD d;
   int x,carry;
 
-  if(CHKX) x = 0x8000; else x = 0;
+  if(CHKX) x = 1; else x = 0;
 
   d = ea_read_word(cpu, op&0x3f, 1);
   d = roxr_word_count(d, 1, x, &carry);

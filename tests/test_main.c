@@ -164,6 +164,7 @@ struct test_case *test_init(char *case_name)
 {
   test_moveq_init();
   test_roxl_init();
+  test_lsl_init();
   current_case = find_case(case_name);
 
   return current_case;

@@ -28,7 +28,7 @@ static void test_roxl_hook_exit(struct cpu *cpu)
 {
   print_test_code = 0;
   if(!CHKX) {
-    printf("Test1 failed. Expected X to be set, but it was not\n");
+    printf("Test2 failed. Expected X to be set, but it was not\n");
     exit(-1);
   }
   printf("Test2 successful.\n");

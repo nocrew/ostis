@@ -13,3 +13,5 @@ ostis
 ostis-gdb
 ostis-test
 core
+*.labels
+

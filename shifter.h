@@ -4,6 +4,7 @@
 #include "cpu.h"
 
 struct resolution_data {
+  long screen_cycles;
   long hblsize;
   long hblpre;
   long hblscr;

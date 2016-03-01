@@ -28,6 +28,7 @@
 static struct resolution_data res_data[] = {
   {
     // Low resolution
+    .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
     .hblscr = HBLSCR,
@@ -40,6 +41,7 @@ static struct resolution_data res_data[] = {
   },
   {
     // Medium resolution
+    .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
     .hblscr = HBLSCR,
@@ -52,6 +54,7 @@ static struct resolution_data res_data[] = {
   },
   {
     // High resolution
+    .screen_cycles = 224*501,
     .hblsize = 224,
     .hblpre = 30,
     .hblscr = 160,
@@ -460,7 +463,7 @@ static void shifter_gen_picture(int rasterpos)
 
 void shifter_force_gen_picture()
 {
-  shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+  shifter_gen_picture(res.screen_cycles-vsynccnt);
 }
 
 void shifter_build_image(int debug)
@@ -486,13 +489,13 @@ static BYTE shifter_read_byte(LONG addr)
   case 0xff8203:
     return (scraddr&0xff00)>>8;
   case 0xff8205:
-    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
+    gen_scrptr(res.screen_cycles-vsynccnt);
     return (scrptr&0xff0000)>>16;
   case 0xff8207:
-    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
+    gen_scrptr(res.screen_cycles-vsynccnt);
     return (scrptr&0xff00)>>8;
   case 0xff8209:
-    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
+    gen_scrptr(res.screen_cycles-vsynccnt);
     return scrptr&0xff;
   case 0xff820a:
     return syncreg;
@@ -536,10 +539,10 @@ static void shifter_write_byte(LONG addr, BYTE data)
     scraddr = (scraddr&0xff0000)|(data<<8);
     return;
   case 0xff820a:
-    if((160256-vsynccnt) < (res.hblsize*res.vblpre)) {
+    if((res.screen_cycles-vsynccnt) < (res.hblsize*res.vblpre)) {
       vblpre = res.vblpre-BORDERTOP;
       vblscr = res.vblscr+BORDERTOP;
-    } else if((160256-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
+    } else if((res.screen_cycles-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
       if(vblscr != res.vblscr) {
 	vblscr = BORDERTOP;
       }
@@ -572,7 +575,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
 static void shifter_write_word(LONG addr, WORD data)
 {
   if((addr >= 0xff8240) && (addr <= 0xff825f))
-    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    shifter_gen_picture(res.screen_cycles-vsynccnt);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
 }
@@ -580,7 +583,7 @@ static void shifter_write_word(LONG addr, WORD data)
 static void shifter_write_long(LONG addr, LONG data)
 {
   if((addr >= 0xff8240) && (addr <= 0xff825f)) {
-    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    shifter_gen_picture(res.screen_cycles-vsynccnt);
   }
   shifter_write_byte(addr, (data&0xff000000)>>24);
   shifter_write_byte(addr+1, (data&0xff0000)>>16);
@@ -739,9 +742,9 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(vsynccnt < 0) {
     vblpre = res.vblpre;
     vblscr = res.vblscr;
-    shifter_gen_picture(res.vblsize*res.hblsize);
+    shifter_gen_picture(res.screen_cycles);
     scrptr = curaddr = scraddr;
-    vsynccnt += res.vblsize*res.hblsize;
+    vsynccnt += res.screen_cycles;
     linenum = 0;
     hsynccnt += res.hblsize;
     lastrasterpos = 0; /* Restart image building from position 0 */
@@ -767,7 +770,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(hsynccnt < 0) {
     hblpre = res.hblpre;
     hblscr = res.hblscr;
-    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    shifter_gen_picture(res.screen_cycles-vsynccnt);
     hsynccnt += res.hblsize;
     hbl_triggered = 1;
     cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
@@ -796,7 +799,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 
 int shifter_get_vsync()
 {
-  return res.vblsize*res.hblsize-vsynccnt;
+  return res.screen_cycles-vsynccnt;
 }
 
 int shifter_framecnt(int c)

@@ -6,17 +6,17 @@
 
 static BYTE mmu_fallback_read_byte(LONG addr)
 {
-  return 0;
+  return 0xff;
 }
 
 static WORD mmu_fallback_read_word(LONG addr)
 {
-  return 0;
+  return 0xffff;
 }
 
 static LONG mmu_fallback_read_long(LONG addr)
 {
-  return 0;
+  return 0xffffffff;
 }
 
 static void mmu_fallback_write_byte(LONG addr, BYTE data)

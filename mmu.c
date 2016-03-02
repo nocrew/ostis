@@ -11,9 +11,14 @@
 #include "state.h"
 
 /* Used to prevent extra cycle counts when reading from memory for the only purpose of printing the value */
-int mmu_print_state = 0; 
-static struct mmu *memory[65536];
+int mmu_print_state = 0;
+
+static uint8_t mmu_module_at_addr[1<<24];
+static uint8_t mmu_module_count = 0;
+static struct mmu *mmu_module_by_id[256];
 static struct mmu_module *modules = NULL;
+static uint8_t bus_error_id;
+static uint8_t bus_error_odd_addr_id;
 
 static struct mmu_module *find_module(struct mmu *data)
 {
@@ -44,58 +49,6 @@ static struct mmu_module *find_module_by_id(char *id)
   }
 
   return NULL;
-}
-
-static struct mmu *find_entry(struct mmu *data, int block)
-{
-  struct mmu *t;
-
-  t = memory[block];
-
-  while(t) {
-    if((t->start == data->start) &&
-       (t->size == data->size))
-      return t;
-    t = t->next;
-  }
-
-  return NULL;
-}
-
-static struct mmu *dispatch(LONG addr)
-{
-  struct mmu *t;
-  int off;
-
-  off = (addr&0xffff00)>>8;
-  if(!memory[off]) return NULL;
-  if(!memory[off]->next) {
-    if((addr < memory[off]->start) ||
-       (addr >= (memory[off]->start + memory[off]->size)))
-      return NULL;
-    return memory[off];
-  }
-
-  t = memory[off];
-  
-  while(t) {
-    if((addr >= t->start) &&
-       (addr < (t->start + t->size))) {
-      return t;
-    }
-    t = t->next;
-  }
-
-  return NULL;
-}
-
-void mmu_init()
-{
-  int i;
-  
-  for(i=0;i<65536;i++) {
-    memory[i] = NULL;
-  }
 }
 
 void mmu_send_bus_error(int reading, LONG addr)
@@ -140,188 +93,209 @@ void mmu_send_address_error(int reading, LONG addr)
   cpu_set_address_error(flags, addr);
 }
 
+static BYTE mmu_read_byte_bus_error(LONG addr)
+{
+  mmu_send_bus_error(CPU_BUSERR_READ, addr);
+  return 0;
+}
+
+static WORD mmu_read_word_bus_error(LONG addr)
+{
+  mmu_send_bus_error(CPU_BUSERR_READ, addr);
+  return 0;
+}
+
+static LONG mmu_read_long_bus_error(LONG addr)
+{
+  mmu_send_bus_error(CPU_BUSERR_READ, addr);
+  return 0;
+}
+
+static void mmu_write_byte_bus_error(LONG addr, BYTE data)
+{
+  mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
+}
+
+static void mmu_write_word_bus_error(LONG addr, WORD data)
+{
+  mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
+}
+
+static void mmu_write_long_bus_error(LONG addr, LONG data)
+{
+  mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
+}
+
+static WORD mmu_read_word_address_error(LONG addr)
+{
+  mmu_send_address_error(CPU_ADDRERR_READ, addr);
+  return 0;
+}
+
+static LONG mmu_read_long_address_error(LONG addr)
+{
+  mmu_send_address_error(CPU_ADDRERR_READ, addr);
+  return 0;
+}
+
+static void mmu_write_word_address_error(LONG addr, WORD data)
+{
+  mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
+}
+
+static void mmu_write_long_address_error(LONG addr, LONG data)
+{
+  mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
+}
+
+static struct mmu *mmu_bus_error_module()
+{
+  struct mmu *bus_error;
+
+  bus_error = (struct mmu *)malloc(sizeof(struct mmu));
+
+  memcpy(bus_error->id, "BSER", 4);
+  bus_error->name = strdup("BSER");
+  bus_error->read_byte = mmu_read_byte_bus_error;
+  bus_error->read_word = mmu_read_word_bus_error;
+  bus_error->read_long = mmu_read_long_bus_error;
+  bus_error->write_byte = mmu_write_byte_bus_error;
+  bus_error->write_word = mmu_write_word_bus_error;
+  bus_error->write_long = mmu_write_long_bus_error;
+
+  return bus_error;
+}
+
+static struct mmu *mmu_clone_module(struct mmu *module)
+{
+  struct mmu *clone;
+  clone = (struct mmu *)malloc(sizeof(struct mmu));
+
+  memcpy(clone->id, "BSER", 4);
+  clone->name = strdup("BSER");
+  clone->read_byte = module->read_byte;
+  clone->read_word =  module->read_word;
+  clone->read_long =  module->read_long;
+  clone->write_byte = module->write_byte;
+  clone->write_word = module->write_word;
+  clone->write_long = module->write_long;
+
+  return clone;
+}
+
+static struct mmu *mmu_clone_module_for_address_error(struct mmu *module)
+{
+  struct mmu *address_error_clone;
+  address_error_clone= mmu_clone_module(module);
+  address_error_clone->read_word = mmu_read_word_address_error;
+  address_error_clone->read_long = mmu_read_long_address_error;
+  address_error_clone->write_word = mmu_write_word_address_error;
+  address_error_clone->write_long = mmu_write_long_address_error;
+
+  return address_error_clone;
+}
+
+static uint8_t mmu_get_module_id(struct mmu *module)
+{
+  uint8_t id;
+  id = mmu_module_count;
+  mmu_module_by_id[id] = module;
+  mmu_module_count++;
+  return id;
+}
+
+void mmu_init()
+{
+  int i;
+  struct mmu *bus_error_module;
+  struct mmu *bus_error_module_odd_addr;
+
+  bus_error_module = mmu_bus_error_module();
+  bus_error_id = mmu_get_module_id(bus_error_module);
+
+  bus_error_module_odd_addr = mmu_clone_module_for_address_error(bus_error_module);
+  bus_error_odd_addr_id = mmu_get_module_id(bus_error_module_odd_addr);
+  
+  /* Populate entire memory space with default module that gives bus error or address error */
+  for(i=0;i<16777216;i++) {
+    if(i&1) {
+      /* Odd addresses will give address errors on WORD/LONG */
+      mmu_module_at_addr[i] = bus_error_odd_addr_id;
+    } else {
+      mmu_module_at_addr[i] = bus_error_id;
+    }
+  }
+}
+
 BYTE mmu_read_byte_print(LONG addr)
 {
-  struct mmu *t;
   BYTE value;
-
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    return 0;
-  }
-  if(!t->read_byte) {
+  if(mmu_module_at_addr[addr] == bus_error_id || mmu_module_at_addr[addr] == bus_error_odd_addr_id) {
     return 0;
   }
   mmu_print_state = 1;
-  value = t->read_byte(addr);
+  value = mmu_module_by_id[mmu_module_at_addr[addr]]->read_byte(addr);
   mmu_print_state = 0;
   return value;
 }
 
 WORD mmu_read_word_print(LONG addr)
 {
-  struct mmu *t;
-  WORD value;
-
+  BYTE low,high;
   addr &= 0xffffff;
 
-  t = dispatch(addr);
-  if(!t) {
-    return 0;
-  }
-  if(!t->read_word) {
-    return 0;
-  }
-  mmu_print_state = 1;
-  value = t->read_word(addr);
-  mmu_print_state = 0;
-  return value;
+  high = mmu_read_byte_print(addr);
+  low = mmu_read_byte_print(addr+1);
+
+  return (high<<8)|low;
 }
 
 LONG mmu_read_long_print(LONG addr)
 {
-  struct mmu *t;
-  LONG value;
-  
+  WORD low,high;
   addr &= 0xffffff;
 
-  t = dispatch(addr);
-  if(!t) {
-    return 0;
-  }
-  if(!t->read_long) {
-    return 0;
-  }
-  mmu_print_state = 1;
-  value = t->read_long(addr);
-  mmu_print_state = 0;
-  return value;
+  high = mmu_read_word_print(addr);
+  low = mmu_read_word_print(addr+2);
+
+  return (high<<16)|low;
 }
 
 BYTE mmu_read_byte(LONG addr)
 {
-  struct mmu *t;
-
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    mmu_send_bus_error(CPU_BUSERR_READ, addr);
-    return 0;
-  }
-  if(!t->read_byte) {
-    mmu_send_bus_error(CPU_BUSERR_READ, addr);
-    return 0;
-  }
-  return t->read_byte(addr);
+  return mmu_module_by_id[mmu_module_at_addr[addr]]->read_byte(addr);
 }
 
 WORD mmu_read_word(LONG addr)
 {
-  struct mmu *t;
-
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    mmu_send_bus_error(CPU_BUSERR_READ, addr);
-    return 0;
-  }
-  if(!t->read_word) {
-    mmu_send_bus_error(CPU_BUSERR_READ, addr);
-    return 0;
-  }
-  if(addr&1) {
-    mmu_send_address_error(CPU_ADDRERR_READ, addr);
-    return 0;
-  }
-  return t->read_word(addr);
+  return mmu_module_by_id[mmu_module_at_addr[addr]]->read_word(addr);
 }
 
 LONG mmu_read_long(LONG addr)
 {
-  struct mmu *t;
-
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    mmu_send_bus_error(CPU_BUSERR_READ, addr);
-    return 0;
-  }
-  if(!t->read_long) {
-    mmu_send_bus_error(CPU_BUSERR_READ, addr);
-    return 0;
-  }
-  if(addr&1) {
-    mmu_send_address_error(CPU_ADDRERR_READ, addr);
-    return 0;
-  }
-  return t->read_long(addr);
+  return mmu_module_by_id[mmu_module_at_addr[addr]]->read_long(addr);
 }
 
 void mmu_write_byte(LONG addr, BYTE data)
 {
-  struct mmu *t;
-  
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-    return;
-  }
-  if(!t->write_byte) {
-    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-    return;
-  }
-  t->write_byte(addr, data);
+  mmu_module_by_id[mmu_module_at_addr[addr]]->write_byte(addr, data);
 }
 
 void mmu_write_word(LONG addr, WORD data)
 {
-  struct mmu *t;
-
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-    return;
-  }
-  if(!t->write_word) {
-    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-    return;
-  }
-  if(addr&1) {
-    mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
-    return;
-  }
-  t->write_word(addr, data);
+  mmu_module_by_id[mmu_module_at_addr[addr]]->write_word(addr, data);
 }
 
 void mmu_write_long(LONG addr, LONG data)
 {
-  struct mmu *t;
-
   addr &= 0xffffff;
-
-  t = dispatch(addr);
-  if(!t) {
-    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-    return;
-  }
-  if(!t->write_long) {
-    mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-    return;
-  }
-  if(addr&1) {
-    mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
-    return;
-  }
-  t->write_long(addr, data);
+  mmu_module_by_id[mmu_module_at_addr[addr]]->write_long(addr, data);
 }
 
 struct mmu_state *mmu_state_collect()
@@ -371,7 +345,9 @@ void mmu_state_restore(struct mmu_state *state)
 void mmu_register(struct mmu *data)
 {
   struct mmu_module *new;
-  int i,off;
+  struct mmu *data_address_error;
+  uint8_t data_id, data_address_error_id;
+  int i,addr;
 
   if(!data) return;
   
@@ -385,12 +361,17 @@ void mmu_register(struct mmu *data)
     new->next = modules;
     modules = new;
   }
-  
+
+  data_id = mmu_get_module_id(data);
+  data_address_error = mmu_clone_module_for_address_error(data);
+  data_address_error_id = mmu_get_module_id(data_address_error);
+
   for(i=0;i<data->size;i++) {
-    off = ((i+data->start)&0xffff00)>>8;
-    if(find_entry(data, off) != data) {
-      data->next = memory[off];
-      memory[off] = data;
+    addr = data->start + i;
+    if(addr&1) {
+      mmu_module_at_addr[addr] = data_address_error_id;
+    } else {
+      mmu_module_at_addr[addr] = data_id;
     }
   }
 }

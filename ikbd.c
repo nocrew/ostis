@@ -143,6 +143,12 @@ static void ikbd_reset(void)
   }
 }
 
+/* Not implemented */
+static void ikbd_set_clock(void)
+{
+  /* Just ignore this, but run it to consume the bytes that were sent */
+}
+
 static void ikbd_set_cmd(BYTE cmd)
 {
   switch(cmd) {
@@ -191,8 +197,15 @@ static void ikbd_set_cmd(BYTE cmd)
     printf("DEBUG: IKBD disable joysticks\n");
     ikbd_joystick_enabled = 0;
     break;
+  case 0x1b:
+    cpu_enter_debugger();
+    printf("DEBUG: Set clock (not handled)\n");
+    ikbd_cmdfn = ikbd_set_clock;
+    ikbd_cmdcnt = 6;
+    break;
   case 0x1c:
     ikbd_return_clock();
+    break;
   case 0x80:
     ikbd_cmdfn = ikbd_reset;
     ikbd_cmdcnt = 1;

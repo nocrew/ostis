@@ -16,7 +16,6 @@ int mmu_print_state = 0;
 static uint8_t mmu_module_at_addr[1<<24];
 static uint8_t mmu_module_count = 0;
 static struct mmu *mmu_module_by_id[256];
-static struct mmu_module *modules = NULL;
 static uint8_t bus_error_id;
 static uint8_t bus_error_odd_addr_id;
 
@@ -24,32 +23,16 @@ static uint8_t bus_error_odd_addr_id;
 #define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->write_##size(addr&0xffffff, data)
 
 
-static struct mmu_module *find_module(struct mmu *data)
+static struct mmu *find_module_by_id(char *id)
 {
-  struct mmu_module *t;
+  struct mmu *module;
+  int i;
 
-  t = modules;
-
-  while(t) {
-    if((t->module->start == data->start) &&
-       (t->module->size == data->size))
-      return t;
-    t = t->next;
-  }
-
-  return NULL;
-}
-
-static struct mmu_module *find_module_by_id(char *id)
-{
-  struct mmu_module *t;
-
-  t = modules;
-
-  while(t) {
-    if(!strncmp(id, t->module->id, 4))
-      return t;
-    t = t->next;
+  for(i=0;i<mmu_module_count;i++) {
+    module = mmu_module_by_id[i];
+    if(module->id && !strncmp(id, module->id, 4)) {
+      return module;
+    }
   }
 
   return NULL;
@@ -208,6 +191,32 @@ static uint8_t mmu_get_module_id(struct mmu *module)
   return id;
 }
 
+/* Make sure there are targets for all read/write functions
+ * making them return bus error in case they don't have a
+ * better target already
+ */
+static void mmu_populate_functions(struct mmu *module)
+{
+  if(!module->read_byte) {
+    module->read_byte = mmu_read_byte_bus_error;
+  }
+  if(!module->read_word) {
+    module->read_word = mmu_read_word_bus_error;
+  }
+  if(!module->read_long) {
+    module->read_long = mmu_read_long_bus_error;
+  }
+  if(!module->write_byte) {
+    module->write_byte = mmu_write_byte_bus_error;
+  }
+  if(!module->write_word) {
+    module->write_word = mmu_write_word_bus_error;
+  }
+  if(!module->write_long) {
+    module->write_long = mmu_write_long_bus_error;
+  }
+}
+
 void mmu_init()
 {
   int i;
@@ -314,19 +323,19 @@ void mmu_write_long(LONG addr, LONG data)
 
 struct mmu_state *mmu_state_collect()
 {
-  struct mmu_module *t;
+  int i;
+  struct mmu *module;
   struct mmu_state *new,*top;
 
   top = NULL;
 
-  t = modules;
-
-  while(t) {
-    if(t->module->state_collect != NULL) {
+  for(i=0; i<mmu_module_count; i++) {
+    module = mmu_module_by_id[i];
+    if(module->state_collect != NULL) {
       new = (struct mmu_state *)malloc(sizeof(struct mmu_state));
       if(new != NULL) {
-	strncpy(new->id, t->module->id, 4);
-	if(t->module->state_collect(new) == STATE_VALID) {
+	strncpy(new->id, module->id, 4);
+	if(module->state_collect(new) == STATE_VALID) {
 	  new->next = top;
 	  top = new;
 	} else {
@@ -334,7 +343,6 @@ struct mmu_state *mmu_state_collect()
 	}
       }
     }
-    t = t->next;
   }
   
   return top;
@@ -342,15 +350,15 @@ struct mmu_state *mmu_state_collect()
 
 void mmu_state_restore(struct mmu_state *state)
 {
-  struct mmu_module *module;
+  struct mmu *module;
   struct mmu_state *t;
 
   t = state;
   
   while(t) {
     module = find_module_by_id(t->id);
-    if(module != NULL) {
-      module->module->state_restore(t);
+    if(module != NULL && module->state_restore != NULL) {
+      module->state_restore(t);
     }
     t = t->next;
   }
@@ -358,25 +366,14 @@ void mmu_state_restore(struct mmu_state *state)
 
 void mmu_register(struct mmu *data)
 {
-  struct mmu_module *new;
   struct mmu *data_address_error;
   uint8_t data_id, data_address_error_id;
   int i,addr;
 
   if(!data) return;
   
-  if(find_module(data) == NULL) {
-    new = (struct mmu_module *)malloc(sizeof(struct mmu_module));
-    if(new == NULL) {
-      fprintf(stderr, "FATAL: Could not allocate module struct\n");
-      exit(-1);
-    }
-    new->module = data;
-    new->next = modules;
-    modules = new;
-  }
-
   data_id = mmu_get_module_id(data);
+  mmu_populate_functions(data);
   data_address_error = mmu_clone_module_for_address_error(data);
   data_address_error_id = mmu_get_module_id(data_address_error);
 
@@ -392,17 +389,18 @@ void mmu_register(struct mmu *data)
 
 void mmu_print_map()
 {
-  struct mmu_module *t;
+  int i;
+  struct mmu *module;
 
-  t = modules;
-  
-  while(t) {
-    printf("Name : %s\n", t->module->name);
-    printf("Start: 0x%08x\n", t->module->start);
-    printf("End  : 0x%08x\n", t->module->start+t->module->size-1);
-    printf("Size : %d\n", t->module->size);
-    printf("\n");
-    t = t->next;
+  for(i=0;i<mmu_module_count;i++) {
+    module = mmu_module_by_id[i];
+    if(module->id) {
+      printf("Name : %s\n", module->name);
+      printf("Start: 0x%08x\n", module->start);
+      printf("End  : 0x%08x\n", module->start+module->size-1);
+      printf("Size : %d\n", module->size);
+      printf("\n");
+    }
   }
 }
 

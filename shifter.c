@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <SDL.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include "common.h"
 #include "cpu.h"
 #include "mfp.h"
@@ -709,13 +710,20 @@ void shifter_init()
   framecnt = 0;
 }
 
-uint64_t last_vsync_ticks = 0;
+int64_t last_vsync_ticks = 0;
+
+static int64_t usec_count() {
+  static struct timeval tv;
+
+  gettimeofday(&tv,NULL);
+  return tv.tv_sec * 1000000 + tv.tv_usec;
+}
 
 void shifter_do_interrupts(struct cpu *cpu, int noint)
 {
   long tmpcpu;
-  uint64_t current_ticks;
-  uint64_t remaining;
+  int64_t current_ticks = 0;
+  int64_t remaining = 0;
 
   tmpcpu = cpu->cycle - lastcpucnt;
   if(tmpcpu < 0) tmpcpu += MAX_CYCLE;
@@ -738,10 +746,12 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
       shifter_build_ppm();
     }
     if(vsync_delay) {
-      current_ticks = SDL_GetTicks();
+      current_ticks = usec_count();
       remaining = current_ticks - last_vsync_ticks;
-      if(remaining < 20) {
-        SDL_Delay(remaining);
+      while(remaining < 20000) {
+	//	printf("DEBUG: Remaining: %ld\n", remaining);
+	current_ticks = usec_count();
+	remaining = current_ticks - last_vsync_ticks;
       }
       last_vsync_ticks = current_ticks;
     }

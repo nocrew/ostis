@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "ea.h"
 
 static void move_to_ccr(struct cpu *cpu, WORD op)

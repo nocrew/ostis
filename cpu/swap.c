@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 
 static void swap(struct cpu *cpu, WORD op)
 {

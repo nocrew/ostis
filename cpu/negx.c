@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "ea.h"
 
 static void negx_b(struct cpu *cpu, WORD op)

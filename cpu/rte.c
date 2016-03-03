@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "mmu.h"
 
 #define EXTREME_EXCEPTION_DEBUG 0

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "cprint.h"
 
 static void nop(struct cpu *cpu, WORD op)
 {

@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "mmu.h"
 
 static void ori_to_sr(struct cpu *cpu, WORD op)

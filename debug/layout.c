@@ -1,4 +1,5 @@
 #include "common.h"
+#include "cprint.h"
 #include "win.h"
 #include "layout.h"
 #include "shifter.h"

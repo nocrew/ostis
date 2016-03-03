@@ -1,4 +1,5 @@
 #include "common.h"
+#include "cprint.h"
 #include "win.h"
 #include "display.h"
 #include "edit.h"

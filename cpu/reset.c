@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 
 static void reset(struct cpu *cpu, WORD op)
 {

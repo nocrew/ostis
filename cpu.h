@@ -20,22 +20,6 @@ struct cpu {
   int debug_halted;
 };
 
-struct cprint {
-  char instr[16];
-  char data[64];
-  char hex[32];
-  char extra[64];
-  int size;
-  LONG addr;
-};
-
-struct cprint_label {
-  struct cprint_label *next;
-  char *name;
-  LONG addr;
-  int named;
-};
-
 struct cpu_state {
   char id[4];
   long size;
@@ -160,26 +144,6 @@ void cprint_save_labels(char *);
 void cprint_load_labels(char *);
 int cprint_label_exists(char *);
 LONG cprint_label_addr(char *);
-
-static struct cprint *cprint_alloc(LONG addr)
-{
-  struct cprint *ret;
-
-  ret = (struct cprint *)malloc(sizeof(struct cprint));
-  ret->addr = addr;
-  ret->instr[0] = '\0';
-  ret->data[0] = '\0';
-  ret->hex[0] = '\0';
-  ret->extra[0] = '\0';
-  ret->size = 2;
-  
-  return ret;
-}
-
-static void cprint_free(struct cprint *in)
-{
-  free(in);
-}
 
 static void cpu_set_flags_general(struct cpu *cpu, int mask,
 				  int rm, int r)

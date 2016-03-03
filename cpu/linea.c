@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 
 static void linea(struct cpu *cpu, WORD op)
 {

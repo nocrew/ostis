@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "event.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "mfp.h"
 #include "ikbd.h"
 

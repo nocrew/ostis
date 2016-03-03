@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "ea.h"
 
 static BYTE roxl_byte_one(BYTE value, int x, int *carry)

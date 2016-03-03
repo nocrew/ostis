@@ -1,5 +1,6 @@
 #include "common.h"
 #include "cpu.h"
+#include "cprint.h"
 
 static void move_usp(struct cpu *cpu, WORD op)
 {

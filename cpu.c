@@ -267,6 +267,16 @@ int cpu_step_instr(int trace)
 int cpu_run(int cpu_run_state)
 {
   int stop,ret;
+  int tmp_run_state = CPU_RUN;
+
+  /* If we're starting a run from the debugger, we'll pretend we're in
+   * trace state for one step before retriggering breakpoints. This will
+   * prevent the run feature in the debugger from immediately retriggering
+   * the same breakpoint.
+   */
+  if(cpu_run_state == CPU_DEBUG_RUN) {
+    tmp_run_state = CPU_TRACE;
+  }
 
   stop = 0;
 
@@ -274,7 +284,8 @@ int cpu_run(int cpu_run_state)
 
   while(!stop) {
     if(!cpu->debug_halted || cpu_run_state == CPU_DEBUG_RUN) {
-      ret = cpu_step_instr(CPU_RUN);
+      ret = cpu_step_instr(tmp_run_state);
+      tmp_run_state = CPU_RUN;
     } else {
       ret = CPU_OK;
     }

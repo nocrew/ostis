@@ -20,6 +20,10 @@ static struct mmu_module *modules = NULL;
 static uint8_t bus_error_id;
 static uint8_t bus_error_odd_addr_id;
 
+#define MEM_READ(size, addr) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->read_##size(addr&0xffffff)
+#define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->write_##size(addr&0xffffff, data)
+
+
 static struct mmu_module *find_module(struct mmu *data)
 {
   struct mmu_module *t;
@@ -227,6 +231,13 @@ void mmu_init()
   }
 }
 
+
+
+/* Print functions are used mainly for displaying the result in the debugger, or to STDOUT
+ * This means that it should be read without causing bus/address errors, regardless of size
+ * and location
+ */
+
 BYTE mmu_read_byte_print(LONG addr)
 {
   BYTE value;
@@ -235,7 +246,7 @@ BYTE mmu_read_byte_print(LONG addr)
     return 0;
   }
   mmu_print_state = 1;
-  value = mmu_module_by_id[mmu_module_at_addr[addr]]->read_byte(addr);
+  value = MEM_READ(byte, addr);
   mmu_print_state = 0;
   return value;
 }
@@ -262,41 +273,44 @@ LONG mmu_read_long_print(LONG addr)
   return (high<<16)|low;
 }
 
+
+
+/* These are the normal read/write functions that should cause bus/address errors
+ * if appropriate
+ */
+
 BYTE mmu_read_byte(LONG addr)
 {
-  addr &= 0xffffff;
-  return mmu_module_by_id[mmu_module_at_addr[addr]]->read_byte(addr);
+  return MEM_READ(byte, addr);
 }
 
 WORD mmu_read_word(LONG addr)
 {
-  addr &= 0xffffff;
-  return mmu_module_by_id[mmu_module_at_addr[addr]]->read_word(addr);
+  return MEM_READ(word, addr);
 }
 
 LONG mmu_read_long(LONG addr)
 {
-  addr &= 0xffffff;
-  return mmu_module_by_id[mmu_module_at_addr[addr]]->read_long(addr);
+  return MEM_READ(long, addr);
 }
 
 void mmu_write_byte(LONG addr, BYTE data)
 {
-  addr &= 0xffffff;
-  mmu_module_by_id[mmu_module_at_addr[addr]]->write_byte(addr, data);
+  MEM_WRITE(byte, addr, data);
 }
 
 void mmu_write_word(LONG addr, WORD data)
 {
-  addr &= 0xffffff;
-  mmu_module_by_id[mmu_module_at_addr[addr]]->write_word(addr, data);
+  MEM_WRITE(word, addr, data);
 }
 
 void mmu_write_long(LONG addr, LONG data)
 {
-  addr &= 0xffffff;
-  mmu_module_by_id[mmu_module_at_addr[addr]]->write_long(addr, data);
+  MEM_WRITE(long, addr, data);
 }
+
+
+
 
 struct mmu_state *mmu_state_collect()
 {

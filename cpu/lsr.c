@@ -5,7 +5,6 @@
 static void lsr_r(struct cpu *cpu, WORD op)
 {
   int c,r;
-  int mask;
   BYTE b;
   WORD w;
   LONG l;
@@ -28,8 +27,7 @@ static void lsr_r(struct cpu *cpu, WORD op)
     break;
   case 2:
     ADD_CYCLE(2);
-    mask = ~(-1<<(32-c));
-    l = (cpu->d[r]>>c)&mask;
+    l = cpu->d[r]>>c;
     cpu_set_flags_lsr(cpu, l&0x80000000, l, c, (cpu->d[r]>>(c-1))&0x1);
     cpu->d[r] = l;
     break;
@@ -39,7 +37,6 @@ static void lsr_r(struct cpu *cpu, WORD op)
 static void lsr_i(struct cpu *cpu, WORD op)
 {
   int c,r;
-  int mask;
   BYTE b;
   WORD w;
   LONG l;
@@ -63,8 +60,7 @@ static void lsr_i(struct cpu *cpu, WORD op)
     break;
   case 2:
     ADD_CYCLE(2);
-    mask = ~(-1<<(32-c));
-    l = (cpu->d[r]>>c)&mask;
+    l = cpu->d[r]>>c;
     cpu_set_flags_lsr(cpu, l&0x80000000, l, c, (cpu->d[r]>>(c-1))&0x1);
     cpu->d[r] = l;
     break;

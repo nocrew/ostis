@@ -3,6 +3,7 @@
 #include "display.h"
 #include "draw.h"
 #include "win.h"
+#include "mmu.h"
 #include "expr.h"
 #include "layout.h"
 
@@ -48,6 +49,9 @@ void edit_draw_window(int exwin)
   case EDIT_SETREG:
     strcpy(text, "Set reg=expr");
     break;
+  case EDIT_SETMEM:
+    strcpy(text, "Set <memory-expr>=expr");
+    break;
   default:
     return;
   }
@@ -81,6 +85,59 @@ static int edit_do_setaddr()
   }
 
   return EDIT_FAILURE;
+}
+
+static int edit_do_setmem()
+{
+  LONG addr,value;
+  int bits = 32;
+  char size;
+  char dst[1024],*tmp;
+
+  if(strlen(edit.text) == 0) return EDIT_FAILURE;
+  if(strchr(edit.text, '=') != strrchr(edit.text, '=')) return EDIT_FAILURE;
+
+  strcpy(dst, edit.text);
+  tmp = strchr(dst, '=');
+  if(tmp) {
+    tmp[0] = '\0';
+    tmp++;
+    if(strlen(tmp) == 0) return EDIT_FAILURE;
+  } else {
+    return EDIT_FAILURE;
+  }
+
+  if(dst[strlen(dst)-2] == '.') {
+    size = dst[strlen(dst)-1];
+    if(size == 'b' || size == 'B' || size == 's' || size == 'S') {
+      bits = 8;
+    }
+    if(size == 'w' || size == 'W') {
+      bits = 16;
+    }
+    if(size == 'l' || size == 'L') {
+      bits = 32;
+    }
+    dst[strlen(dst)-2] = '\0';
+  }
+  
+  if(expr_parse(&addr, dst) == EXPR_FAILURE)
+    return EDIT_FAILURE;
+
+  if(expr_parse(&value, tmp) == EXPR_FAILURE)
+    return EDIT_FAILURE;
+
+  if(bits == 8) {
+    mmu_write_byte(addr, value&0xff);
+  }
+  if(bits == 16) {
+    mmu_write_word(addr, value&0xffff);
+  }
+  if(bits == 32) {
+    mmu_write_long(addr, value);
+  }
+  
+  return EDIT_SUCCESS;
 }
 
 static int edit_do_setbrk()
@@ -331,6 +388,8 @@ int edit_finish(int exwin)
     return edit_do_setwatch();
   case EDIT_SETREG:
     return edit_do_setreg();
+  case EDIT_SETMEM:
+    return edit_do_setmem();
   default:
     return EDIT_SUCCESS;
   }

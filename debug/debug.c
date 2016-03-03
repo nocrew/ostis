@@ -170,9 +170,14 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     }
     break;
   case SDLK_m:
-    if(win_get_selected() > 1) {
-      win_set_exwin(EDIT_SETADDR);
+    if(k.mod & KMOD_ALT) {
+      win_set_exwin(EDIT_SETMEM);
       debug_set_editmode();
+    } else {
+      if(win_get_selected() > 1) {
+        win_set_exwin(EDIT_SETADDR);
+        debug_set_editmode();
+      }
     }
     break; 
   case SDLK_v:

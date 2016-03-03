@@ -8,6 +8,7 @@
 #define EDIT_LABELCMD 4
 #define EDIT_SETWATCH 5
 #define EDIT_SETREG   6
+#define EDIT_SETMEM   7
 
 #define EDIT_LEFT  0
 #define EDIT_RIGHT 1

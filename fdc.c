@@ -202,9 +202,9 @@ static void fdc_do_instr()
     }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_READTRK) {
-    printf("Read track not supported\n");
+    WARN("Read track not supported");
   } else if(FDCI_WRITETRK) {
-    printf("Write track not supported\n");
+    WARN("Write track not supported");
   } else if(FDCI_ABORT) {
     if(FDCI_ABORTNOW) {
       abortmode = 0;

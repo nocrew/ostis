@@ -258,7 +258,7 @@ void psg_init()
     want.samples = 4096;
     want.callback = psg_audio_callback;
   
-    printf("DEBUG: Audio devices: %d\n", count);
+    DEBUG("Audio devices: %d", count);
     for (i = 0; i < count; ++i) {
       SDL_Log("Audio device %d: %s\n", i, SDL_GetAudioDeviceName(i, 0));
       psg_audio_device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(i, 0), 0,

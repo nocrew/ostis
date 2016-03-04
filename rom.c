@@ -98,17 +98,6 @@ void rom_init()
     return;
   }
   
-  f = fopen(prefs.tosimage, "rb");
-  if(!f) {
-    perror("open tos.img");
-    exit(-1);
-  }
-  if(fread(memory, 1, ROMSIZE, f) != ROMSIZE) {
-    perror("fread");
-    exit(-1);
-  }
-  fclose(f);
-  
   rom->start = ROMBASE;
   rom->size = ROMSIZE;
   memcpy(rom->id, "ROM0", 4);
@@ -125,6 +114,15 @@ void rom_init()
 
   mmu_register(rom);
 
+  f = fopen(prefs.tosimage, "rb");
+  if(!f) {
+    FATAL("Could not open TOS image file");
+  }
+  if(fread(memory, 1, ROMSIZE, f) != ROMSIZE) {
+    FATAL("Error reading TOS image file");
+  }
+  fclose(f);
+  
   memory2 = (BYTE *)malloc(sizeof(BYTE) * ROMSIZE2);
   if(!memory2) {
     return;

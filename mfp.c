@@ -101,13 +101,13 @@ static void mfp_write_byte(LONG addr, BYTE data)
   switch(r) {
   case TACR:
     if(!(mfpreg[TACR]&0xf) && data&0x7) {
-      if(data > 7) printf("DEBUG: MFP not fully implemented.\n");
+      if(data > 7) DEBUG("Not fully implemented");
       precnt[0] = 313*divider[data&0x7];
     }
     break;
   case TBCR:
     if(!(mfpreg[TBCR]&0xf) && data&0x7) {
-      if(data > 7) printf("DEBUG: MFP not fully implemented.\n");
+      if(data > 7) DEBUG("Not fully implemented");
       precnt[1] = 313*divider[data&0x7];
     }
     break;
@@ -413,7 +413,7 @@ static void mfp_do_interrupt(int inum)
 
   if(mfpreg[ISRB]&0x40) {
     if((cpu->sr&0x700) < 0x600) {
-      printf("DEBUG: We're out of MFP interrupt with ISR still high\n");
+      DEBUG("We're out of MFP interrupt with ISR still high");
     }
   }
   

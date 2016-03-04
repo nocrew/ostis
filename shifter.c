@@ -25,9 +25,18 @@
 #define VBLSCR 200
 #define VBLPOST 40
 
+static int get_pixel_low(int, int);
+static int get_pixel_medium(int, int);
+static int get_pixel_high(int, int);
+static void set_pixel_low(int, int);
+static void set_pixel_medium(int, int);
+static void set_pixel_high(int, int);
+
 static struct resolution_data res_data[] = {
   {
     // Low resolution
+    .get_pixel = get_pixel_low,
+    .set_pixel = set_pixel_low,
     .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
@@ -41,6 +50,8 @@ static struct resolution_data res_data[] = {
   },
   {
     // Medium resolution
+    .get_pixel = get_pixel_medium,
+    .set_pixel = set_pixel_medium,
     .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
@@ -54,6 +65,8 @@ static struct resolution_data res_data[] = {
   },
   {
     // High resolution
+    .get_pixel = get_pixel_high,
+    .set_pixel = set_pixel_high,
     .screen_cycles = 224*501,
     .hblsize = 224,
     .hblpre = 30,
@@ -217,26 +230,12 @@ static void set_pixel_high(int rasterpos, int pnum)
   }
 }
 
-static void set_pixel(int rasterpos, int pnum)
-{
-  switch(resolution&3) {
-  case 0:
-    return set_pixel_low(rasterpos, pnum);
-  case 1:
-    return set_pixel_medium(rasterpos, pnum);
-  case 2:
-    return set_pixel_high(rasterpos, pnum);
-  case 3:
-    FATAL("Bad video mode");
-  }
-}
-
 static void fill_16pxl(int rasterpos, int pnum)
 {
   int i;
 
   for(i=0;i<16;i++) {
-    set_pixel(rasterpos+i, pnum);
+    res.set_pixel(rasterpos+i, pnum);
   }
 }
 
@@ -337,21 +336,6 @@ static int get_pixel_high(int videooffset, int pxlnum)
   return c;
 }
 
-static int get_pixel(int videooffset, int pxlnum)
-{
-  switch(resolution&3) {
-  case 0:
-    return get_pixel_low(videooffset, pxlnum);
-  case 1:
-    return get_pixel_medium(videooffset, pxlnum);
-  case 2:
-    return get_pixel_high(videooffset, pxlnum);
-  case 3:
-    FATAL("Bad video mode");
-  }
-  return 0;
-}
-
 static void set_16pxl(int rasterpos, int videooffset)
 {
   int i,c;
@@ -367,7 +351,7 @@ static void set_16pxl(int rasterpos, int videooffset)
          (((d[1]>>i)&1)<<2)|
          (((d[2]>>i)&1)<<1)|
          (((d[3]>>i)&1)));
-    set_pixel(rasterpos+(15-i), c);
+    res.set_pixel(rasterpos+(15-i), c);
   }
 }
 
@@ -432,11 +416,11 @@ static void shifter_gen_pixel(int rasterpos)
   linepos = rasterpos%res.hblsize;
 
   if(shifter_on_display(rasterpos)) {
-    set_pixel(rasterpos,
-	      get_pixel(get_videooffset(rasterpos),
-			(linepos-hblpre)&15));
+    res.set_pixel(rasterpos,
+		  res.get_pixel(get_videooffset(rasterpos),
+				(linepos-hblpre)&15));
   } else {
-    set_pixel(rasterpos, res.border); /* Background in border */
+    res.set_pixel(rasterpos, res.border); /* Background in border */
   }
 }
 

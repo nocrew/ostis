@@ -17,6 +17,7 @@ struct mmu {
   char *name;
   LONG start;
   LONG size;
+  int verbosity;
   BYTE (*read_byte)(LONG);
   WORD (*read_word)(LONG);
   LONG (*read_long)(LONG);
@@ -25,6 +26,7 @@ struct mmu {
   void (*write_long)(LONG, LONG);
   int (*state_collect)(struct mmu_state *);
   void (*state_restore)(struct mmu_state *);
+  void (*diagnostics)();
 };
 
 struct mmu_module {

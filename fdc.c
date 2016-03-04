@@ -6,6 +6,7 @@
 #include "floppy.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define FDCSIZE 16
 #define FDCBASE 0xff8600
@@ -201,9 +202,9 @@ static void fdc_do_instr()
     }
     if(abortmode) abortpending = FDC_PENDTIME;
   } else if(FDCI_READTRK) {
-    printf("Read track not supported\n");
+    WARN("Read track not supported");
   } else if(FDCI_WRITETRK) {
-    printf("Write track not supported\n");
+    WARN("Write track not supported");
   } else if(FDCI_ABORT) {
     if(FDCI_ABORTNOW) {
       abortmode = 0;
@@ -347,6 +348,8 @@ void fdc_do_interrupts(struct cpu *cpu)
   lastcpucnt = cpu->cycle;
 }
 
+HANDLE_DIAGNOSTICS(fdc)
+
 void fdc_init()
 {
   struct mmu *fdc;
@@ -367,6 +370,7 @@ void fdc_init()
   fdc->write_long = fdc_write_long;
   fdc->state_collect = fdc_state_collect;
   fdc->state_restore = fdc_state_restore;
+  fdc->diagnostics = fdc_diagnostics;
 
   fdc_reg[FDC_STATUS] = 0xc0;
 

@@ -5,6 +5,7 @@
 #include "prefs.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define NEWTOS 0
 
@@ -80,6 +81,8 @@ static void rom_state_restore(struct mmu_state *state)
   }
 }
 
+HANDLE_DIAGNOSTICS(rom)
+
 void rom_init()
 {
   struct mmu *rom,*rom2;
@@ -95,17 +98,6 @@ void rom_init()
     return;
   }
   
-  f = fopen(prefs.tosimage, "rb");
-  if(!f) {
-    perror("open tos.img");
-    exit(-1);
-  }
-  if(fread(memory, 1, ROMSIZE, f) != ROMSIZE) {
-    perror("fread");
-    exit(-1);
-  }
-  fclose(f);
-  
   rom->start = ROMBASE;
   rom->size = ROMSIZE;
   memcpy(rom->id, "ROM0", 4);
@@ -118,9 +110,19 @@ void rom_init()
   rom->write_long = NULL;
   rom->state_collect = rom_state_collect;
   rom->state_restore = rom_state_restore;
+  rom->diagnostics = rom_diagnostics;
 
   mmu_register(rom);
 
+  f = fopen(prefs.tosimage, "rb");
+  if(!f) {
+    FATAL("Could not open TOS image file");
+  }
+  if(fread(memory, 1, ROMSIZE, f) != ROMSIZE) {
+    FATAL("Error reading TOS image file");
+  }
+  fclose(f);
+  
   memory2 = (BYTE *)malloc(sizeof(BYTE) * ROMSIZE2);
   if(!memory2) {
     return;
@@ -145,6 +147,7 @@ void rom_init()
   rom2->write_long = NULL;
   rom2->state_collect = rom_state_collect;
   rom2->state_restore = rom_state_restore;
+  rom2->diagnostics = rom_diagnostics;
 
   mmu_register(rom2);
 }

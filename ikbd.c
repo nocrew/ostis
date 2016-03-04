@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "mfp.h"
 #include "state.h"
+#include "diag.h"
 
 #define IKBDSIZE 4
 #define IKBDBASE 0xfffc00
@@ -55,7 +56,7 @@ void ikbd_print_status()
 
 static void ikbd_set_mouse_button_action(void)
 {
-  printf("DEBUG: IKBD set mouse button action %02x\n", ikbd_cmdbuf[0]);
+  DEBUG("Set mouse button action %02x", ikbd_cmdbuf[0]);
 }
 
 static void ikbd_set_absolute_mouse_positioning(void)
@@ -63,12 +64,12 @@ static void ikbd_set_absolute_mouse_positioning(void)
   ikbd_absolute_x = (ikbd_cmdbuf[3] << 8) + ikbd_cmdbuf[2];
   ikbd_absolute_y = (ikbd_cmdbuf[1] << 8) + ikbd_cmdbuf[0];
   ikbd_mouse_enabled = 0;
-  printf("DEBUG: IKBD absolute max %d %d\n", ikbd_absolute_x, ikbd_absolute_y);
+  DEBUG("Absolute max %d %d", ikbd_absolute_x, ikbd_absolute_y);
 }
 
 static void ikbd_set_mouse_scale(void)
 {
-  printf("DEBUG: IKBD set mouse scale %u %u\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
+  DEBUG("Set mouse scale %u %u", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
 }
 
 static void ikbd_mouse_report(void)
@@ -95,12 +96,12 @@ static void ikbd_mouse_report(void)
 
 static void ikbd_load_mouse_position(void)
 {
-  printf("DEBUG: IKBD load mouse position %d %d\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
+  WARN("Load mouse position %d %d, not handled", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
 }
 
 static void ikbd_set_mouse_threshold(void)
 {
-  printf("DEBUG: IKBD set mouse threshold %u %u\n", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
+  WARN("Set mouse threshold %u %u, not handled", ikbd_cmdbuf[0], ikbd_cmdbuf[1]);
 }
 
 static void ikbd_return_clock(void)
@@ -137,7 +138,7 @@ static void ikbd_return_clock(void)
 
 static void ikbd_reset(void)
 {
-  printf("DEBUG: IKBD reset %02x\n", ikbd_cmdbuf[0]);
+  DEBUG("Reset %02x", ikbd_cmdbuf[0]);
   if(ikbd_cmdbuf[0] == 0x01) {
     ikbd_queue_fifo(0xf1);
   }
@@ -157,9 +158,8 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_cmdcnt = 1;
     break;
   case 0x08:
-    // Enable mouse relative
+    DEBUG("Enable mouse relative");
     ikbd_mouse_enabled = 1;
-    printf("DEBUG: IKBD enable mouse relative\n");
     break;
   case 0x09:
     ikbd_cmdfn = ikbd_set_absolute_mouse_positioning;
@@ -181,25 +181,23 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_cmdcnt = 5;
     break;
   case 0x10:
-    // Set Y=0 at top
-    printf("DEBUG: IKBD set y=0 at top\n");
+    WARN("Set y=0 at top not handled");
     break;
   case 0x12:
-    // Disable mouse
+    DEBUG("Disable mouse");
     ikbd_mouse_enabled = 0;
-    printf("DEBUG: IKBD disable mouse\n");
     break;
   case 0x14:
-    printf("DEBUG: joystick event reporting\n");
+    DEBUG("Joystick event reporting");
     ikbd_joystick_enabled = 1;
     break;
   case 0x1a:
-    printf("DEBUG: IKBD disable joysticks\n");
+    DEBUG("Disable joysticks");
     ikbd_joystick_enabled = 0;
     break;
   case 0x1b:
     cpu_enter_debugger();
-    printf("DEBUG: Set clock (not handled)\n");
+    WARN("Set clock (not handled)");
     ikbd_cmdfn = ikbd_set_clock;
     ikbd_cmdcnt = 6;
     break;
@@ -211,8 +209,7 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_cmdcnt = 1;
     break;
   default:
-    // Unhandled ikbd commands (nothing for now)
-    printf("ERROR: IKBD unhandled command 0x%02x\n", cmd);
+    ERROR("UNHANDLED command 0x%02x", cmd);
     break;
   }
 }
@@ -389,6 +386,7 @@ void ikbd_queue_key(int key, int state)
 void ikbd_queue_motion(int x, int y)
 {
   if(!ikbd_mouse_enabled) return;
+  TRACE("Mouse moved %d %d", x, y);
   ikbd_queue_fifo(0xF8 | ikbd_buttons);
   ikbd_queue_fifo(x & 0xFF);
   ikbd_queue_fifo(y & 0xFF);
@@ -419,6 +417,8 @@ void ikbd_fire(int state)
   ikbd_queue_fifo(state << 7);
 }
 
+HANDLE_DIAGNOSTICS(ikbd)
+
 void ikbd_init()
 {
   struct mmu *ikbd;
@@ -439,6 +439,7 @@ void ikbd_init()
   ikbd->write_long = ikbd_write_long;
   ikbd->state_collect = ikbd_state_collect;
   ikbd->state_restore = ikbd_state_restore;
+  ikbd->diagnostics = ikbd_diagnostics;
 
   mmu_register(ikbd);
 }

@@ -4,6 +4,7 @@
 #include "common.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define CARTRIDGESIZE 131072
 #define CARTRIDGEBASE 0xfa0000
@@ -42,6 +43,8 @@ static int cartridge_state_collect(struct mmu_state *state)
 static void cartridge_state_restore(struct mmu_state *state)
 {
 }
+
+HANDLE_DIAGNOSTICS(cartridge)
 
 void cartridge_init(char *filename)
 {
@@ -89,6 +92,7 @@ void cartridge_init(char *filename)
   cartridge->write_long = NULL;
   cartridge->state_collect = cartridge_state_collect;
   cartridge->state_restore = cartridge_state_restore;
+  cartridge->diagnostics = cartridge_diagnostics;
 
   mmu_register(cartridge);
 }

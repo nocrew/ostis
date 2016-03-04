@@ -3,6 +3,7 @@
 #include "common.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define MIDISIZE 4
 #define MIDIBASE 0xfffc04
@@ -72,6 +73,8 @@ static void midi_state_restore(struct mmu_state *state)
 {
 }
 
+HANDLE_DIAGNOSTICS(midi)
+
 void midi_init()
 {
   struct mmu *midi;
@@ -92,6 +95,7 @@ void midi_init()
   midi->write_long = midi_write_long;
   midi->state_collect = midi_state_collect;
   midi->state_restore = midi_state_restore;
+  midi->diagnostics = midi_diagnostics;
 
   mmu_register(midi);
 }

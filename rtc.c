@@ -3,6 +3,7 @@
 #include "common.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define RTCSIZE 0x40
 #define RTCBASE 0xfffc20
@@ -53,6 +54,8 @@ static void rtc_state_restore(struct mmu_state *state)
 {
 }
 
+HANDLE_DIAGNOSTICS(rtc)
+
 void rtc_init()
 {
   struct mmu *rtc;
@@ -73,6 +76,7 @@ void rtc_init()
   rtc->write_long = rtc_write_long;
   rtc->state_collect = rtc_state_collect;
   rtc->state_restore = rtc_state_restore;
+  rtc->diagnostics = rtc_diagnostics;
 
   mmu_register(rtc);
 }

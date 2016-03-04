@@ -8,6 +8,7 @@
 #include "mmu.h"
 #include "state.h"
 #include <SDL.h>
+#include "diag.h"
 
 #define PSGSIZE 256
 #define PSGBASE 0xff8800
@@ -217,6 +218,8 @@ static void psg_state_restore(struct mmu_state *state)
 {
 }
 
+HANDLE_DIAGNOSTICS(psg)
+
 void psg_init()
 {
   int i;
@@ -238,6 +241,7 @@ void psg_init()
   psg->write_long = psg_write_long;
   psg->state_collect = psg_state_collect;
   psg->state_restore = psg_state_restore;
+  psg->diagnostics = psg_diagnostics;
 
   mmu_register(psg);
 
@@ -254,7 +258,7 @@ void psg_init()
     want.samples = 4096;
     want.callback = psg_audio_callback;
   
-    printf("DEBUG: Audio devices: %d\n", count);
+    DEBUG("Audio devices: %d", count);
     for (i = 0; i < count; ++i) {
       SDL_Log("Audio device %d: %s\n", i, SDL_GetAudioDeviceName(i, 0));
       psg_audio_device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(i, 0), 0,

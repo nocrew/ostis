@@ -5,6 +5,7 @@
 #include "mmu.h"
 #include "mfp.h"
 #include "state.h"
+#include "diag.h"
 
 #define MFPSIZE 48
 #define MFPBASE 0xfffa00
@@ -100,13 +101,13 @@ static void mfp_write_byte(LONG addr, BYTE data)
   switch(r) {
   case TACR:
     if(!(mfpreg[TACR]&0xf) && data&0x7) {
-      if(data > 7) printf("DEBUG: MFP not fully implemented.\n");
+      if(data > 7) DEBUG("Not fully implemented");
       precnt[0] = 313*divider[data&0x7];
     }
     break;
   case TBCR:
     if(!(mfpreg[TBCR]&0xf) && data&0x7) {
-      if(data > 7) printf("DEBUG: MFP not fully implemented.\n");
+      if(data > 7) DEBUG("Not fully implemented");
       precnt[1] = 313*divider[data&0x7];
     }
     break;
@@ -200,6 +201,8 @@ static void mfp_state_restore(struct mmu_state *state)
   }
 }
 
+HANDLE_DIAGNOSTICS(mfp)
+
 void mfp_init()
 {
   struct mmu *mfp;
@@ -221,6 +224,7 @@ void mfp_init()
   mfp->write_long = mfp_write_long;
   mfp->state_collect = mfp_state_collect;
   mfp->state_restore = mfp_state_restore;
+  mfp->diagnostics = mfp_diagnostics;
 
   mmu_register(mfp);
 }
@@ -409,7 +413,7 @@ static void mfp_do_interrupt(int inum)
 
   if(mfpreg[ISRB]&0x40) {
     if((cpu->sr&0x700) < 0x600) {
-      printf("DEBUG: We're out of MFP interrupt with ISR still high\n");
+      DEBUG("We're out of MFP interrupt with ISR still high");
     }
   }
   

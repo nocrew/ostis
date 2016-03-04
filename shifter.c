@@ -10,6 +10,7 @@
 #include "screen.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define SHIFTERSIZE 128
 #define SHIFTERBASE 0xff8200
@@ -674,6 +675,8 @@ void shifter_build_ppm()
     WARNING(write);
 }
 
+HANDLE_DIAGNOSTICS(shifter)
+
 void shifter_init()
 {
   struct mmu *shifter;
@@ -695,6 +698,7 @@ void shifter_init()
   shifter->write_long = shifter_write_long;
   shifter->state_collect = shifter_state_collect;
   shifter->state_restore = shifter_state_restore;
+  shifter->diagnostics = shifter_diagnostics;
 
   shifter_set_resolution(0);
 

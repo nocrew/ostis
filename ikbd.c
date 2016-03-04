@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "mfp.h"
 #include "state.h"
+#include "diag.h"
 
 #define IKBDSIZE 4
 #define IKBDBASE 0xfffc00
@@ -419,6 +420,8 @@ void ikbd_fire(int state)
   ikbd_queue_fifo(state << 7);
 }
 
+HANDLE_DIAGNOSTICS(ikbd)
+
 void ikbd_init()
 {
   struct mmu *ikbd;
@@ -439,6 +442,7 @@ void ikbd_init()
   ikbd->write_long = ikbd_write_long;
   ikbd->state_collect = ikbd_state_collect;
   ikbd->state_restore = ikbd_state_restore;
+  ikbd->diagnostics = ikbd_diagnostics;
 
   mmu_register(ikbd);
 }

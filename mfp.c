@@ -5,6 +5,7 @@
 #include "mmu.h"
 #include "mfp.h"
 #include "state.h"
+#include "diag.h"
 
 #define MFPSIZE 48
 #define MFPBASE 0xfffa00
@@ -200,6 +201,8 @@ static void mfp_state_restore(struct mmu_state *state)
   }
 }
 
+HANDLE_DIAGNOSTICS(mfp)
+
 void mfp_init()
 {
   struct mmu *mfp;
@@ -221,6 +224,7 @@ void mfp_init()
   mfp->write_long = mfp_write_long;
   mfp->state_collect = mfp_state_collect;
   mfp->state_restore = mfp_state_restore;
+  mfp->diagnostics = mfp_diagnostics;
 
   mmu_register(mfp);
 }

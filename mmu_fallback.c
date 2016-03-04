@@ -3,6 +3,7 @@
 #include "common.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 static BYTE mmu_fallback_read_byte(LONG addr)
 {
@@ -44,6 +45,8 @@ static void mmu_fallback_state_restore(struct mmu_state *state)
 {
 }
 
+HANDLE_DIAGNOSTICS(mmu_fallback)
+
 static void mmu_fallback_register(char *name, LONG addr, int size)
 {
   struct mmu *mmu_fallback;
@@ -64,6 +67,7 @@ static void mmu_fallback_register(char *name, LONG addr, int size)
   mmu_fallback->write_long = mmu_fallback_write_long;
   mmu_fallback->state_collect = mmu_fallback_state_collect;
   mmu_fallback->state_restore = mmu_fallback_state_restore;
+  mmu_fallback->diagnostics = mmu_fallback_diagnostics;
 
   mmu_register(mmu_fallback);
 }

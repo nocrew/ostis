@@ -4,6 +4,7 @@
 #include "common.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define RAMSIZE (4*1048576)-8
 #define RAMBASE 8
@@ -93,6 +94,12 @@ static void ramcfg_write_byte(LONG addr, BYTE data)
   ramcfg = data;
 }
 
+HANDLE_DIAGNOSTICS(ram)
+
+static void cfg_diagnostics()
+{
+}
+
 void ram_init()
 {
   struct mmu *ram,*cfg;
@@ -118,6 +125,7 @@ void ram_init()
   ram->write_long = ram_write_long;
   ram->state_collect = ram_state_collect;
   ram->state_restore = ram_state_restore;
+  ram->diagnostics = ram_diagnostics;
 
   mmu_register(ram);
 
@@ -134,6 +142,7 @@ void ram_init()
   cfg->write_byte = ramcfg_write_byte;
   cfg->write_word = NULL;
   cfg->write_long = NULL;
+  cfg->diagnostics = cfg_diagnostics;
 
   mmu_register(cfg);
 }

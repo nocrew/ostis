@@ -366,6 +366,8 @@ void mmu_state_restore(struct mmu_state *state)
 
 void mmu_register(struct mmu *data)
 {
+  extern void diagnostics_level(struct mmu *, int);
+  extern int verbosity;
   struct mmu *data_address_error;
   uint8_t data_id, data_address_error_id;
   int i,addr;
@@ -385,6 +387,8 @@ void mmu_register(struct mmu *data)
       mmu_module_at_addr[addr] = data_id;
     }
   }
+
+  diagnostics_level(data, verbosity);
 }
 
 void mmu_print_map()

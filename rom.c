@@ -5,6 +5,7 @@
 #include "prefs.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 #define NEWTOS 0
 
@@ -80,6 +81,8 @@ static void rom_state_restore(struct mmu_state *state)
   }
 }
 
+HANDLE_DIAGNOSTICS(rom)
+
 void rom_init()
 {
   struct mmu *rom,*rom2;
@@ -118,6 +121,7 @@ void rom_init()
   rom->write_long = NULL;
   rom->state_collect = rom_state_collect;
   rom->state_restore = rom_state_restore;
+  rom->diagnostics = rom_diagnostics;
 
   mmu_register(rom);
 
@@ -145,6 +149,7 @@ void rom_init()
   rom2->write_long = NULL;
   rom2->state_collect = rom_state_collect;
   rom2->state_restore = rom_state_restore;
+  rom2->diagnostics = rom_diagnostics;
 
   mmu_register(rom2);
 }

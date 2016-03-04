@@ -1,6 +1,8 @@
 #ifndef FLOPPY_STX_H
 #define FLOPPY_STX_H
 
-extern void floppy_load_stx(FILE *fp);
+#include "floppy.h"
+
+extern void floppy_stx_init(struct floppy *, char *);
 
 #endif

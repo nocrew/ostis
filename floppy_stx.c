@@ -1,6 +1,37 @@
 #include "common.h"
+#include "mmu.h"
 #include "floppy.h"
 #include "floppy_stx.h"
+
+static struct floppy *fl;
+static char *filename = NULL;
+static BYTE *raw_data;
+static LONG raw_data_size;
+
+#define SECSIZE 512
+
+static int read_sector(int track, int side, int sector, LONG addr, int count)
+{
+  int pos,i,j;
+  pos = track * (fl->sides+1) * fl->sectors * SECSIZE;
+  pos += (sector-1) * SECSIZE;
+  pos += side * fl->sectors * SECSIZE;
+
+  for(i=0;i<count;i++) {
+    /* Check if we're trying to read outside floppy data */
+    if((pos+i*SECSIZE) >= (raw_data_size-SECSIZE)) return FLOPPY_ERROR;
+    for(j=0;j<SECSIZE;j++) {
+      mmu_write_byte(addr+i*SECSIZE+j, raw_data[pos+i*SECSIZE+j]);
+    }
+  }
+  
+  return FLOPPY_OK;
+}
+
+static int write_sector(int track, int side, int sector, LONG addr, int count)
+{
+  return FLOPPY_ERROR;
+}
 
 static uint16_t stx_word(BYTE *x)
 {
@@ -14,14 +45,14 @@ static uint32_t stx_long(BYTE *x)
 
 static void load_sector(int track, int side, int sector, int size, BYTE *data)
 {
-  BYTE *pos = floppy_raw_data;
+  BYTE *pos = raw_data;
 
   if (sector > 11)
     return;
 
-  pos += track*(floppy[0].sides+1)*floppy[0].sectors*512;
-  pos += (sector-1)*512;
-  pos += side*floppy[0].sectors*512;
+  pos += track*(fl->sides+1)*fl->sectors*SECSIZE;
+  pos += (sector-1)*SECSIZE;
+  pos += side*fl->sectors*SECSIZE;
 
   memcpy(pos, data, size);
 }
@@ -72,11 +103,11 @@ static void load_track(FILE *fp)
     }
   } else {
     for(i = 0; i < sectors; i++) {
-      sector_offset[i] = i * 512;
+      sector_offset[i] = i * SECSIZE;
       sector_track[i] = (header[14] & 0x7f);
       sector_side[i] = ((header[14] & 0x80) >> 7);
       sector_nr[i] = i + 1;
-      sector_size[i] = 512;
+      sector_size[i] = SECSIZE;
     }
   }
 
@@ -99,7 +130,7 @@ static void load_track(FILE *fp)
   }
 }
 
-void floppy_load_stx(FILE *fp)
+static void load_file(FILE *fp)
 {
   BYTE header[16];
   int tracks;
@@ -113,13 +144,13 @@ void floppy_load_stx(FILE *fp)
 
   tracks = header[10];
 
-  floppy[0].sectors = 11;
-  floppy[0].sides = 1;
-  floppy[0].tracks = tracks;
-  floppy_raw_data_size = (floppy[0].sectors * 512) * floppy[0].tracks * (floppy[0].sides + 1);
+  fl->sectors = 11;
+  fl->sides = 1;
+  fl->tracks = tracks;
+  raw_data_size = (fl->sectors * SECSIZE) * fl->tracks * (fl->sides + 1);
 
-  floppy_raw_data = floppy_allocate_memory();
-  if(floppy_raw_data == NULL) {
+  raw_data = floppy_allocate_memory();
+  if(raw_data == NULL) {
     printf("Unable to allocate floppy space\n");
     return;
   }
@@ -128,9 +159,23 @@ void floppy_load_stx(FILE *fp)
     load_track(fp);
   }
 
-  floppy[0].fp = NULL;
-  floppy[0].inserted = 1;
+  fl->fp = NULL;
+  fl->inserted = 1;
 
   fclose(fp);
   return;
+}
+
+void floppy_stx_init(struct floppy *flop, char *name)
+{
+  FILE *fp;
+  fl = flop;
+  filename = name;
+
+  fp = fopen(filename, "rb");
+  if(!fp) return;
+
+  load_file(fp);
+  fl->read_sector = read_sector;
+  fl->write_sector = write_sector;
 }

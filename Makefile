@@ -18,7 +18,8 @@ PARSERSRC=expr.tab.c lex.expr.c
 PARSEROBJ=$(PARSERSRC:.c=.o)
 
 SRC=mmu.c mmu_fallback.c ram.c rom.c cpu.c cartridge.c psg.c mfp.c shifter.c screen.c \
-    midi.c ikbd.c fdc.c rtc.c floppy.c floppy_stx.c event.c state.c prefs.c cprint.c diag.c
+    midi.c ikbd.c fdc.c rtc.c floppy.c floppy_st.c floppy_msa.c floppy_stx.c event.c \
+    state.c prefs.c cprint.c diag.c
 SRC_TEST=tests/test_main.c
 OBJ=$(SRC:.c=.o)
 

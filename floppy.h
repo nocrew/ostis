@@ -1,6 +1,8 @@
 #ifndef FLOPPY_H
 #define FLOPPY_H
 
+#include "common.h"
+
 #define FLOPPY_OK    0
 #define FLOPPY_ERROR 1
 
@@ -13,6 +15,8 @@ struct floppy {
   int sel_trk;
   int sel_sec;
   int sel_side;
+  int (*read_sector)(int track, int side, int sector, LONG addr, int count);
+  int (*write_sector)(int track, int side, int sector, LONG addr, int count);
 };
 
 void floppy_side(int);

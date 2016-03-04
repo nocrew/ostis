@@ -1,23 +1,13 @@
 #include "common.h"
 #include "mmu.h"
 #include "floppy.h"
-
-struct floppy {
-  FILE *fp;
-  int inserted;
-  int tracks;
-  int sectors;
-  int sides;
-  int sel_trk;
-  int sel_sec;
-  int sel_side;
-};
+#include "floppy_stx.h"
 
 /* Currently only drive 0 (A:) supported */
 
 struct floppy floppy[2];
-static BYTE *floppy_raw_data;
-static LONG floppy_raw_data_size;
+BYTE *floppy_raw_data;
+LONG floppy_raw_data_size;
 static const char *floppy_filename = NULL;
 
 static void floppy_store_raw(long offset);
@@ -290,6 +280,9 @@ void floppy_init(char *filename)
   // otherwise it's considered to be a raw image.
   if(header[0] == 0x0e && header[1] == 0x0f) {
     floppy_load_msa(fp);
+  } else if(header[0] == 0x52 && header[1] == 0x53 &&
+	    header[2] == 0x59 && header[3] == 0x00) {
+    floppy_load_stx(fp);
   } else {
     floppy_filename = filename;
     floppy_load_raw(fp);

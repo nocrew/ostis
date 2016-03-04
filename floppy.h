@@ -4,6 +4,17 @@
 #define FLOPPY_OK    0
 #define FLOPPY_ERROR 1
 
+struct floppy {
+  FILE *fp;
+  int inserted;
+  int tracks;
+  int sectors;
+  int sides;
+  int sel_trk;
+  int sel_sec;
+  int sel_side;
+};
+
 void floppy_side(int);
 void floppy_active(int);
 void floppy_sector(int);
@@ -12,5 +23,10 @@ int floppy_seek_rel(int);
 int floppy_read_sector(LONG, int);
 int floppy_write_sector(LONG, int);
 void floppy_init(char *);
+BYTE *floppy_allocate_memory(void);
+
+struct floppy floppy[2];
+BYTE *floppy_raw_data;
+LONG floppy_raw_data_size;
 
 #endif

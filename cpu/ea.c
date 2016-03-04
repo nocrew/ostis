@@ -393,6 +393,9 @@ void ea_write_byte(struct cpu *cpu, int mode, BYTE data)
   default:
     addr = 0;
   }
+  if(cpu->prefetch_before_write) {
+    cpu_prefetch(cpu);
+  }
   mmu_write_byte(addr, data);
 }
 
@@ -437,6 +440,9 @@ void ea_write_word(struct cpu *cpu, int mode, WORD data)
     break;
   default:
     addr = 0;
+  }
+  if(cpu->prefetch_before_write) {
+    cpu_prefetch(cpu);
   }
   mmu_write_word(addr, data);
 }
@@ -483,6 +489,9 @@ void ea_write_long(struct cpu *cpu, int mode, LONG data)
     break;
   default:
     addr = 0;
+  }
+  if(cpu->prefetch_before_write) {
+    cpu_prefetch(cpu);
   }
   mmu_write_long(addr, data);
 }

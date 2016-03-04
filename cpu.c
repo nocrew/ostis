@@ -75,6 +75,11 @@ static WORD fetch_instr(struct cpu *cpu)
 {
   WORD op;
   last_pc = cpu->pc;
+  if(cpu->has_prefetched) {
+    cpu->has_prefetched = 0;
+    cpu->pc += 2;
+    return cpu->prefetched_instr;
+  }
   op = mmu_read_word(cpu->pc);
   cpu->pc += 2;
   return op;
@@ -89,6 +94,7 @@ static void cpu_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
+  cpu->has_prefetched = 0;
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -110,6 +116,7 @@ static void cpu_exception_general(int vnum)
 {
   WORD oldsr;
 
+  cpu->has_prefetched = 0;
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -131,6 +138,7 @@ static void cpu_exception_interrupt(int vnum)
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
+  cpu->has_prefetched = 0;
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
@@ -382,6 +390,12 @@ void cpu_set_sr(WORD sr)
   cpu->sr = sr;
 }
 
+void cpu_prefetch(struct cpu *cpu)
+{
+  cpu->prefetched_instr = mmu_read_word(cpu->pc);
+  cpu->has_prefetched = 1;
+}
+
 void cpu_init()
 {
   int i;
@@ -398,6 +412,9 @@ void cpu_init()
   cpu->cycle = 0;
   cpu->icycle = 0;
   cpu->stopped = 0;
+  cpu->prefetch_before_write = 0;
+  cpu->prefetched_instr = 0;
+  cpu->has_prefetched = 0;
 
   for(i=0;i<65536;i++) {
     instr[i] = default_instr;

@@ -1,5 +1,6 @@
 #include "test_main.h"
 #include "cpu.h"
+#include "cprint.h"
 
 #define TEST_HOOK_TEST1 1
 

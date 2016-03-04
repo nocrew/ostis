@@ -3,6 +3,7 @@
 #include "test_main.h"
 #include "test_cases.h"
 #include "cpu.h"
+#include "cprint.h"
 #include "mmu.h"
 
 #define TEST_DATA_DIR "tests/data"
@@ -166,6 +167,7 @@ struct test_case *test_init(char *case_name)
   test_roxl_init();
   test_roxr_init();
   test_lsl_init();
+  test_prefetch1_init();
   current_case = find_case(case_name);
 
   return current_case;

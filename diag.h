@@ -11,6 +11,7 @@
 // FORMAT is a printf-style format string, and
 // ARGS are arguments to the format string.
 
+#include "mmu.h"
 static struct mmu *mmu_device;
 
 extern void print_diagnostic(int, struct mmu *, const char *, ...);
@@ -34,3 +35,14 @@ static void device ## _diagnostics(struct mmu *device, int n)	\
   mmu_device = device;						\
   device->verbosity = n;					\
 }
+
+#define HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(device, device_id)    \
+  do {                                                          \
+    extern void diagnostics_level(struct mmu *, int);           \
+    extern int verbosity;                                       \
+    struct mmu *dummy_device;                                   \
+    dummy_device = (struct mmu *)malloc(sizeof(struct mmu));    \
+    dummy_device->diagnostics = device ## _diagnostics;         \
+    memcpy(dummy_device->id, device_id, 4);                     \
+    diagnostics_level(dummy_device, verbosity);                 \
+  } while(0)

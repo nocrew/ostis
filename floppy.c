@@ -2,6 +2,7 @@
 #include "mmu.h"
 #include "floppy.h"
 #include "floppy_stx.h"
+#include "diag.h"
 
 /* Currently only drive 0 (A:) supported */
 
@@ -10,11 +11,14 @@ BYTE *floppy_raw_data;
 LONG floppy_raw_data_size;
 static const char *floppy_filename = NULL;
 
+HANDLE_DIAGNOSTICS(floppy);
+
 static void floppy_store_raw(long offset);
 
 void floppy_side(int side)
 {
   if(!floppy[0].inserted) return;
+  TRACE("floppy_side: Side: %d", side + 1);
   if(side == 0)
     floppy[0].sel_side = 1;
   else
@@ -29,6 +33,7 @@ void floppy_active(int dmask)
 void floppy_sector(int sector)
 {
   if(!floppy[0].inserted) return;
+  TRACE("floppy_sector: Track %d - Sector %d", floppy[0].sel_trk, sector);
   floppy[0].sel_sec = sector;
   if(sector < 1)
     floppy[0].sel_sec = 1;
@@ -39,6 +44,7 @@ void floppy_sector(int sector)
 int floppy_seek(int track)
 {
   if(!floppy[0].inserted) return FLOPPY_OK;
+  TRACE("floppy_seek: Track %d", track);
   floppy[0].sel_trk = track;
   if(track < 0)
     floppy[0].sel_trk = 0;
@@ -52,8 +58,9 @@ int floppy_seek(int track)
 }
 
 int floppy_seek_rel(int off)
-{
+{ 
   if(!floppy[0].inserted) return FLOPPY_ERROR;
+  TRACE("floppy_seek_rel: Track %d", floppy[0].sel_trk + off);
   floppy[0].sel_trk += off;
   if(floppy[0].sel_trk < 0)
     floppy[0].sel_trk = 0;
@@ -73,6 +80,8 @@ int floppy_read_sector(LONG addr, int count)
   pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
   pos += (floppy[0].sel_sec-1)*512;
   pos += floppy[0].sel_side*floppy[0].sectors*512;
+
+  DEBUG("floppy_read_sector: Track %*d - Sector %*d - Count: %*d", 2, floppy[0].sel_trk, 2, floppy[0].sel_sec, 2, count);
 
   for(i=0;i<count;i++) {
     if((pos+i*512) >= (floppy_raw_data_size-512)) return FLOPPY_ERROR;
@@ -95,6 +104,8 @@ int floppy_write_sector(LONG addr, int count)
   pos = floppy[0].sel_trk*(floppy[0].sides+1)*floppy[0].sectors*512;
   pos += (floppy[0].sel_sec-1)*512;
   pos += floppy[0].sel_side*floppy[0].sectors*512;
+
+  DEBUG("floppy_write_sector: Track %*d - Sector %*d - Count: %*d", 2, floppy[0].sel_trk, 2, floppy[0].sel_sec, 2, count);
 
   for(i=0;i<count;i++) {
     if((pos+i*512) >= (floppy_raw_data_size-512)) return FLOPPY_ERROR;
@@ -264,6 +275,8 @@ void floppy_init(char *filename)
 {
   BYTE header[512];
 
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy, "FLOP");
+  
   floppy[0].inserted = 0;
   
   FILE *fp = fopen(filename, "rb");

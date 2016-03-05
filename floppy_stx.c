@@ -2,6 +2,7 @@
 #include "mmu.h"
 #include "floppy.h"
 #include "floppy_stx.h"
+#include "diag.h"
 
 static struct floppy *fl;
 static char *filename = NULL;
@@ -15,32 +16,39 @@ struct sector {
   int nr;
   int size;
   int offset;
+  int is_fuzzy;
   BYTE *data;
+  BYTE *fuzzy_mask;
 };
 
 struct track {
   int nr;
+  int side;
   int size;
-  int fuzzy;
+  int fuzzy_size;
   int sector_count;
-  int sides;
-  struct sector *sectors[MAXSIDES];
+  struct sector *sectors;
 };
 
 static struct track tracks[MAXTRACKS];
   
 #define SECSIZE 512
 
+HANDLE_DIAGNOSTICS(floppy_stx);
+
 static int read_sector(int track, int side, int sector, LONG addr, int count)
 {
   int i,j,dst_pos;
   struct sector *track_sectors;
+  BYTE *fuzzy_mask;
+  int track_side_num;
   int sector_count;
   int sec_num, sec_size;
   int start_sector = -1;
 
-  sector_count = tracks[track].sector_count;
-  track_sectors = tracks[track].sectors[side];
+  track_side_num = track | side << 7;
+  sector_count = tracks[track_side_num].sector_count;
+  track_sectors = tracks[track_side_num].sectors;
 
   for(i=0;i<sector_count;i++) {
     if(track_sectors[i].nr == sector) {
@@ -52,14 +60,22 @@ static int read_sector(int track, int side, int sector, LONG addr, int count)
     return FLOPPY_ERROR;
   }
 
+  DEBUG("ReadSec: T: %d  Sd: %d  S: %d  C: %d", track, side, sector, count);
+  
   dst_pos = addr;
   
   for(i=0;i<count;i++) {
     sec_num = start_sector + i;
     if(sec_num > sector_count) return FLOPPY_ERROR;
     sec_size = track_sectors[sec_num].size;
+    fuzzy_mask = track_sectors[sec_num].fuzzy_mask;
     for(j=0;j<sec_size;j++) {
-      mmu_write_byte(dst_pos, track_sectors[sec_num].data[j]);
+      BYTE data;
+      data = track_sectors[sec_num].data[j];
+      if(track_sectors[sec_num].is_fuzzy) {
+        data = (data&fuzzy_mask[j])|(rand()&~fuzzy_mask[j]);
+      }
+      mmu_write_byte(dst_pos, data);
       dst_pos++;
     }
   }
@@ -82,28 +98,47 @@ static uint32_t stx_long(BYTE *x)
   return stx_word(x) + (stx_word(x + 2) << 16);
 }
 
-static void load_sector(int sector_index, int track, int side, int sector, int size, BYTE *data, struct sector *sector_data)
+/* track_data is a pointer to the entire data block. Actual sector data is located on an offset within that area.
+ * fuzzy_mask is a pointer to the currently unused fuzzy_mask data block. Actual fuzzy data is always the first.
+ */
+static void load_sector_with_header(struct sector *sector_data, BYTE *header, BYTE *track_data, BYTE *fuzzy_mask)
 {
-  sector_data->nr = sector;
-  sector_data->size = size;
+  sector_data->offset = stx_long(header);
+  sector_data->nr = header[0x0a];
+  sector_data->size = 128 << (header[0x0b]&0x3);
+  if(header[0x0e] & 0x80) {
+    sector_data->is_fuzzy = 1;
+    sector_data->fuzzy_mask = (BYTE *)malloc(sector_data->size);
+    memcpy(sector_data->fuzzy_mask, fuzzy_mask, sector_data->size);
+  } else {
+    sector_data->is_fuzzy = 0;
+  }
+  sector_data->data = (BYTE *)malloc(sector_data->size);
+  memcpy(sector_data->data, track_data + sector_data->offset, sector_data->size);
 
-  sector_data->data = (BYTE *)malloc(size);
-  
-  memcpy(sector_data->data, data, size);
+  DEBUG("LoadSecHdr: Nr: %d  Sz: %d  Fz: %d  Off: %d", sector_data->nr, sector_data->size, sector_data->is_fuzzy, sector_data->offset);
+}
+
+static void load_sector_without_header(struct sector *sector_data, int sector_index, BYTE *track_data)
+{
+  sector_data->offset = sector_index * SECSIZE;
+  sector_data->nr = sector_index + 1;
+  sector_data->size = SECSIZE;
+  sector_data->is_fuzzy = 0; /* Without header, it will never be fuzzy */
+  sector_data->data = (BYTE *)malloc(sector_data->size);
+  memcpy(sector_data->data, track_data + sector_data->offset, sector_data->size);
+  DEBUG("LoadSec:    Nr: %d  Sz: %d  Fz: %d  Off: %d", sector_data->nr, sector_data->size, 0, sector_data->offset);
 }
 
 static void load_track(FILE *fp)
 {
-  int track_num;
-  int sectors, fuzzy, track_image, track_size;
-  int sector_nr[70];
-  int sector_size[70];
-  int sector_side[70];
-  int sector_track[70];
-  int sector_offset[70];
+  int track_side_num,track_num,track_side;
+  int sectors, fuzzy_size, track_image, track_size;
   BYTE header[16];
   BYTE data[50000];
-  BYTE *pos;
+  BYTE *fuzzy_pos;
+  BYTE *data_pos;
+  BYTE *header_pos;
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
@@ -113,8 +148,11 @@ static void load_track(FILE *fp)
     return;
   }
 
+  track_side_num = header[0x0e];
+  track_num = header[0x0e]&0x7f;
+  track_side = (header[0x0e]&0x80) >> 7;
   track_size = stx_long(header);
-  fuzzy = stx_long(header + 4);
+  fuzzy_size = stx_long(header + 4);
   sectors = stx_word(header + 8);
   track_image = header[10] & 0xC0;
 
@@ -131,53 +169,44 @@ static void load_track(FILE *fp)
     return;
   }
 
-  pos = data;
+  data_pos = data;
+
+  tracks[track_side_num].nr = track_num;
+  tracks[track_side_num].side = track_side;
+  tracks[track_side_num].size = track_size;
+  tracks[track_side_num].sector_count = sectors;
+  tracks[track_side_num].fuzzy_size = fuzzy_size;
+  /* This is a bit of a hack with the sides for now */
+  tracks[track_side_num].sectors = (struct sector *)malloc(sizeof(struct sector) * sectors);
+
+  DEBUG("LoadTrk:    T: %d  Sd: %d", track_num, track_side);
 
   if(header[10] & 1) {
+    fuzzy_pos = data + sectors * 16;
+    data_pos = fuzzy_pos + fuzzy_size;
     for(i = 0; i < sectors; i++) {
-      sector_offset[i] = stx_long(pos);
-      sector_track[i] = pos[8];
-      sector_side[i] = pos[9];
-      sector_nr[i] = pos[10];
-      sector_size[i] = (128 << (pos[11] & 3));
-      pos += 16;
+      struct sector *current_sector = &tracks[track_side_num].sectors[i];
+      header_pos = data + i * 16;
+      load_sector_with_header(current_sector, header_pos, data_pos, fuzzy_pos);
+      if(current_sector->is_fuzzy) {
+        fuzzy_pos += current_sector->size;
+      }
     }
   } else {
     for(i = 0; i < sectors; i++) {
-      sector_offset[i] = i * SECSIZE;
-      sector_track[i] = (header[14] & 0x7f);
-      sector_side[i] = ((header[14] & 0x80) >> 7);
-      sector_nr[i] = i + 1;
-      sector_size[i] = SECSIZE;
+      load_sector_without_header(&tracks[track_side_num].sectors[i], i, data_pos);
     }
   }
 
-  pos += fuzzy;
-
   if(track_image & 0x40) {
     int off = 0, ts;
-    BYTE *p = pos;
+    BYTE *p = data_pos;
     if (track_image & 0x80) {
       off = stx_word(p);
       p += 2;
     }
     ts = stx_word(p);
     printf("Track image offset %d size %d\n", off, ts);
-  }
-
-  track_num = sector_track[0];
-  tracks[track_num].nr = track_num;
-  tracks[track_num].size = track_size;
-  tracks[track_num].sector_count = sectors;
-  tracks[track_num].fuzzy = fuzzy;
-  /* This is a bit of a hack with the sides for now */
-  tracks[track_num].sectors[0] = (struct sector *)malloc(sizeof(struct sector) * sectors);
-  tracks[track_num].sectors[1] = (struct sector *)malloc(sizeof(struct sector) * sectors);
-  
-  for(i = 0; i < sectors; i++) {
-    tracks[track_num].sectors[sector_side[i]][i].offset = sector_offset[i];
-    load_sector(i, sector_track[i], sector_side[i], sector_nr[i], sector_size[i],
-		pos + sector_offset[i], &tracks[track_num].sectors[sector_side[i]][i]);
   }
 }
 
@@ -221,6 +250,8 @@ void floppy_stx_init(struct floppy *flop, char *name)
   FILE *fp;
   fl = flop;
   filename = name;
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_stx, "FSTX");
 
   fp = fopen(filename, "rb");
   if(!fp) return;

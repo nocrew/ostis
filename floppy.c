@@ -34,10 +34,6 @@ void floppy_sector(int sector)
   if(!floppy[0].inserted) return;
   TRACE("floppy_sector: Track %d - Sector %d", floppy[0].sel_trk, sector);
   floppy[0].sel_sec = sector;
-  if(sector < 1)
-    floppy[0].sel_sec = 1;
-  if(sector > floppy[0].sectors)
-    floppy[0].sel_sec = floppy[0].sectors;
 }
 
 int floppy_seek(int track)

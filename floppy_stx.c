@@ -5,26 +5,65 @@
 
 static struct floppy *fl;
 static char *filename = NULL;
-static BYTE *raw_data;
-static LONG raw_data_size;
+//static BYTE *raw_data;
+//static LONG raw_data_size;
 
+#define MAXSIDES 2
+#define MAXTRACKS 86
+
+struct sector {
+  int nr;
+  int size;
+  int offset;
+  BYTE *data;
+};
+
+struct track {
+  int nr;
+  int size;
+  int fuzzy;
+  int sector_count;
+  int sides;
+  struct sector *sectors[MAXSIDES];
+};
+
+static struct track tracks[MAXTRACKS];
+  
 #define SECSIZE 512
 
 static int read_sector(int track, int side, int sector, LONG addr, int count)
 {
-  int pos,i,j;
-  pos = track * (fl->sides+1) * fl->sectors * SECSIZE;
-  pos += (sector-1) * SECSIZE;
-  pos += side * fl->sectors * SECSIZE;
+  int i,j,dst_pos;
+  struct sector *track_sectors;
+  int sector_count;
+  int sec_num, sec_size;
+  int start_sector = -1;
 
-  for(i=0;i<count;i++) {
-    /* Check if we're trying to read outside floppy data */
-    if((pos+i*SECSIZE) >= (raw_data_size-SECSIZE)) return FLOPPY_ERROR;
-    for(j=0;j<SECSIZE;j++) {
-      mmu_write_byte(addr+i*SECSIZE+j, raw_data[pos+i*SECSIZE+j]);
+  sector_count = tracks[track].sector_count;
+  track_sectors = tracks[track].sectors[side];
+
+  for(i=0;i<sector_count;i++) {
+    if(track_sectors[i].nr == sector) {
+      start_sector = i;
     }
   }
+
+  if(start_sector == -1) {
+    return FLOPPY_ERROR;
+  }
+
+  dst_pos = addr;
   
+  for(i=0;i<count;i++) {
+    sec_num = start_sector + i;
+    if(sec_num > sector_count) return FLOPPY_ERROR;
+    sec_size = track_sectors[sec_num].size;
+    for(j=0;j<sec_size;j++) {
+      mmu_write_byte(dst_pos, track_sectors[sec_num].data[j]);
+      dst_pos++;
+    }
+  }
+
   return FLOPPY_OK;
 }
 
@@ -43,22 +82,19 @@ static uint32_t stx_long(BYTE *x)
   return stx_word(x) + (stx_word(x + 2) << 16);
 }
 
-static void load_sector(int track, int side, int sector, int size, BYTE *data)
+static void load_sector(int sector_index, int track, int side, int sector, int size, BYTE *data, struct sector *sector_data)
 {
-  BYTE *pos = raw_data;
+  sector_data->nr = sector;
+  sector_data->size = size;
 
-  if (sector > 11)
-    return;
-
-  pos += track*(fl->sides+1)*fl->sectors*SECSIZE;
-  pos += (sector-1)*SECSIZE;
-  pos += side*fl->sectors*SECSIZE;
-
-  memcpy(pos, data, size);
+  sector_data->data = (BYTE *)malloc(size);
+  
+  memcpy(sector_data->data, data, size);
 }
 
 static void load_track(FILE *fp)
 {
+  int track_num;
   int sectors, fuzzy, track_image, track_size;
   int sector_nr[70];
   int sector_size[70];
@@ -124,9 +160,19 @@ static void load_track(FILE *fp)
     printf("Track image offset %d size %d\n", off, ts);
   }
 
+  track_num = sector_track[0];
+  tracks[track_num].nr = track_num;
+  tracks[track_num].size = track_size;
+  tracks[track_num].sector_count = sectors;
+  tracks[track_num].fuzzy = fuzzy;
+  /* This is a bit of a hack with the sides for now */
+  tracks[track_num].sectors[0] = (struct sector *)malloc(sizeof(struct sector) * sectors);
+  tracks[track_num].sectors[1] = (struct sector *)malloc(sizeof(struct sector) * sectors);
+  
   for(i = 0; i < sectors; i++) {
-    load_sector(sector_track[i], sector_side[i], sector_nr[i], sector_size[i],
-		pos + sector_offset[i]);
+    tracks[track_num].sectors[sector_side[i]][i].offset = sector_offset[i];
+    load_sector(i, sector_track[i], sector_side[i], sector_nr[i], sector_size[i],
+		pos + sector_offset[i], &tracks[track_num].sectors[sector_side[i]][i]);
   }
 }
 
@@ -147,13 +193,6 @@ static void load_file(FILE *fp)
   fl->sectors = 11;
   fl->sides = 1;
   fl->tracks = tracks;
-  raw_data_size = (fl->sectors * SECSIZE) * fl->tracks * (fl->sides + 1);
-
-  raw_data = floppy_allocate_memory();
-  if(raw_data == NULL) {
-    printf("Unable to allocate floppy space\n");
-    return;
-  }
 
   for(i = 0; i < tracks; i++) {
     load_track(fp);

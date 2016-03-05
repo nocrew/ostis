@@ -207,6 +207,10 @@ int cpu_step_instr(int trace)
       free(cprint);
     }
 
+    if(cpu->sr&0x8000) {
+      cpu_set_exception(VEC_TRACE);
+    }
+    
     instr[op](cpu, op);
 #if TEST_BUILD
     test_call_hooks(TEST_HOOK_AFTER_INSTR, cpu);

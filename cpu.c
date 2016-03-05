@@ -98,7 +98,7 @@ static void cpu_exception_full_stacked(int vnum)
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
-  mmu_write_long(cpu->a[7], last_pc);
+  mmu_write_long(cpu->a[7], cpu->pc);
   cpu->a[7] -= 2;
   mmu_write_word(cpu->a[7], oldsr);
   cpu->a[7] -= 2;
@@ -348,6 +348,15 @@ void cpu_set_exception(int vnum)
 void cpu_clr_exception(int vnum)
 {
   exception_pending[vnum] = 0;
+}
+
+int cpu_full_stacked_exception_pending()
+{
+  if(exception_pending[VEC_BUSERR] || exception_pending[VEC_ADDRERR]) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 static void cpu_set_full_stacked_exception(int vnum, int flags, LONG addr)

@@ -73,7 +73,7 @@ extern int cprint_all;
 #define IPL_EXCEPTION_VECTOR_OFFSET 24
 
 #define VEC_BUSERR  2
-#define VEC_ADDRERR 2
+#define VEC_ADDRERR 3
 #define VEC_ILLEGAL 4
 #define VEC_ZERODIV 5
 #define VEC_CHK     6
@@ -129,6 +129,7 @@ void cpu_check_for_pending_interrupts();
 void cpu_set_interrupt(int, int);
 void cpu_set_exception(int);
 void cpu_clr_exception(int);
+int cpu_full_stacked_exception_pending();
 void cpu_set_bus_error(int, LONG);
 void cpu_set_address_error(int, LONG);
 void cpu_add_debugpoint(LONG);

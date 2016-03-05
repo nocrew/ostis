@@ -167,7 +167,15 @@ struct cprint *cprint_instr(LONG addr)
 {
   WORD op;
 
-  op = mmu_read_word_print(addr);
+  if(cpu->pc == addr) {
+    if(cpu->has_prefetched) {
+      op = cpu->prefetched_instr;
+    } else {
+      op = mmu_read_word_print(addr);
+    }
+  } else {
+    op = mmu_read_word_print(addr);
+  }
   
   return instr_print[op](addr, op);
 }

@@ -30,5 +30,7 @@ void ea_write_long(struct cpu *,int,LONG);
 LONG ea_get_addr(struct cpu *,int);
 void ea_print(struct cprint *,int, int);
 int ea_valid(int, int);
+void ea_set_prefetch_before_write();
+void ea_clear_prefetch_before_write();
 
 #endif

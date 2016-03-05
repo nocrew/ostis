@@ -20,6 +20,7 @@ void scc(struct cpu *cpu, WORD op)
   switch((op&0xf00)>>8) {
   case 0: /* ST */
     ADD_CYCLE(2);
+    ea_set_prefetch_before_write();
     ea_write_byte(cpu, op&0x3f, 0xff);
     return;
   case 1: /* SF */
@@ -27,6 +28,7 @@ void scc(struct cpu *cpu, WORD op)
   case 2: /* SHI */
     if(!CHKC && !CHKZ) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -34,6 +36,7 @@ void scc(struct cpu *cpu, WORD op)
   case 3: /* SLS */
     if(CHKC || CHKZ) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -41,6 +44,7 @@ void scc(struct cpu *cpu, WORD op)
   case 4: /* SCC */
     if(!CHKC) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -48,6 +52,7 @@ void scc(struct cpu *cpu, WORD op)
   case 5: /* SCS */
     if(CHKC) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -55,6 +60,7 @@ void scc(struct cpu *cpu, WORD op)
   case 6: /* SNE */
     if(!CHKZ) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -62,6 +68,7 @@ void scc(struct cpu *cpu, WORD op)
   case 7: /* SEQ */
     if(CHKZ) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -69,6 +76,7 @@ void scc(struct cpu *cpu, WORD op)
   case 8: /* SVC */
     if(!CHKV) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -76,6 +84,7 @@ void scc(struct cpu *cpu, WORD op)
   case 9: /* SVS */
     if(CHKV) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -83,6 +92,7 @@ void scc(struct cpu *cpu, WORD op)
   case 10: /* SPL */
     if(!CHKN) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -90,6 +100,7 @@ void scc(struct cpu *cpu, WORD op)
   case 11: /* SMI */
     if(CHKN) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -97,6 +108,7 @@ void scc(struct cpu *cpu, WORD op)
   case 12: /* SGE */
     if((CHKN && CHKV) || (!CHKN && !CHKV)) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -104,6 +116,7 @@ void scc(struct cpu *cpu, WORD op)
   case 13: /* SLT */
     if((CHKN & !CHKV) | ((!CHKN) & CHKV)) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -111,6 +124,7 @@ void scc(struct cpu *cpu, WORD op)
   case 14: /* SGT */
     if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -118,6 +132,7 @@ void scc(struct cpu *cpu, WORD op)
   case 15: /* SLE */
     if(CHKZ || (CHKN && !CHKV) || (!CHKN && CHKV)) {
       ADD_CYCLE(2);
+      ea_set_prefetch_before_write();
       ea_write_byte(cpu, op&0x3f, 0xff);
       return;
     }
@@ -126,6 +141,7 @@ void scc(struct cpu *cpu, WORD op)
   if(!r) {
     ADD_CYCLE(2);
   }
+  ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, 0x00);
 }
 

@@ -1,4 +1,4 @@
-TESTS_SRC=$(addprefix tests/,test_moveq.c test_roxl.c test_roxr.c test_lsl.c)
+TESTS_SRC=$(addprefix tests/,test_moveq.c test_roxl.c test_roxr.c test_lsl.c test_prefetch1.c)
 TESTS_OBJ=$(TESTS_SRC:.c=.o)
 
 $(LIBTESTS): $(TESTS_OBJ)

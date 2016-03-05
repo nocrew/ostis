@@ -25,6 +25,7 @@ static void subx_b(struct cpu *cpu, WORD op)
     d = mmu_read_byte(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;
+    cpu_prefetch();
     mmu_write_byte(cpu->a[rx], r);
     ADD_CYCLE(18);
   } else {

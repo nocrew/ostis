@@ -30,6 +30,7 @@ static void sbcd(struct cpu *cpu, WORD op)
     if(r<0) { SETC; SETX; } else { CLRC; CLRX; }
     if(r&0xff) SETZ;
     rb = (r%10)|(((r/10)%10)<<4);
+    cpu_prefetch();
     mmu_write_byte(cpu->a[rx], rb);
     ADD_CYCLE(18);
   } else {

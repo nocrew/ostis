@@ -25,6 +25,7 @@ static void addx_b(struct cpu *cpu, WORD op)
     d = mmu_read_byte(cpu->a[rx]);
     r = s+d;
     if(CHKX) r += 1;
+    cpu_prefetch();
     mmu_write_byte(cpu->a[rx], r);
     ADD_CYCLE(18);
   } else {
@@ -55,6 +56,7 @@ static void addx_w(struct cpu *cpu, WORD op)
     d = mmu_read_word(cpu->a[rx]);
     r = s+d;
     if(CHKX) r += 1;
+    cpu_prefetch();
     mmu_write_word(cpu->a[rx], r);
     ADD_CYCLE(18);
   } else {
@@ -85,6 +87,7 @@ static void addx_l(struct cpu *cpu, WORD op)
     d = mmu_read_long(cpu->a[rx]);
     r = s+d;
     if(CHKX) r += 1;
+    cpu_prefetch();
     mmu_write_long(cpu->a[rx], r);
     ADD_CYCLE(30);
   } else {

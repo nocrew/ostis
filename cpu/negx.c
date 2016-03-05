@@ -10,6 +10,7 @@ static void negx_b(struct cpu *cpu, WORD op)
   d = ea_read_byte(cpu, op&0x3f, 1);
   r = 0-d;
   if(CHKX) r -= 1;
+  ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, r);
 
   ADD_CYCLE(4);
@@ -26,6 +27,7 @@ static void negx_w(struct cpu *cpu, WORD op)
   d = ea_read_word(cpu, op&0x3f, 1);
   r = 0-d;
   if(CHKX) r -= 1;
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, r);
 
   ADD_CYCLE(4);
@@ -42,6 +44,7 @@ static void negx_l(struct cpu *cpu, WORD op)
   d = ea_read_long(cpu, op&0x3f, 1);
   r = 0-d;
   if(CHKX) r -= 1;
+  ea_set_prefetch_before_write();
   ea_write_long(cpu, op&0x3f, r);
 
   ADD_CYCLE(6);

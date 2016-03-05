@@ -17,6 +17,7 @@ static void eori_b(struct cpu *cpu, WORD op)
   cpu->pc += 2;
   d = ea_read_byte(cpu, op&0x3f, 1);
   r = s^d;
+  ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, r);
   cpu_set_flags_move(cpu, r&0x80, r);
 }
@@ -34,6 +35,7 @@ static void eori_w(struct cpu *cpu, WORD op)
   cpu->pc += 2;
   d = ea_read_word(cpu, op&0x3f, 1);
   r = s^d;
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, r);
   cpu_set_flags_move(cpu, r&0x8000, r);
 }
@@ -51,6 +53,7 @@ static void eori_l(struct cpu *cpu, WORD op)
   cpu->pc += 4;
   d = ea_read_long(cpu, op&0x3f, 1);
   r = s^d;
+  ea_set_prefetch_before_write();
   ea_write_long(cpu, op&0x3f, r);
   cpu_set_flags_move(cpu, r&0x80000000, r);
 }

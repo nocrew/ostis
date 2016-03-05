@@ -18,6 +18,7 @@ static void clr(struct cpu *cpu, WORD op)
     if(!r) {
       ADD_CYCLE(4);
     }
+    ea_set_prefetch_before_write();
     ea_write_byte(cpu, op&0x3f, 0);
     break;
   case 1:
@@ -25,6 +26,7 @@ static void clr(struct cpu *cpu, WORD op)
     if(!r) {
       ADD_CYCLE(4);
     }
+    ea_set_prefetch_before_write();
     ea_write_word(cpu, op&0x3f, 0);
     break;
   case 2:
@@ -32,6 +34,7 @@ static void clr(struct cpu *cpu, WORD op)
     if(!r) {
       ADD_CYCLE(6);
     }
+    ea_set_prefetch_before_write();
     ea_write_long(cpu, op&0x3f, 0);
     break;
   }

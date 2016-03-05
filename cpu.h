@@ -18,6 +18,8 @@ struct cpu {
   int stopped;
   int tracedelay;
   int debug_halted;
+  int prefetched_instr;
+  int has_prefetched;
 };
 
 struct cpu_state {
@@ -71,7 +73,7 @@ extern int cprint_all;
 #define IPL_EXCEPTION_VECTOR_OFFSET 24
 
 #define VEC_BUSERR  2
-#define VEC_ADDRERR 2
+#define VEC_ADDRERR 3
 #define VEC_ILLEGAL 4
 #define VEC_ZERODIV 5
 #define VEC_CHK     6
@@ -118,6 +120,8 @@ extern int cprint_all;
 void cpu_init();
 void cpu_halt_for_debug();
 void cpu_enter_debugger();
+void cpu_prefetch();
+void cpu_clear_prefetch();
 int cpu_step_instr(int);
 void cpu_print_status(int);
 void cpu_do_cycle(LONG);
@@ -125,6 +129,7 @@ void cpu_check_for_pending_interrupts();
 void cpu_set_interrupt(int, int);
 void cpu_set_exception(int);
 void cpu_clr_exception(int);
+int cpu_full_stacked_exception_pending();
 void cpu_set_bus_error(int, LONG);
 void cpu_set_address_error(int, LONG);
 void cpu_add_debugpoint(LONG);

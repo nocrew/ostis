@@ -75,6 +75,11 @@ static WORD fetch_instr(struct cpu *cpu)
 {
   WORD op;
   last_pc = cpu->pc;
+  if(cpu->has_prefetched) {
+    cpu->has_prefetched = 0;
+    cpu->pc += 2;
+    return cpu->prefetched_instr;
+  }
   op = mmu_read_word(cpu->pc);
   cpu->pc += 2;
   return op;
@@ -89,10 +94,11 @@ static void cpu_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
+  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
-  mmu_write_long(cpu->a[7], last_pc);
+  mmu_write_long(cpu->a[7], cpu->pc);
   cpu->a[7] -= 2;
   mmu_write_word(cpu->a[7], oldsr);
   cpu->a[7] -= 2;
@@ -110,6 +116,7 @@ static void cpu_exception_general(int vnum)
 {
   WORD oldsr;
 
+  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -131,6 +138,7 @@ static void cpu_exception_interrupt(int vnum)
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
+  cpu_clear_prefetch();
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
@@ -342,6 +350,15 @@ void cpu_clr_exception(int vnum)
   exception_pending[vnum] = 0;
 }
 
+int cpu_full_stacked_exception_pending()
+{
+  if(exception_pending[VEC_BUSERR] || exception_pending[VEC_ADDRERR]) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 static void cpu_set_full_stacked_exception(int vnum, int flags, LONG addr)
 {
   bus_error_flags = flags;
@@ -382,6 +399,17 @@ void cpu_set_sr(WORD sr)
   cpu->sr = sr;
 }
 
+void cpu_prefetch()
+{
+  cpu->prefetched_instr = mmu_read_word(cpu->pc);
+  cpu->has_prefetched = 1;
+}
+
+void cpu_clear_prefetch()
+{
+  cpu->has_prefetched = 0;
+}
+
 void cpu_init()
 {
   int i;
@@ -398,6 +426,8 @@ void cpu_init()
   cpu->cycle = 0;
   cpu->icycle = 0;
   cpu->stopped = 0;
+  cpu->prefetched_instr = 0;
+  cpu->has_prefetched = 0;
 
   for(i=0;i<65536;i++) {
     instr[i] = default_instr;

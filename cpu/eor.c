@@ -13,6 +13,7 @@ static void eor_b(struct cpu *cpu, WORD op)
   if(op&0x100) {
     ADD_CYCLE(8);
     r = cpu->d[reg] ^ ea_read_byte(cpu, op&0x3f, 1);
+    ea_set_prefetch_before_write();
     ea_write_byte(cpu, op&0x3f, r);
   } else {
     ADD_CYCLE(4);
@@ -32,6 +33,7 @@ static void eor_w(struct cpu *cpu, WORD op)
   if(op&0x100) {
     ADD_CYCLE(8);
     r = cpu->d[reg] ^ ea_read_word(cpu, op&0x3f, 1);
+    ea_set_prefetch_before_write();
     ea_write_word(cpu, op&0x3f, r);
   } else {
     ADD_CYCLE(4);
@@ -51,6 +53,7 @@ static void eor_l(struct cpu *cpu, WORD op)
   if(op&0x100) {
     ADD_CYCLE(12);
     r = cpu->d[reg] ^ ea_read_long(cpu, op&0x3f, 1);
+    ea_set_prefetch_before_write();
     ea_write_long(cpu, op&0x3f, r);
   } else {
     ADD_CYCLE(6);

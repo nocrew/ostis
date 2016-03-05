@@ -9,6 +9,7 @@ static void tas(struct cpu *cpu, WORD op)
   
   s = ea_read_byte(cpu, op&0x3f, 1);
   cpu_set_flags_move(cpu, s&0x80, s);
+  ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, s|0x80);
   if((op&0x38) == 0) {
     ADD_CYCLE(4);

@@ -17,6 +17,7 @@ static void link(struct cpu *cpu, WORD op)
   r = op&0x7;
 
   cpu->a[7] -= 4;
+  cpu_prefetch();
   mmu_write_long(cpu->a[7], cpu->a[r]);
   cpu->a[r] = cpu->a[7];
   cpu->a[7] += d;

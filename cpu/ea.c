@@ -5,6 +5,8 @@
 #include "ea.h"
 
 static int rmw = 0;
+static int ea_prefetch_before_write = 0;
+static int last_register_change = 0;
 
 static BYTE ea_read_000_b(struct cpu *cpu, int reg)
 {
@@ -64,6 +66,7 @@ static LONG ea_addr_011(struct cpu *cpu, int reg, int size)
   } else {
     if((size == 1) && (reg == 7)) size = 2; /* SP should get mad, not even */
     cpu->a[reg]+=size;
+    last_register_change = size;
     return cpu->a[reg]-size;
   }
 }
@@ -76,6 +79,7 @@ static LONG ea_addr_100(struct cpu *cpu, int reg, int size)
   } else {
     if((size == 1) && (reg == 7)) size = 2; /* SP should get mad, not even */
     cpu->a[reg]-=size;
+    last_register_change = -size;
     return cpu->a[reg];
   }
 }
@@ -192,6 +196,7 @@ BYTE ea_read_byte(struct cpu *cpu, int mode, int noupdate)
 {
   LONG addr;
   BYTE i;
+  BYTE value;
 
   if(noupdate) rmw = 1;
 
@@ -239,13 +244,18 @@ BYTE ea_read_byte(struct cpu *cpu, int mode, int noupdate)
     addr = 0;
   }
   rmw = 0;
-  return mmu_read_byte(addr);
+  value = mmu_read_byte(addr);
+  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
+    cpu->a[mode&0x7] -= last_register_change;
+  }
+  return value;
 }
 
 WORD ea_read_word(struct cpu *cpu, int mode, int noupdate)
 {
   LONG addr;
   WORD i;
+  WORD value;
 
   if(noupdate) rmw = 1;
 
@@ -293,13 +303,18 @@ WORD ea_read_word(struct cpu *cpu, int mode, int noupdate)
     addr = 0;
   }
   rmw = 0;
-  return mmu_read_word(addr);
+  value = mmu_read_word(addr);
+  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
+    cpu->a[mode&0x7] -= last_register_change;
+  }
+  return value;
 }
 
 LONG ea_read_long(struct cpu *cpu, int mode, int noupdate)
 {
   LONG addr;
   LONG i;
+  LONG value;
 
   if(noupdate) rmw = 1;
 
@@ -348,7 +363,11 @@ LONG ea_read_long(struct cpu *cpu, int mode, int noupdate)
     addr = 0;
   }
   rmw = 0;
-  return mmu_read_long(addr);
+  value = mmu_read_long(addr);
+  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
+    cpu->a[mode&0x7] -= last_register_change;
+  }
+  return value;
 }
 
 void ea_write_byte(struct cpu *cpu, int mode, BYTE data)
@@ -393,7 +412,14 @@ void ea_write_byte(struct cpu *cpu, int mode, BYTE data)
   default:
     addr = 0;
   }
+  if(ea_prefetch_before_write) {
+    cpu_prefetch();
+    ea_clear_prefetch_before_write();
+  }
   mmu_write_byte(addr, data);
+  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
+    cpu->a[mode&0x7] -= last_register_change;
+  }
 }
 
 void ea_write_word(struct cpu *cpu, int mode, WORD data)
@@ -438,7 +464,14 @@ void ea_write_word(struct cpu *cpu, int mode, WORD data)
   default:
     addr = 0;
   }
+  if(ea_prefetch_before_write) {
+    cpu_prefetch();
+    ea_clear_prefetch_before_write();
+  }
   mmu_write_word(addr, data);
+  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
+    cpu->a[mode&0x7] -= last_register_change;
+  }
 }
 
 void ea_write_long(struct cpu *cpu, int mode, LONG data)
@@ -484,7 +517,14 @@ void ea_write_long(struct cpu *cpu, int mode, LONG data)
   default:
     addr = 0;
   }
+  if(ea_prefetch_before_write) {
+    cpu_prefetch();
+    ea_clear_prefetch_before_write();
+  }
   mmu_write_long(addr, data);
+  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
+    cpu->a[mode&0x7] -= last_register_change;
+  }
 }
 
 LONG ea_get_addr(struct cpu *cpu, int mode)
@@ -679,4 +719,14 @@ int ea_valid(int mode, int mask)
   }
 
   return 0;
+}
+
+void ea_set_prefetch_before_write()
+{
+  ea_prefetch_before_write = 1;
+}
+
+void ea_clear_prefetch_before_write()
+{
+  ea_prefetch_before_write = 1;
 }

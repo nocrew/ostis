@@ -8,6 +8,7 @@ static void move_from_sr(struct cpu *cpu, WORD op)
   ENTER;
 
   ADD_CYCLE(8); /* really 6 for EA==reg, but that will be 8 anyway */
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, cpu->sr);
 }
 

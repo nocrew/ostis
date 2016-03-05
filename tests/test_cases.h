@@ -5,5 +5,6 @@ void test_moveq_init();
 void test_roxl_init();
 void test_roxr_init();
 void test_lsl_init();
+void test_prefetch1_init();
 
 #endif

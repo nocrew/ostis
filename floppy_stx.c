@@ -109,6 +109,7 @@ static void load_track(FILE *fp)
   if(fread(header, 16, 1, fp) != 1) {
     printf("ERROR\n");
     fclose(fp);
+    fl->fp = NULL;
     return;
   }
 
@@ -117,12 +118,16 @@ static void load_track(FILE *fp)
   sectors = stx_word(header + 8);
   track_image = header[10] & 0xC0;
 
-  if(sectors == 0)
+  if(sectors == 0) {
+    fclose(fp);
+    fl->fp = NULL;
     return;
+  }
 
   if(fread(data, track_size - 16, 1, fp) != 1) {
     printf("ERROR\n");
     fclose(fp);
+    fl->fp = NULL;
     return;
   }
 
@@ -185,6 +190,7 @@ static void load_file(FILE *fp)
   if(fread(header, 16, 1, fp) != 1) {
     printf("ERROR\n");
     fclose(fp);
+    fl->fp = NULL;
     return;
   }
 
@@ -196,12 +202,17 @@ static void load_file(FILE *fp)
 
   for(i = 0; i < tracks; i++) {
     load_track(fp);
+    if(!fl->fp) {
+      break;
+    }
   }
 
+  if(fl->fp) {
+    fclose(fp);
+  }
   fl->fp = NULL;
   fl->inserted = 1;
 
-  fclose(fp);
   return;
 }
 
@@ -213,7 +224,8 @@ void floppy_stx_init(struct floppy *flop, char *name)
 
   fp = fopen(filename, "rb");
   if(!fp) return;
-
+  fl->fp = fp;
+  
   load_file(fp);
   fl->read_sector = read_sector;
   fl->write_sector = write_sector;

@@ -80,6 +80,16 @@ BYTE *floppy_allocate_memory()
   return (BYTE *)malloc(86 * (floppy[0].sides+1) * floppy[0].sectors * 512);
 }
 
+static int dummy_read_sector(int track, int side, int sector, LONG addr, int count)
+{
+  return FLOPPY_ERROR;
+}
+
+static int dummy_write_sector(int track, int side, int sector, LONG addr, int count)
+{
+  return FLOPPY_ERROR;
+}
+
 void floppy_init(char *filename)
 {
   BYTE header[512];
@@ -87,6 +97,8 @@ void floppy_init(char *filename)
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy, "FLOP");
   
   floppy[0].inserted = 0;
+  floppy[0].read_sector = dummy_read_sector;
+  floppy[0].write_sector = dummy_write_sector;
   
   FILE *fp = fopen(filename, "rb");
   if(!fp) return;

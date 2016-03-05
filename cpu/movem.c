@@ -66,6 +66,7 @@ static void movem_w(struct cpu *cpu, WORD op, int rmask)
       for(i=7;i>=0;i--) {
 	if(rmask&(1<<(15-(i+8)))) {
 	  d = cpu->a[i]&0xffff;
+          cpu_prefetch();
 	  mmu_write_word(a-cnt*2, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+4);
@@ -75,6 +76,7 @@ static void movem_w(struct cpu *cpu, WORD op, int rmask)
       for(i=7;i>=0;i--) {
 	if(rmask&(1<<(15-i))) {
 	  d = cpu->d[i]&0xffff;
+          cpu_prefetch();
 	  mmu_write_word(a-cnt*2, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+4);
@@ -86,6 +88,7 @@ static void movem_w(struct cpu *cpu, WORD op, int rmask)
       for(i=0;i<8;i++) {
 	if(rmask&(1<<i)) {
 	  d = cpu->d[i]&0xffff;
+          cpu_prefetch();
 	  mmu_write_word(a+cnt*2, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+4);
@@ -95,6 +98,7 @@ static void movem_w(struct cpu *cpu, WORD op, int rmask)
       for(i=0;i<8;i++) {
 	if(rmask&(1<<(i+8))) {
 	  d = cpu->a[i]&0xffff;
+          cpu_prefetch();
 	  mmu_write_word(a+cnt*2, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+4);
@@ -166,6 +170,7 @@ static void movem_l(struct cpu *cpu, WORD op, int rmask)
       for(i=7;i>=0;i--) {
 	if(rmask&(1<<(15-(i+8)))) {
 	  d = cpu->a[i];
+          cpu_prefetch();
 	  mmu_write_long(a-cnt*4, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+8);
@@ -175,6 +180,7 @@ static void movem_l(struct cpu *cpu, WORD op, int rmask)
       for(i=7;i>=0;i--) {
 	if(rmask&(1<<(15-i))) {
 	  d = cpu->d[i];
+          cpu_prefetch();
 	  mmu_write_long(a-cnt*4, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+8);
@@ -186,6 +192,7 @@ static void movem_l(struct cpu *cpu, WORD op, int rmask)
       for(i=0;i<8;i++) {
 	if(rmask&(1<<i)) {
 	  d = cpu->d[i];
+          cpu_prefetch();
 	  mmu_write_long(a+cnt*4, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+8);
@@ -195,6 +202,7 @@ static void movem_l(struct cpu *cpu, WORD op, int rmask)
       for(i=0;i<8;i++) {
 	if(rmask&(1<<(i+8))) {
 	  d = cpu->a[i];
+          cpu_prefetch();
 	  mmu_write_long(a+cnt*4, d);
 	  cnt++;
 	  cpu_do_cycle(cpu->icycle+8);

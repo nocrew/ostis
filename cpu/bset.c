@@ -16,6 +16,7 @@ static void bset_i(struct cpu *cpu, int mode)
     d = ea_read_byte(cpu, mode, 1);
     if(d & (1<<(b&7))) CLRZ; else SETZ;
     d |= (1<<(b&7));
+    ea_set_prefetch_before_write();
     ea_write_byte(cpu, mode, d);
   } else {
     ADD_CYCLE(10);
@@ -34,6 +35,7 @@ static void bset_r(struct cpu *cpu, int reg, int mode)
     d = ea_read_byte(cpu, mode, 1);
     if(d & (1<<(b&7))) CLRZ; else SETZ;
     d |= (1<<(b&7));
+    ea_set_prefetch_before_write();
     ea_write_byte(cpu, mode, d);
   } else {
     ADD_CYCLE(6);

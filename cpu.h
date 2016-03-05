@@ -18,7 +18,6 @@ struct cpu {
   int stopped;
   int tracedelay;
   int debug_halted;
-  int prefetch_before_write;
   int prefetched_instr;
   int has_prefetched;
 };
@@ -121,7 +120,8 @@ extern int cprint_all;
 void cpu_init();
 void cpu_halt_for_debug();
 void cpu_enter_debugger();
-void cpu_prefetch(struct cpu *);
+void cpu_prefetch();
+void cpu_clear_prefetch();
 int cpu_step_instr(int);
 void cpu_print_status(int);
 void cpu_do_cycle(LONG);

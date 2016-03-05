@@ -164,6 +164,7 @@ static void roxr_m(struct cpu *cpu, WORD op)
   d = ea_read_word(cpu, op&0x3f, 1);
   d = roxr_word_count(d, 1, x, &carry);
   roxr_set_flags(cpu, carry, carry, d&8000, !d);
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, d);
 
   ADD_CYCLE(8);

@@ -15,6 +15,7 @@ static void sub_b(struct cpu *cpu, WORD op)
     d = ea_read_byte(cpu, op&0x3f, 1);
     ADD_CYCLE(8);
     r = d-(cpu->d[reg]&0xff);
+    ea_set_prefetch_before_write();
     ea_write_byte(cpu, op&0x3f, r);
     cpu_set_flags_sub(cpu, cpu->d[reg]&0x80, d&0x80, r&0x80, r);
   } else {
@@ -38,6 +39,7 @@ static void sub_w(struct cpu *cpu, WORD op)
     d = ea_read_word(cpu, op&0x3f, 1);
     ADD_CYCLE(8);
     r = d-(cpu->d[reg]&0xffff);
+    ea_set_prefetch_before_write();
     ea_write_word(cpu, op&0x3f, r);
     cpu_set_flags_sub(cpu, cpu->d[reg]&0x8000, d&0x8000, r&0x8000, r);
   } else {
@@ -61,6 +63,7 @@ static void sub_l(struct cpu *cpu, WORD op)
     d = ea_read_long(cpu, op&0x3f, 1);
     ADD_CYCLE(12);
     r = d-cpu->d[reg];
+    ea_set_prefetch_before_write();
     ea_write_long(cpu, op&0x3f, r);
     cpu_set_flags_sub(cpu, cpu->d[reg]&0x80000000, d&0x80000000, r&0x80000000, r);
   } else {

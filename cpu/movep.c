@@ -33,12 +33,14 @@ static void movep(struct cpu *cpu, WORD op)
     return;
   case 2:
     d = cpu->d[dr]&0xffff;
+    cpu_prefetch();
     mmu_write_byte(a, (BYTE)((d&0xff00)>>8));
     mmu_write_byte(a+2, (BYTE)((d&0xff)));
     ADD_CYCLE(16);
     return;
   case 3:
     d = cpu->d[dr];
+    cpu_prefetch();
     mmu_write_byte(a, (BYTE)((d&0xff000000)>>24));
     mmu_write_byte(a+2, (BYTE)((d&0xff0000)>>16));
     mmu_write_byte(a+4, (BYTE)((d&0xff00)>>8));

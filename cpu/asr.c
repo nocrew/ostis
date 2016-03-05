@@ -90,6 +90,7 @@ static void asr_m(struct cpu *cpu, WORD op)
   } else {
     d >>= 1;
   }
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, d);
 
   ADD_CYCLE(8);

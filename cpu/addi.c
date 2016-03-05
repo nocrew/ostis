@@ -17,6 +17,7 @@ static void addi_b(struct cpu *cpu, WORD op)
   }
   d = ea_read_byte(cpu, op&0x3f, 1);
   r = d+s;
+  ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, r);
   cpu_set_flags_add(cpu, s&0x80, d&0x80, r&0x80, r);
 }
@@ -34,6 +35,7 @@ static void addi_w(struct cpu *cpu, WORD op)
   }
   d = ea_read_word(cpu, op&0x3f, 1);
   r = d+s;
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, r);
   cpu_set_flags_add(cpu, s&0x8000, d&0x8000, r&0x8000, r);
 }
@@ -51,6 +53,7 @@ static void addi_l(struct cpu *cpu, WORD op)
   }
   d = ea_read_long(cpu, op&0x3f, 1);
   r = d+s;
+  ea_set_prefetch_before_write();
   ea_write_long(cpu, op&0x3f, r);
   cpu_set_flags_add(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
 }

@@ -10,6 +10,7 @@ static void pea(struct cpu *cpu, WORD op)
 
   a = ea_get_addr(cpu, op&0x3f);
   cpu->a[7] -= 4;
+  cpu_prefetch();
   mmu_write_long(cpu->a[7], a);
   // x(An,Dn) and x(PC,Dn) needs an extra 4 cycles due to internal workings of PEA and alignments in the ST
   if((op&0x38) == 0x30 || (op&0x3f) == 0x3b) {

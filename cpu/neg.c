@@ -15,6 +15,7 @@ static void neg_b(struct cpu *cpu, WORD op)
   b = ea_read_byte(cpu, op&0x3f, 1);
   r = (int)*((SBYTE *)&b);
   r = -r;
+  ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, r);
   cpu_set_flags_neg(cpu, b&0x80, r&0x80, r);
 }
@@ -31,6 +32,7 @@ static void neg_w(struct cpu *cpu, WORD op)
   w = ea_read_word(cpu, op&0x3f, 1);
   r = (int)*((SWORD *)&w);
   r = -r;
+  ea_set_prefetch_before_write();
   ea_write_word(cpu, op&0x3f, r);
   cpu_set_flags_neg(cpu, w&0x8000, r&0x8000, r);
 }
@@ -47,6 +49,7 @@ static void neg_l(struct cpu *cpu, WORD op)
   l = ea_read_long(cpu, op&0x3f, 1);
   r = (int)*((SLONG *)&l);
   r = -r;
+  ea_set_prefetch_before_write();
   ea_write_long(cpu, op&0x3f, r);
   cpu_set_flags_neg(cpu, l&0x80000000, r&0x80000000, r);
 }

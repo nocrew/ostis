@@ -5,6 +5,7 @@
 #include "ea.h"
 
 static int rmw = 0;
+static int ea_prefetch_before_write = 0;
 
 static BYTE ea_read_000_b(struct cpu *cpu, int reg)
 {
@@ -393,8 +394,9 @@ void ea_write_byte(struct cpu *cpu, int mode, BYTE data)
   default:
     addr = 0;
   }
-  if(cpu->prefetch_before_write) {
-    cpu_prefetch(cpu);
+  if(ea_prefetch_before_write) {
+    cpu_prefetch();
+    ea_clear_prefetch_before_write();
   }
   mmu_write_byte(addr, data);
 }
@@ -441,8 +443,9 @@ void ea_write_word(struct cpu *cpu, int mode, WORD data)
   default:
     addr = 0;
   }
-  if(cpu->prefetch_before_write) {
-    cpu_prefetch(cpu);
+  if(ea_prefetch_before_write) {
+    cpu_prefetch();
+    ea_clear_prefetch_before_write();
   }
   mmu_write_word(addr, data);
 }
@@ -490,8 +493,9 @@ void ea_write_long(struct cpu *cpu, int mode, LONG data)
   default:
     addr = 0;
   }
-  if(cpu->prefetch_before_write) {
-    cpu_prefetch(cpu);
+  if(ea_prefetch_before_write) {
+    cpu_prefetch();
+    ea_clear_prefetch_before_write();
   }
   mmu_write_long(addr, data);
 }
@@ -688,4 +692,14 @@ int ea_valid(int mode, int mask)
   }
 
   return 0;
+}
+
+void ea_set_prefetch_before_write()
+{
+  ea_prefetch_before_write = 1;
+}
+
+void ea_clear_prefetch_before_write()
+{
+  ea_prefetch_before_write = 1;
 }

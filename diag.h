@@ -12,8 +12,11 @@
 // ARGS are arguments to the format string.
 
 #include "mmu.h"
+#if !DECL_ONLY
 static struct mmu *mmu_device;
+#endif
 
+extern void diag_set_module_levels(char *);
 extern void print_diagnostic(int, struct mmu *, const char *, ...);
 
 // Panic, we're about to die!

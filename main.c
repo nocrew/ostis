@@ -10,6 +10,9 @@
 #include "psg.h"
 #include "midi.h"
 #include "ikbd.h"
+#define DECL_ONLY 1
+#include "diag.h"
+#undef DECL_ONLY
 #if INCLUDE_RTC
 #include "rtc.h"
 #endif
@@ -45,6 +48,7 @@ char *test_case_name;
 #define OPT_CART                 10000
 #define OPT_FORCE_EXTREME_DISASM 10001
 #define OPT_CROP_SCREEN          10002
+#define OPT_LOGLEVELS            10003
 
 int main(int argc, char *argv[])
 {
@@ -61,6 +65,7 @@ int main(int argc, char *argv[])
       {"cart",                  required_argument, 0, OPT_CART },
       {"force-extreme-disasm",  no_argument,       0, OPT_FORCE_EXTREME_DISASM },
       {"crop-screen",           no_argument,       0, OPT_CROP_SCREEN },
+      {"loglevels" ,            required_argument, 0, OPT_LOGLEVELS },
 #if TEST_BUILD
       {"test-case",             required_argument, 0, OPT_TEST_MODE},
 #endif
@@ -87,6 +92,9 @@ int main(int argc, char *argv[])
       break;
     case OPT_CROP_SCREEN:
       crop_screen = 1;
+      break;
+    case OPT_LOGLEVELS:
+      diag_set_module_levels(optarg);
       break;
 #if TEST_BUILD
     case OPT_TEST_MODE:

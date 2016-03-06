@@ -31,7 +31,12 @@ Command line options:
 `-y`  - Dump all audio into raw PCM file (`psg.raw`)  
 `-V`  - Try to wait for 50Hz delay between frames  
 `-M`  - Monochrome mode.  
-`-v`  - Increase diagnostics verbosity.
+`-v`  - Increase diagnostics verbosity.  
+`-q`  - Decrease diagnostics verbosity.
+
+Long options:
+`--cart CARTRIDGE      ` - Load cartridge
+`--loglevels LEVEL_LIST` - Set loglevels for individual modules (se below)
 
 Special keys:  
 `F11`           - save emulator state to file  
@@ -62,6 +67,24 @@ MonST keys:
 `Alt-B` - set breakpoint  
 `Ctrl-B` - set breakpoint at window  
 `Alt-W` - Set watchpoint  
+
+### Logging
+
+Levels available are (set level and everything lower):
+`0` - Set to 0 to log nothing
+`1` - FATAL: Fatal errors
+`2` - ERROR: Normal errors
+`3` - WARN:  Warnings (default)
+`4` - INFO:  Information
+`5` - DEBUG: Debug messages
+`6` - TRACE: Trace output
+
+`LEVEL_LIST` can be set in the following two ways:
+`-IKBD` to remove all output from `IKBD`
+`IKBD:2` to set `IKBD` to only log ERROR and FATAL messages
+
+Multiple modules can be set in a comma separated string:
+`-IKBD,MFP0:2,PSG0:5` means no `IKBD`, some `MFP0` and up to debugging level on `PSG0`
 
 ### Testing
 

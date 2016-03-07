@@ -6,8 +6,6 @@
 
 static struct floppy *fl;
 static char *filename = NULL;
-//static BYTE *raw_data;
-//static LONG raw_data_size;
 
 #define MAXSIDES 2
 #define MAXTRACKS 86
@@ -142,7 +140,7 @@ static void load_track(FILE *fp)
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
-    printf("ERROR\n");
+    ERROR("Couldn't read from %s", filename);
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -163,7 +161,7 @@ static void load_track(FILE *fp)
   }
 
   if(fread(data, track_size - 16, 1, fp) != 1) {
-    printf("ERROR\n");
+    ERROR("Couldn't read from %s", filename);
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -206,7 +204,7 @@ static void load_track(FILE *fp)
       p += 2;
     }
     ts = stx_word(p);
-    printf("Track image offset %d size %d\n", off, ts);
+    DEBUG("Track image offset %d size %d", off, ts);
   }
 }
 
@@ -217,7 +215,7 @@ static void load_file(FILE *fp)
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
-    printf("ERROR\n");
+    ERROR("Couldn't read from %s", filename);
     fclose(fp);
     fl->fp = NULL;
     return;

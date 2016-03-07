@@ -31,6 +31,8 @@ static void (*ikbd_cmdfn)(void);
 
 static void ikbd_queue_fifo(BYTE data);
 
+HANDLE_DIAGNOSTICS(ikbd)
+
 int ikbd_get_fifocnt()
 {
   return ikbd_fifocnt;
@@ -416,8 +418,6 @@ void ikbd_fire(int state)
   ikbd_queue_fifo(0xff);
   ikbd_queue_fifo(state << 7);
 }
-
-HANDLE_DIAGNOSTICS(ikbd)
 
 void ikbd_init()
 {

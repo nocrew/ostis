@@ -55,6 +55,8 @@ static long divider[8] = { 0, 4, 10, 16, 50, 64, 100, 200 };
 static BYTE mfpreg[24];
 static BYTE timercnt[4];
 
+HANDLE_DIAGNOSTICS(mfp)
+
 static BYTE mfp_read_byte(LONG addr)
 {
   int r;
@@ -200,8 +202,6 @@ static void mfp_state_restore(struct mmu_state *state)
     timercnt[r] = state_read_mem_byte(&state->data[24+4*4+4+r]);
   }
 }
-
-HANDLE_DIAGNOSTICS(mfp)
 
 void mfp_init()
 {

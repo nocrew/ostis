@@ -1,9 +1,9 @@
 // Include this in every MMU-connected device to enable diagnostics.
 //
-// Add HANDLE_DIAGNOSTICS in the device source file to insert support
-// code for diagnostics.  It will create a function which implements a
-// callback to control the verbosity level.  This function must be
-// included in the struct passed to mmu_register.
+// Add HANDLE_DIAGNOSTICS near the top of the device source file to
+// insert support code for diagnostics.  It will create a function
+// which implements a callback to control the verbosity level.  This
+// function must be included in the struct passed to mmu_register.
 //
 // The syntax for diagnostic output is this:
 //   LEVEL(FORMAT [, ARGS])
@@ -12,9 +12,6 @@
 // ARGS are arguments to the format string.
 
 #include "mmu.h"
-#if !DECL_ONLY
-static struct mmu *mmu_device;
-#endif
 
 extern void diag_set_module_levels(char *);
 extern void print_diagnostic(int, struct mmu *, const char *, ...);
@@ -33,6 +30,7 @@ extern void print_diagnostic(int, struct mmu *, const char *, ...);
 #define TRACE(FORMAT, ...)  print_diagnostic(6, mmu_device, FORMAT, ##__VA_ARGS__)
 
 #define HANDLE_DIAGNOSTICS(device)				\
+static struct mmu *mmu_device;					\
 static void device ## _diagnostics(struct mmu *device, int n)	\
 {								\
   mmu_device = device;						\

@@ -95,6 +95,8 @@ static int psg_running = 1;
 
 static void psg_audio_callback(void *, Uint8 *, int);
 
+HANDLE_DIAGNOSTICS(psg)
+
 static int psg_set_period(int channel)
 {
   return PSG_PERIODDIV*
@@ -217,8 +219,6 @@ static int psg_state_collect(struct mmu_state *state)
 static void psg_state_restore(struct mmu_state *state)
 {
 }
-
-HANDLE_DIAGNOSTICS(psg)
 
 void psg_init()
 {

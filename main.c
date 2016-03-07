@@ -10,9 +10,7 @@
 #include "psg.h"
 #include "midi.h"
 #include "ikbd.h"
-#define DECL_ONLY 1
 #include "diag.h"
-#undef DECL_ONLY
 #if INCLUDE_RTC
 #include "rtc.h"
 #endif

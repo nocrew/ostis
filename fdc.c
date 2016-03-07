@@ -89,6 +89,8 @@ static int abortpending = FDC_PENDTIME;
 
 static int write_word_flag = 0;
 
+HANDLE_DIAGNOSTICS(fdc)
+
 static void fdc_set_motor(int s)
 {
     motoron = 1;
@@ -347,8 +349,6 @@ void fdc_do_interrupts(struct cpu *cpu)
 
   lastcpucnt = cpu->cycle;
 }
-
-HANDLE_DIAGNOSTICS(fdc)
 
 void fdc_init()
 {

@@ -62,24 +62,6 @@ void cartridge_init(char *filename)
     return;
   }
 
-  fp = fopen(filename, "rb");
-  if(fp) {
-    fseek(fp, 0, SEEK_END);
-    file_size = ftell(fp);
-    rewind(fp);
-
-    if(file_size <= CARTRIDGESIZE) {
-      if(fread(memory, 1, file_size, fp) != file_size) {
-        printf("Cartridge: Unable to load %d bytes from %s\n", file_size, filename);
-        /* Making sure cartridge memory area doesn't start with boot sequence */
-        memory[0] = '\0';
-      }
-    } else {
-      printf("Cartridge: Cannot load file larger than cartridge memory area\n");
-    }
-    fclose(fp);
-  }
-  
   cartridge->start = CARTRIDGEBASE;
   cartridge->size = CARTRIDGESIZE;
   memcpy(cartridge->id, "CART", 4);
@@ -95,11 +77,22 @@ void cartridge_init(char *filename)
   cartridge->diagnostics = cartridge_diagnostics;
 
   mmu_register(cartridge);
+
+  fp = fopen(filename, "rb");
+  if(fp) {
+    fseek(fp, 0, SEEK_END);
+    file_size = ftell(fp);
+    rewind(fp);
+
+    if(file_size <= CARTRIDGESIZE) {
+      if(fread(memory, 1, file_size, fp) != file_size) {
+        ERROR("Unable to load %d bytes from %s", file_size, filename);
+        /* Making sure cartridge memory area doesn't start with boot sequence */
+        memory[0] = '\0';
+      }
+    } else {
+      ERROR("Cannot load file larger than cartridge memory area");
+    }
+    fclose(fp);
+  }
 }
-
-
-
-
-
-
-

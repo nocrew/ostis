@@ -224,8 +224,7 @@ static void set_pixel(int rasterpos, int pnum)
   case 2:
     return set_pixel_high(rasterpos, pnum);
   case 3:
-    printf("FATAL: bad video mode\n");
-    exit(99);
+    FATAL("Bad video mode");
   }
 }
 
@@ -345,7 +344,7 @@ static int get_pixel(int videooffset, int pxlnum)
   case 2:
     return get_pixel_high(videooffset, pxlnum);
   case 3:
-    printf("FATAL: bad video mode\n");
+    FATAL("Bad video mode");
   }
   return 0;
 }

@@ -108,6 +108,8 @@ static unsigned char *rgbimage;
 static int vbl_triggered = 0;
 static int hbl_triggered = 0;
 
+HANDLE_DIAGNOSTICS(shifter)
+
 static void set_palette(int pnum, int value, int part)
 {
   int c;
@@ -674,8 +676,6 @@ void shifter_build_ppm()
   if (write(ppm_fd, frame, 384*288*3) != 384*288*3)
     WARNING(write);
 }
-
-HANDLE_DIAGNOSTICS(shifter)
 
 void shifter_init()
 {

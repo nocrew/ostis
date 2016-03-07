@@ -13,8 +13,10 @@
 #define RAM_PHYSMAX 0x100000-1
 
 static BYTE ramcfg;
-
 static BYTE *memory;
+
+HANDLE_DIAGNOSTICS(ram)
+
 static BYTE *real(LONG addr)
 {
   return memory+addr-RAMBASE;
@@ -93,8 +95,6 @@ static void ramcfg_write_byte(LONG addr, BYTE data)
 {
   ramcfg = data;
 }
-
-HANDLE_DIAGNOSTICS(ram)
 
 static void cfg_diagnostics()
 {

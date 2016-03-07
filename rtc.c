@@ -8,6 +8,8 @@
 #define RTCSIZE 0x40
 #define RTCBASE 0xfffc20
 
+HANDLE_DIAGNOSTICS(rtc)
+
 static BYTE rtc_read_byte(LONG addr)
 {
   return 0;
@@ -53,8 +55,6 @@ static int rtc_state_collect(struct mmu_state *state)
 static void rtc_state_restore(struct mmu_state *state)
 {
 }
-
-HANDLE_DIAGNOSTICS(rtc)
 
 void rtc_init()
 {

@@ -22,6 +22,9 @@
 
 static BYTE *memory;
 static BYTE *memory2;
+
+HANDLE_DIAGNOSTICS(rom)
+
 static BYTE *real(LONG addr)
 {
 
@@ -80,8 +83,6 @@ static void rom_state_restore(struct mmu_state *state)
     memcpy(memory2, state->data, size);
   }
 }
-
-HANDLE_DIAGNOSTICS(rom)
 
 void rom_init()
 {

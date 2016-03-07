@@ -12,6 +12,8 @@ static BYTE midi_control;
 static BYTE midi_status = 0x02; /* Always ready to receive */
 static BYTE midi_data;
 
+HANDLE_DIAGNOSTICS(midi)
+
 static BYTE midi_read_byte(LONG addr)
 {
   switch(addr) {
@@ -72,8 +74,6 @@ static int midi_state_collect(struct mmu_state *state)
 static void midi_state_restore(struct mmu_state *state)
 {
 }
-
-HANDLE_DIAGNOSTICS(midi)
 
 void midi_init()
 {

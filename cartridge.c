@@ -11,6 +11,8 @@
 
 static BYTE *memory;
 
+HANDLE_DIAGNOSTICS(cartridge)
+
 static BYTE *real(LONG addr)
 {
   return memory+addr-CARTRIDGEBASE;
@@ -43,8 +45,6 @@ static int cartridge_state_collect(struct mmu_state *state)
 static void cartridge_state_restore(struct mmu_state *state)
 {
 }
-
-HANDLE_DIAGNOSTICS(cartridge)
 
 void cartridge_init(char *filename)
 {

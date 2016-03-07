@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
+#include "common.h"
+#include "cpu.h"
 #include "mmu.h"
 
 #define MAXDIAG 10000
@@ -32,7 +34,7 @@ static void add_module(char *module_str)
   
   if(module_str[0] == '-') {
     if(!strchr(module_str, ':')) {
-      new->verbosity_limit = 0;
+      new->verbosity_limit = 1;
     } else {
       printf("ERROR! Cannot have both -ID and explicit level at once\n");
       exit(-1);
@@ -45,6 +47,9 @@ static void add_module(char *module_str)
     tmp[0] = '\0';
     tmp++;
     new->verbosity_limit = atoi(tmp);
+    if(new->verbosity_limit < 1) {
+      new->verbosity_limit = 1;
+    }
   }
   new->id = module_str;
   new->next = modules;
@@ -98,8 +103,11 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
   if(level > find_module_limit(device->id))
     return;
   
-  fprintf(stderr, "%s: ", level_name[level]);
-  fprintf(stderr, "%c%c%c%c: ", device->id[0], device->id[1],
+  fprintf(stderr, "%s", level_name[level]);
+  if(level == 6) {
+    fprintf(stderr, " [$%06x]", cpu->pc);
+  }
+  fprintf(stderr, ": %c%c%c%c: ", device->id[0], device->id[1],
 	  device->id[2], device->id[3]);
   va_start(args, format);
   vfprintf(stderr, format, args);

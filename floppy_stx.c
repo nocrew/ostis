@@ -6,8 +6,6 @@
 
 static struct floppy *fl;
 static char *filename = NULL;
-//static BYTE *raw_data;
-//static LONG raw_data_size;
 
 #define MAXSIDES 2
 #define MAXTRACKS 86

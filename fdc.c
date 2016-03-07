@@ -1,5 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
 #include "common.h"
 #include "cpu.h"
 #include "mfp.h"
@@ -8,314 +6,168 @@
 #include "state.h"
 #include "diag.h"
 
-#define FDCSIZE 16
-#define FDCBASE 0xff8600
 
-#define FDC_INSTR  0
-#define FDC_STATUS 1
-#define FDC_TRACK  2
-#define FDC_SECTOR 3
-#define FDC_DATA   4
-#define FDC_DMASEC 5
+#define FDC_REG_CONTROL 0
+#define FDC_REG_STATUS  0
+#define FDC_REG_TRACK   1
+#define FDC_REG_SECTOR  2  
+#define FDC_REG_DATA    3
 
-#define FDCC_READ   ((~fdc_control)&0x100)
-#define FDCC_WRITE  (fdc_control&0x100)
-#define FDCC_HDC    ((~fdc_control&0x080))
-#define FDCC_FDC    (fdc_control&0x080)
-#define FDCC_DMAON  ((~fdc_control&0x040))
-#define FDCC_DMAOFF (fdc_control&0x040)
-#define FDCC_FDCREG ((~fdc_control&0x010))
-#define FDCC_DMASEC (fdc_control&0x010)
-#define FDCC_FDCXXX ((~fdc_control&0x008))
-#define FDCC_HDCXXX (fdc_control&0x008)
-#define FDCC_INSTR  ((fdc_control&0x6) == 0)
-#define FDCC_TRACK  ((fdc_control&0x6) == 2)
-#define FDCC_SECTOR ((fdc_control&0x6) == 4)
-#define FDCC_DATA   ((fdc_control&0x6) == 6)
+#define MOTOR_ON  1
+#define MOTOR_OFF 0
 
-#define FDCI (fdc_reg[FDC_INSTR])
+#define STEP_DIR_IN   1
+#define STEP_DIR_OUT -1
 
-#define FDCI_SEEK0    ((FDCI < 0x80) && ((FDCI&0xf0) == 0x00))
-#define FDCI_SEEK     ((FDCI < 0x80) && ((FDCI&0xf0) == 0x10))
-#define FDCI_STEP     ((FDCI < 0x80) && ((FDCI&0xe0) == 0x20))
-#define FDCI_STEPIN   ((FDCI < 0x80) && ((FDCI&0xe0) == 0x40))
-#define FDCI_STEPOUT  ((FDCI < 0x80) && ((FDCI&0xe0) == 0x60))
-#define FDCI_READSEC  ((FDCI&0xe0) == 0x80)
-#define FDCI_WRITESEC ((FDCI&0xe0) == 0xa0)
-#define FDCI_READADDR ((FDCI&0xf0) == 0xc0)
-#define FDCI_READTRK  ((FDCI&0xf0) == 0xe0)
-#define FDCI_WRITETRK ((FDCI&0xf0) == 0xf0)
-#define FDCI_ABORT    ((FDCI&0xf0) == 0xd0)
+#define FDC_IDLE 0
+#define FDC_BUSY 1
 
-#define FDCI_UPDTRK   (fdc_reg[FDC_INSTR]&0x10)
-#define FDCI_SEEK2MS  ((fdc_reg[FDC_INSTR]&0x03) == 0x00)
-#define FDCI_SEEK3MS  ((fdc_reg[FDC_INSTR]&0x03) == 0x01)
-#define FDCI_SEEK5MS  ((fdc_reg[FDC_INSTR]&0x03) == 0x02)
-#define FDCI_SEEK6MS  ((fdc_reg[FDC_INSTR]&0x03) == 0x03)
-#define FDCI_VERIFY   (fdc_reg[FDC_INSTR]&0x04)
-#define FDCI_NOSPINUP (fdc_reg[FDC_INSTR]&0x08)
+#define FDC_CMD (fdc_reg[FDC_REG_CONTROL])
+#define FDC_TRACK fdc_reg[FDC_REG_TRACK]
 
-#define FDCI_MULTSEC  (fdc_reg[FDC_INSTR]&0x10)
-#define FDCI_DELAY30  (fdc_reg[FDC_INSTR]&0x04)
+#define FDC_CMD_RESTORE  ((FDC_CMD&0xf0) == 0x00)
+#define FDC_CMD_SEEK     ((FDC_CMD&0xf0) == 0x10)
+#define FDC_CMD_STEP     ((FDC_CMD&0xe0) == 0x20)
+#define FDC_CMD_STEPIN   ((FDC_CMD&0xe0) == 0x40)
+#define FDC_CMD_STEPOUT  ((FDC_CMD&0xe0) == 0x60)
+#define FDC_CMD_READSEC  ((FDC_CMD&0xe0) == 0x80)
+#define FDC_CMD_WRITESEC ((FDC_CMD&0xe0) == 0xa0)
+#define FDC_CMD_READADDR ((FDC_CMD&0xf0) == 0xc0)
+#define FDC_CMD_READTRK  ((FDC_CMD&0xf0) == 0xe0)
+#define FDC_CMD_WRITETRK ((FDC_CMD&0xf0) == 0xf0)
+#define FDC_CMD_FORCEINT ((FDC_CMD&0xf0) == 0xd0)
 
-#define FDCI_ABORTNOW ((fdc_reg[FDC_INSTR]&0x0c) == 0x00)
-#define FDCI_INTINDEX ((fdc_reg[FDC_INSTR]&0x0c) == 0x04)
-#define FDCI_ABORTINT ((fdc_reg[FDC_INSTR]&0x0c) == 0x08)
+#define FDC_PENDING_TIME 512
 
-#define FDC_ABORT_OFF 3
-#define FDC_ABORT_NOW 1
-#define FDC_ABORT_IDX 2
-#define FDC_ABORT_INT 3
+#define CMD_TYPE_UNSET 0
+#define CMD_TYPE_I     1
+#define CMD_TYPE_II    2
+#define CMD_TYPE_III   3
+#define CMD_TYPE_IV    4
 
-#define FDC_STEP_IN 1
-#define FDC_STEP_OUT -1
-
-#define FDC_PENDTIME 512
+static int motor = MOTOR_OFF;
+static int fdc_busy = FDC_IDLE;
+static int pending_timer = 0;
+static int step_direction = STEP_DIR_IN;
+static int cmd_class = CMD_TYPE_UNSET;
+static long lastcpucnt;
+static LONG dma_address;
+static int dma_sector_count;
 
 static int fdc_reg[6];
-static int fdc_reg_active;
 
-static int fdc_rwmode = 0;
-static int fdc_rwlast = 0;
-static int fdc_stepdir = FDC_STEP_OUT;
-static int fdc_control;
-static BYTE fdc_dmastatus;
-static LONG fdc_dmaaddr;
-static long lastcpucnt;
-static int motoron = 1;
-static int motorcnt = 0;
-static int abortmode = FDC_ABORT_OFF;
-static int abortpending = FDC_PENDTIME;
+HANDLE_DIAGNOSTICS(fdc);
 
-static int write_word_flag = 0;
+static void fdc_read_sector();
+static void fdc_write_sector();
+static void fdc_read_address();
+static void fdc_read_track();
 
-HANDLE_DIAGNOSTICS(fdc)
-
-static void fdc_set_motor(int s)
+BYTE fdc_status()
 {
-    motoron = 1;
-  if(s)
-    motoron = 1;
-  else {
-    motorcnt = 16000; /* about 2 sec */
-  }
+  return (motor<<7)|fdc_busy;
 }
 
-static void fdc_parse_control()
+void fdc_handle_control()
 {
-  if(FDCC_HDC || FDCC_HDCXXX) return;
+  TRACE("CONTROL: %d", fdc_reg[FDC_REG_CONTROL]);
 
-  if(FDCC_FDCREG) {
-    fdc_reg_active = 1+((fdc_control&0x6)>>1);
-    if(fdc_reg_active == FDC_STATUS) fdc_reg_active = FDC_INSTR;
-  } else if(FDCC_DMASEC) {
-    fdc_reg_active = FDC_DMASEC;
-  }
-  if(FDCC_READ) {
-    if(fdc_rwlast == 1) fdc_dmastatus = 0x1;
-    fdc_rwlast = fdc_rwmode;
-    fdc_rwmode = 0;
-  } else if(FDCC_WRITE) {
-    if(fdc_rwlast == 0) fdc_dmastatus = 0x1;
-    fdc_rwlast = fdc_rwmode;
-    fdc_rwmode = 1;
-  }
-}
-
-static void fdc_do_instr()
-{
   mfp_set_GPIP(MFP_GPIP_FDC);
-
-  motoron = 1;
-  fdc_reg[FDC_STATUS] = 0x00|(motoron<<7); /* Motor on, not Writeprotected */
-
-  if(FDCI_SEEK0) {
-    if(FDCI_UPDTRK) fdc_reg[FDC_TRACK] = 0;
-    if(floppy_seek(0) == FLOPPY_ERROR) {
-      fdc_reg[FDC_STATUS] |= 0x10;
-    } else {
-      fdc_reg[FDC_STATUS] |= 0x04;
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_SEEK) {
-    if(floppy_seek(fdc_reg[FDC_DATA]) == FLOPPY_ERROR) {
-      fdc_reg[FDC_STATUS] |= 0x10;
-    } else {
-      if(FDCI_UPDTRK) fdc_reg[FDC_TRACK] = fdc_reg[FDC_DATA];
-      if(fdc_reg[FDC_TRACK] < 0) fdc_reg[FDC_TRACK] = 0;
-      if(fdc_reg[FDC_TRACK] > 240) fdc_reg[FDC_TRACK] = 240;
-      if(fdc_reg[FDC_DATA] == 0)
-	fdc_reg[FDC_STATUS] |= 0x04;
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_STEP) {
-    if(floppy_seek_rel(fdc_stepdir) == FLOPPY_ERROR) {
-      fdc_reg[FDC_STATUS] |= 0x10;
-    } else {
-      if(FDCI_UPDTRK) fdc_reg[FDC_TRACK] += fdc_stepdir;
-      if(fdc_reg[FDC_TRACK] < 0) fdc_reg[FDC_TRACK] = 0;
-      if(fdc_reg[FDC_TRACK] > 240) fdc_reg[FDC_TRACK] = 240;
-      if((fdc_reg[FDC_TRACK]+fdc_stepdir) <= 0)
-	fdc_reg[FDC_STATUS] |= 0x04;
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_STEPIN) {
-    if(floppy_seek(FDC_STEP_IN) == FLOPPY_ERROR) {
-      fdc_reg[FDC_STATUS] |= 0x10;
-    } else {
-      if(FDCI_UPDTRK) fdc_reg[FDC_TRACK] += FDC_STEP_IN;
-      if(fdc_reg[FDC_TRACK] > 240) fdc_reg[FDC_TRACK] = 240;
-      if((fdc_reg[FDC_TRACK]+FDC_STEP_IN) <= 0)
-	fdc_reg[FDC_STATUS] |= 0x04;
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_STEPOUT) {
-    if(floppy_seek(FDC_STEP_OUT) == FLOPPY_ERROR) {
-      fdc_reg[FDC_STATUS] |= 0x10;
-    } else {
-      if(FDCI_UPDTRK) fdc_reg[FDC_TRACK] += FDC_STEP_OUT;
-      if(fdc_reg[FDC_TRACK] < 0) fdc_reg[FDC_TRACK] = 0;
-      if((fdc_reg[FDC_TRACK]+FDC_STEP_OUT) <= 0)
-	fdc_reg[FDC_STATUS] |= 0x04;
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_READSEC) {
-    fdc_dmastatus = 0x3; /* Sector count != 0, No error */
-    if(floppy_read_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
-      fdc_dmastatus = 0x0; /* Error */
-    } else {
-      fdc_dmastatus = 0x1;
-      if(FDCI_MULTSEC)
-	fdc_dmaaddr += 512*fdc_reg[FDC_DMASEC]; /* Advance multiple sectors */
-      else
-	fdc_dmaaddr += 512; /* Advance one sector */
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_WRITESEC) {
-    fdc_dmastatus = 0x3; /* Sector count != 0, No error */
-    if(floppy_write_sector(fdc_dmaaddr, fdc_reg[FDC_DMASEC]) == FLOPPY_ERROR) {
-      fdc_dmastatus = 0x0; /* Error */
-    } else {
-      fdc_dmastatus = 0x1;
-      if(FDCI_MULTSEC)
-	fdc_dmaaddr += 512*fdc_reg[FDC_DMASEC]; /* Advance multiple sectors */
-      else
-	fdc_dmaaddr += 512; /* Advance one sector */
-    }
-    if(abortmode) abortpending = FDC_PENDTIME;
-  } else if(FDCI_READTRK) {
-    WARN("Read track not supported");
-  } else if(FDCI_WRITETRK) {
-    WARN("Write track not supported");
-  } else if(FDCI_ABORT) {
-    if(FDCI_ABORTNOW) {
-      abortmode = 0;
-    } else if(FDCI_INTINDEX) {
-      abortmode = FDC_ABORT_IDX;
-    } else if(FDCI_INTINDEX) {
-      abortmode = FDC_ABORT_INT;
-    }
-    mfp_clr_GPIP(MFP_GPIP_FDC);
-  }
-  fdc_set_motor(0);
-}
-
-static BYTE fdc_read_byte(LONG addr)
-{
-  switch(addr) {
-  case 0xff8604:
-    return 0xff;
-  case 0xff8605:
-    if(fdc_reg_active == 0) {
-      abortmode = FDC_ABORT_OFF;
-      return fdc_reg[FDC_STATUS];
-    } else {
-      return fdc_reg[fdc_reg_active];
-    }
-  case 0xff8606:
-    return 0;
-  case 0xff8607:
-    return fdc_dmastatus;
-  case 0xff8609:
-    return (fdc_dmaaddr&0xff0000)>>16;
-  case 0xff860b:
-    return (fdc_dmaaddr&0xff00)>>8;
-  case 0xff860d:
-    return fdc_dmaaddr&0xff;
-  default:
-    return 0;
+  motor = MOTOR_ON;
+  fdc_busy = FDC_BUSY;
+  
+  if(FDC_CMD_RESTORE) {
+    TRACE("CMD [RESTORE]");
+    FDC_TRACK = 0;
+    floppy_seek(0);
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_I;
+  } else if(FDC_CMD_SEEK) {
+    FDC_TRACK = fdc_reg[FDC_REG_DATA];
+    floppy_seek(FDC_TRACK);
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_I;
+  } else if(FDC_CMD_STEP) {
+    FDC_TRACK += step_direction;
+    floppy_seek_rel(step_direction);
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_I;
+  } else if(FDC_CMD_STEPIN) {
+    step_direction = STEP_DIR_IN;
+    FDC_TRACK += step_direction;
+    floppy_seek_rel(step_direction);
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_I;
+  } else if(FDC_CMD_STEPOUT) {
+    step_direction = STEP_DIR_OUT;
+    FDC_TRACK += step_direction;
+    floppy_seek_rel(step_direction);
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_I;
+  } else if(FDC_CMD_READSEC) {
+    fdc_read_sector();
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_II;
+  } else if(FDC_CMD_WRITESEC) {
+    fdc_write_sector();
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_II;
+  } else if(FDC_CMD_READADDR) {
+    fdc_read_address();
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_III;
+  } else if(FDC_CMD_READTRK) {
+    fdc_read_track();
+    pending_timer = FDC_PENDING_TIME;
+    cmd_class = CMD_TYPE_III;
+  } else {
+    FATAL("Unhandled CMD: %02x", FDC_CMD);
   }
 }
 
-static WORD fdc_read_word(LONG addr)
+void fdc_set_register(int regnum, BYTE data)
 {
-  return (fdc_read_byte(addr)<<8)|fdc_read_byte(addr+1);
-}
+  if(fdc_busy) return;
 
-static LONG fdc_read_long(LONG addr)
-{
-  return ((fdc_read_byte(addr)<<24)|
-	  (fdc_read_byte(addr+1)<<16)|
-	  (fdc_read_byte(addr+2)<<8)|
-	  (fdc_read_byte(addr+3)));
-}
-
-static void fdc_write_byte(LONG addr, BYTE data)
-{
-  switch(addr) {
-  case 0xff8605:
-    fdc_reg[fdc_reg_active] = data;
-    if(fdc_reg_active == FDC_INSTR)
-      fdc_do_instr();
-    if(fdc_reg_active == FDC_SECTOR)
-      floppy_sector(data);
-    break;
-  case 0xff8606:
-    fdc_control = (fdc_control&0xff)|(data<<8);
-    if(!write_word_flag)
-      fdc_parse_control();
-    break;
-  case 0xff8607:
-    fdc_control = (fdc_control&0xff00)|data;
-    if(!write_word_flag)
-      fdc_parse_control();
-    break;
-  case 0xff8609:
-    fdc_dmaaddr = (fdc_dmaaddr&0xffff)|(data<<16);
-    break;
-  case 0xff860b:
-    fdc_dmaaddr = (fdc_dmaaddr&0xff00ff)|(data<<8);
-    break;
-  case 0xff860d:
-    fdc_dmaaddr = (fdc_dmaaddr&0xffff00)|data;
-    break;
+  fdc_reg[regnum] = data;
+  if(regnum == FDC_REG_CONTROL) {
+    fdc_handle_control();
   }
 }
 
-static void fdc_write_word(LONG addr, WORD data)
+BYTE fdc_get_register(int regnum)
 {
-  write_word_flag = 1;
-  fdc_write_byte(addr, (data&0xff00)>>8);
-  fdc_write_byte(addr+1, (data&0xff));
-  write_word_flag = 0;
-  if(addr == 0xff8606)
-    fdc_parse_control();
+  if(regnum == FDC_REG_STATUS) {
+    return fdc_status();
+  } else {
+    return fdc_reg[regnum];
+  }
 }
 
-static void fdc_write_long(LONG addr, LONG data)
+void fdc_prepare_read(LONG addr, int count)
 {
-  fdc_write_word(addr, (data&0xffff0000)>>16);
-  fdc_write_word(addr+2, data&0xffff);
+  dma_address = addr;
+  dma_sector_count = count;
 }
 
-static int fdc_state_collect(struct mmu_state *state)
+static void fdc_read_sector()
 {
-  state->size = 0;
-  return STATE_VALID;
+  floppy_read_sector(dma_address, dma_sector_count);
 }
 
-static void fdc_state_restore(struct mmu_state *state)
+static void fdc_write_sector()
 {
+  floppy_write_sector(dma_address, dma_sector_count);
+}
+
+static void fdc_read_address()
+{
+  floppy_read_address(dma_address);
+}
+
+static void fdc_read_track()
+{
+  DEBUG("Read Track not implemented");
 }
 
 void fdc_do_interrupts(struct cpu *cpu)
@@ -323,56 +175,27 @@ void fdc_do_interrupts(struct cpu *cpu)
   long tmpcpu;
 
   tmpcpu = cpu->cycle - lastcpucnt;
+
   if(tmpcpu < 0) {
     tmpcpu += MAX_CYCLE;
   }
 
-  if(motorcnt > 0) {
-    motorcnt -= tmpcpu;
+  if(pending_timer > 0) {
+    pending_timer -= tmpcpu;
+  } else {
+    if(fdc_busy) {
+      TRACE("CMD DONE");
+      pending_timer = 0;
+      motor = MOTOR_OFF;
+      mfp_clr_GPIP(MFP_GPIP_FDC);
+      fdc_busy = FDC_IDLE;
+    }
   }
-  if(motorcnt <= 0) {
-    motorcnt = 0;
-    motoron = 0;
-  }
-  if(motoron == 0) {
-    fdc_reg[FDC_STATUS] &= ~(1<<7);
-  }
-
-  if(abortpending > 0) {
-    abortpending -= tmpcpu;
-  }
-
-  if(abortpending != -1 && (abortpending <= 0)) {
-    abortpending = -1;
-    mfp_clr_GPIP(MFP_GPIP_FDC);
-  }
-
+  
   lastcpucnt = cpu->cycle;
 }
 
 void fdc_init()
 {
-  struct mmu *fdc;
-
-  fdc = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!fdc) {
-    return;
-  }
-  fdc->start = FDCBASE;
-  fdc->size = FDCSIZE;
-  memcpy(fdc->id, "FDC0", 4);
-  fdc->name = strdup("FDC");
-  fdc->read_byte = fdc_read_byte;
-  fdc->read_word = fdc_read_word;
-  fdc->read_long = fdc_read_long;
-  fdc->write_byte = fdc_write_byte;
-  fdc->write_word = fdc_write_word;
-  fdc->write_long = fdc_write_long;
-  fdc->state_collect = fdc_state_collect;
-  fdc->state_restore = fdc_state_restore;
-  fdc->diagnostics = fdc_diagnostics;
-
-  fdc_reg[FDC_STATUS] = 0xc0;
-
-  mmu_register(fdc);
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(fdc, "FDC0");
 }

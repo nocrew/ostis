@@ -75,6 +75,17 @@ int floppy_write_sector(LONG addr, int count)
   return floppy[0].write_sector(floppy[0].sel_trk, floppy[0].sel_side, floppy[0].sel_sec, addr, count);
 }
 
+int floppy_read_address(LONG addr)
+{
+  mmu_write_byte(addr, floppy[0].sel_trk);
+  mmu_write_byte(addr+1, floppy[0].sel_side);
+  mmu_write_byte(addr+2, floppy[0].sel_sec);
+  mmu_write_byte(addr+3, 2); /* 512 byte for now */
+  mmu_write_byte(addr+4, 0);
+  mmu_write_byte(addr+5, 0);
+  return 0;
+}
+
 BYTE *floppy_allocate_memory()
 {
   return (BYTE *)malloc(86 * (floppy[0].sides+1) * floppy[0].sectors * 512);

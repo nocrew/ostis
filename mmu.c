@@ -6,6 +6,7 @@
 #include "shifter.h"
 #include "ikbd.h"
 #include "psg.h"
+#include "dma.h"
 #include "fdc.h"
 #include "mmu.h"
 #include "state.h"
@@ -411,6 +412,7 @@ void mmu_print_map()
 void mmu_do_interrupts(struct cpu *cpu)
 {
   mfp_do_interrupts(cpu);
+  dma_do_interrupts(cpu);
   fdc_do_interrupts(cpu);
   ikbd_do_interrupts(cpu);
   psg_do_interrupts(cpu);

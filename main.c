@@ -14,6 +14,7 @@
 #if INCLUDE_RTC
 #include "rtc.h"
 #endif
+#include "dma.h"
 #include "fdc.h"
 #include "mfp.h"
 #include "prefs.h"
@@ -183,6 +184,7 @@ int main(int argc, char *argv[])
 #if INCLUDE_RTC
   rtc_init();
 #endif
+  dma_init();
   fdc_init();
   mfp_init();
   screen_disable(0);

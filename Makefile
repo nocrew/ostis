@@ -80,4 +80,4 @@ include debug/debug.mk
 include tests/tests.mk
 
 clean::
-	rm -f *.o *~ $(PARSERSRC) expr.tab.h
+	rm -f *.o *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test

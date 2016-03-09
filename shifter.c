@@ -25,9 +25,19 @@
 #define VBLSCR 200
 #define VBLPOST 40
 
+static int get_pixel_low(int, int);
+static int get_pixel_medium(int, int);
+static int get_pixel_high(int, int);
+static void set_pixel_low(int, int);
+static void set_pixel_medium(int, int);
+static void set_pixel_high(int, int);
+
 static struct resolution_data res_data[] = {
   {
     // Low resolution
+    .get_pixel = get_pixel_low,
+    .set_pixel = set_pixel_low,
+    .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
     .hblscr = HBLSCR,
@@ -40,6 +50,9 @@ static struct resolution_data res_data[] = {
   },
   {
     // Medium resolution
+    .get_pixel = get_pixel_medium,
+    .set_pixel = set_pixel_medium,
+    .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
     .hblscr = HBLSCR,
@@ -52,6 +65,9 @@ static struct resolution_data res_data[] = {
   },
   {
     // High resolution
+    .get_pixel = get_pixel_high,
+    .set_pixel = set_pixel_high,
+    .screen_cycles = 224*501,
     .hblsize = 224,
     .hblpre = 30,
     .hblscr = 160,
@@ -214,26 +230,12 @@ static void set_pixel_high(int rasterpos, int pnum)
   }
 }
 
-static void set_pixel(int rasterpos, int pnum)
-{
-  switch(resolution&3) {
-  case 0:
-    return set_pixel_low(rasterpos, pnum);
-  case 1:
-    return set_pixel_medium(rasterpos, pnum);
-  case 2:
-    return set_pixel_high(rasterpos, pnum);
-  case 3:
-    FATAL("Bad video mode");
-  }
-}
-
 static void fill_16pxl(int rasterpos, int pnum)
 {
   int i;
 
   for(i=0;i<16;i++) {
-    set_pixel(rasterpos+i, pnum);
+    res.set_pixel(rasterpos+i, pnum);
   }
 }
 
@@ -334,21 +336,6 @@ static int get_pixel_high(int videooffset, int pxlnum)
   return c;
 }
 
-static int get_pixel(int videooffset, int pxlnum)
-{
-  switch(resolution&3) {
-  case 0:
-    return get_pixel_low(videooffset, pxlnum);
-  case 1:
-    return get_pixel_medium(videooffset, pxlnum);
-  case 2:
-    return get_pixel_high(videooffset, pxlnum);
-  case 3:
-    FATAL("Bad video mode");
-  }
-  return 0;
-}
-
 static void set_16pxl(int rasterpos, int videooffset)
 {
   int i,c;
@@ -364,7 +351,7 @@ static void set_16pxl(int rasterpos, int videooffset)
          (((d[1]>>i)&1)<<2)|
          (((d[2]>>i)&1)<<1)|
          (((d[3]>>i)&1)));
-    set_pixel(rasterpos+(15-i), c);
+    res.set_pixel(rasterpos+(15-i), c);
   }
 }
 
@@ -429,11 +416,11 @@ static void shifter_gen_pixel(int rasterpos)
   linepos = rasterpos%res.hblsize;
 
   if(shifter_on_display(rasterpos)) {
-    set_pixel(rasterpos,
-	      get_pixel(get_videooffset(rasterpos),
-			(linepos-hblpre)&15));
+    res.set_pixel(rasterpos,
+		  res.get_pixel(get_videooffset(rasterpos),
+				(linepos-hblpre)&15));
   } else {
-    set_pixel(rasterpos, res.border); /* Background in border */
+    res.set_pixel(rasterpos, res.border); /* Background in border */
   }
 }
 
@@ -460,7 +447,7 @@ static void shifter_gen_picture(int rasterpos)
 
 void shifter_force_gen_picture()
 {
-  shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+  shifter_gen_picture(res.screen_cycles-vsynccnt);
 }
 
 void shifter_build_image(int debug)
@@ -486,13 +473,13 @@ static BYTE shifter_read_byte(LONG addr)
   case 0xff8203:
     return (scraddr&0xff00)>>8;
   case 0xff8205:
-    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
+    gen_scrptr(res.screen_cycles-vsynccnt);
     return (scrptr&0xff0000)>>16;
   case 0xff8207:
-    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
+    gen_scrptr(res.screen_cycles-vsynccnt);
     return (scrptr&0xff00)>>8;
   case 0xff8209:
-    gen_scrptr(res.vblsize*res.hblsize-vsynccnt);
+    gen_scrptr(res.screen_cycles-vsynccnt);
     return scrptr&0xff;
   case 0xff820a:
     return syncreg;
@@ -536,10 +523,10 @@ static void shifter_write_byte(LONG addr, BYTE data)
     scraddr = (scraddr&0xff0000)|(data<<8);
     return;
   case 0xff820a:
-    if((160256-vsynccnt) < (res.hblsize*res.vblpre)) {
+    if((res.screen_cycles-vsynccnt) < (res.hblsize*res.vblpre)) {
       vblpre = res.vblpre-BORDERTOP;
       vblscr = res.vblscr+BORDERTOP;
-    } else if((160256-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
+    } else if((res.screen_cycles-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
       if(vblscr != res.vblscr) {
 	vblscr = BORDERTOP;
       }
@@ -572,7 +559,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
 static void shifter_write_word(LONG addr, WORD data)
 {
   if((addr >= 0xff8240) && (addr <= 0xff825f))
-    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    shifter_gen_picture(res.screen_cycles-vsynccnt);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
 }
@@ -580,7 +567,7 @@ static void shifter_write_word(LONG addr, WORD data)
 static void shifter_write_long(LONG addr, LONG data)
 {
   if((addr >= 0xff8240) && (addr <= 0xff825f)) {
-    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    shifter_gen_picture(res.screen_cycles-vsynccnt);
   }
   shifter_write_byte(addr, (data&0xff000000)>>24);
   shifter_write_byte(addr+1, (data&0xff0000)>>16);
@@ -739,9 +726,9 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(vsynccnt < 0) {
     vblpre = res.vblpre;
     vblscr = res.vblscr;
-    shifter_gen_picture(res.vblsize*res.hblsize);
+    shifter_gen_picture(res.screen_cycles);
     scrptr = curaddr = scraddr;
-    vsynccnt += res.vblsize*res.hblsize;
+    vsynccnt += res.screen_cycles;
     linenum = 0;
     hsynccnt += res.hblsize;
     lastrasterpos = 0; /* Restart image building from position 0 */
@@ -767,7 +754,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(hsynccnt < 0) {
     hblpre = res.hblpre;
     hblscr = res.hblscr;
-    shifter_gen_picture(res.vblsize*res.hblsize-vsynccnt);
+    shifter_gen_picture(res.screen_cycles-vsynccnt);
     hsynccnt += res.hblsize;
     hbl_triggered = 1;
     cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
@@ -796,7 +783,7 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
 
 int shifter_get_vsync()
 {
-  return res.vblsize*res.hblsize-vsynccnt;
+  return res.screen_cycles-vsynccnt;
 }
 
 int shifter_framecnt(int c)

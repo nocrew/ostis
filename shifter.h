@@ -4,6 +4,9 @@
 #include "cpu.h"
 
 struct resolution_data {
+  int (*get_pixel)(int, int);
+  void (*set_pixel)(int, int);
+  long screen_cycles;
   long hblsize;
   long hblpre;
   long hblscr;

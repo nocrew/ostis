@@ -25,6 +25,12 @@ void prefs_set(char *key, char *value)
       prefs.stateimage = strdup(value);
     else
       prefs.stateimage = NULL;
+  } else if(!strncasecmp("diskimage2", key, 10)) {
+    if(prefs.diskimage2 != NULL) free(prefs.diskimage2);
+    if(value != NULL)
+      prefs.diskimage2 = strdup(value);
+    else
+      prefs.diskimage = NULL;
   } else if(!strncasecmp("diskimage", key, 9)) {
     if(prefs.diskimage != NULL) free(prefs.diskimage);
     if(value != NULL)

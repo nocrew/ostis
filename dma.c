@@ -14,8 +14,8 @@ HANDLE_DIAGNOSTICS(dma);
 #define DMA_READ  0
 #define DMA_WRITE 1
 
-#define STATUS_ERROR        1
-#define STATUS_NO_ERROR     0
+#define STATUS_ERROR        0
+#define STATUS_NO_ERROR     1
 #define STATUS_SEC_ZERO     0
 #define STATUS_SEC_NOT_ZERO 2
 #define STATUS_NO_FDC_DRQ   0
@@ -29,7 +29,6 @@ static BYTE dma_sector_reg = 0;
 static BYTE dma_status = 0;
 static int dma_direction = DMA_READ;
 static int dma_activate = 0;
-static int word_write = 0;
 
 #define MODE_FDCS  ((~dma_mode)&(1<<3))
 #define MODE_HDCS  (dma_mode&(1<<3))
@@ -50,9 +49,31 @@ static int word_write = 0;
 #define FDC_REG_SECTOR  2
 
 
-static LONG dma_address()
+LONG dma_address()
 {
   return (dma_addr_high<<16)|(dma_addr_med<<8)|dma_addr_low;
+}
+
+static void dma_set_address(LONG addr)
+{
+  dma_addr_high = (addr>>16)&0xff;
+  dma_addr_med = (addr>>8)&0xff;
+  dma_addr_low = (addr)&0xff;
+}
+
+void dma_inc_address(LONG increment)
+{
+  dma_set_address(dma_address() + increment);
+}
+
+void dma_set_error()
+{
+  dma_status &= ~1;
+}
+
+void dma_clr_error()
+{
+  dma_status |= 1;
 }
 
 static void dma_reset(int new_direction)
@@ -78,28 +99,6 @@ static void dma_handle_mode()
 BYTE dma_read_byte(LONG addr)
 {
   switch(addr) {
-  case 0xff8604:
-    if(MODE_SEC) {
-      return 0;
-    } else {
-      return 0xff;
-    }
-  case 0xff8605:
-    if(MODE_SEC) {
-      return dma_sector_reg;
-    } else {
-      if(MODE_FDCS == 0) {
-        TRACE("Calling fdc_get_register(%d)", MODE_FDC_REG>>1);
-        return fdc_get_register(MODE_FDC_REG>>1);
-      } else {
-        DEBUG("HD not implemented");
-      }
-      return 0;
-    }
-  case 0xff8606:
-    return 0;
-  case 0xff8607:
-    return dma_status;
   case 0xff8609:
     return dma_addr_high;
   case 0xff860b:
@@ -113,7 +112,30 @@ BYTE dma_read_byte(LONG addr)
 
 WORD dma_read_word(LONG addr)
 {
-  return (dma_read_byte(addr)<<8)|dma_read_byte(addr+1);
+  WORD tmp;
+  
+  TRACE("WriteWord: %06x", addr);
+  switch(addr) {
+  case 0xff8604:
+    if(MODE_SEC) {
+      return dma_sector_reg;
+    } else {
+      if(!mmu_print_state) {
+        if(MODE_HDCS) {
+          DEBUG("HD not implemented");
+          return 0xff;
+        } else {
+          tmp = fdc_get_register(MODE_FDC_REG>>1)|0xff00;
+          TRACE("Calling fdc_get_register(%d) == %04x", MODE_FDC_REG>>1, tmp);
+          return tmp;
+        }
+      }
+      return 0;
+    }
+  case 0xff8606:
+    return dma_status;
+  }
+  return 0xffff;
 }
 
 LONG dma_read_long(LONG addr)
@@ -123,34 +145,8 @@ LONG dma_read_long(LONG addr)
 
 void dma_write_byte(LONG addr, BYTE data)
 {
+  TRACE("WriteByte: %06x %02x", addr, data);
   switch(addr) {
-  case 0xff8604:
-    /* Upper byte is ignored */
-    break;
-  case 0xff8605:
-    if(MODE_SEC) {
-      TRACE("Setting dma_sector_reg == %d", data);
-      dma_sector_reg = data;
-      dma_activate = 1;
-    } else {
-      if(MODE_FDCS == 0 && MODE_FDRQ) {
-        TRACE("Calling fdc_set_register(%d, %02x)", MODE_FDC_REG>>1, data);
-        fdc_set_register(MODE_FDC_REG>>1, data);
-      }
-    }
-    break;
-  case 0xff8606:
-    dma_mode = (dma_mode&0xff)|(data<<8);
-    if(!word_write) {
-      dma_handle_mode();
-    }
-    break;
-  case 0xff8607:
-    dma_mode = (dma_mode&0xff00)|data;
-    if(!word_write) {
-      dma_handle_mode();
-    }
-    break;
   case 0xff8609:
     dma_addr_high = data&0x3f; /* Top 2 bits unused */
     TRACE("(HIGH) DMA address now == %06x", dma_address());
@@ -168,11 +164,25 @@ void dma_write_byte(LONG addr, BYTE data)
 
 void dma_write_word(LONG addr, WORD data)
 {
-  word_write = 1;
-  dma_write_byte(addr, (data&0xff00)>>8);
-  dma_write_byte(addr+1, data&0xff);
-  word_write = 0;
-  if(addr == 0xff8606) {
+  TRACE("WriteWord: %06x %04x", addr, data);
+  switch(addr) {
+  case 0xff8604:
+    if(MODE_SEC) {
+      TRACE("Setting dma_sector_reg == %d", data);
+      dma_sector_reg = data;
+      dma_activate = 1;
+    } else {
+      if(MODE_HDCS) {
+        DEBUG("HD not implemented");
+      } else {
+        TRACE("Calling fdc_set_register(%d, %02x)", MODE_FDC_REG>>1, data);
+        fdc_set_register(MODE_FDC_REG>>1, data);
+      }
+    }
+    break;
+  case 0xff8606:
+    dma_mode = data;
+    TRACE("DMAMode == %04x", dma_mode);
     dma_handle_mode();
   }
 }
@@ -197,7 +207,7 @@ static void dma_state_restore(struct mmu_state *state)
 void dma_do_interrupts(struct cpu *cpu)
 {
   if(dma_activate) {
-    if((MODE_FDCS == 0) && dma_direction == DMA_READ) {
+    if((!MODE_HDCS) && dma_direction == DMA_READ) {
       fdc_prepare_read(dma_address(), dma_sector_reg);
     }
     dma_activate = 0;

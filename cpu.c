@@ -205,7 +205,7 @@ int cpu_step_instr(int trace)
     if(cprint_all) {
       struct cprint *cprint;
       cprint = cprint_instr(cpu->pc-2);
-      printf("DEBUG-ASM: %04x %02x (%d) %06X      %s %s",
+      fprintf(stderr, "DEBUG-ASM: %04x %02x (%d) %06X      %s %s",
              cpu->sr,
              mfp_get_ISRB(),
              ikbd_get_fifocnt(),
@@ -231,7 +231,7 @@ int cpu_step_instr(int trace)
     if(cnt&3) {
       cnt = (cnt&0xfffffffc)+4;
     }
-    printf("    [%d => %d]\n", cpu->icycle, cnt);
+    fprintf(stderr, "    [%d => %d]\n", cpu->icycle, cnt);
   }
   cpu_do_cycle(cpu->icycle);
   cpu_check_for_pending_interrupts();

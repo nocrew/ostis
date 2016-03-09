@@ -3,6 +3,7 @@
 #include "mfp.h"
 #include "floppy.h"
 #include "mmu.h"
+#include "dma.h"
 #include "state.h"
 #include "diag.h"
 
@@ -37,6 +38,8 @@
 #define FDC_CMD_WRITETRK ((FDC_CMD&0xf0) == 0xf0)
 #define FDC_CMD_FORCEINT ((FDC_CMD&0xf0) == 0xd0)
 
+#define FDC_CMD_MULTSEC  ((FDC_CMD&0x10) == 0x10)
+
 #define FDC_PENDING_TIME 512
 
 #define CMD_TYPE_UNSET 0
@@ -47,77 +50,147 @@
 
 static int motor = MOTOR_OFF;
 static int fdc_busy = FDC_IDLE;
-static int pending_timer = 0;
+static signed int pending_timer = 0;
 static int step_direction = STEP_DIR_IN;
 static int cmd_class = CMD_TYPE_UNSET;
 static long lastcpucnt;
 static LONG dma_address;
 static int dma_sector_count;
+static int seek_error = 0;
 
 static int fdc_reg[6];
 
 HANDLE_DIAGNOSTICS(fdc);
 
-static void fdc_read_sector();
-static void fdc_write_sector();
-static void fdc_read_address();
-static void fdc_read_track();
+static int fdc_read_sector();
+static int fdc_write_sector();
+static int fdc_read_address();
+static int fdc_read_track();
 
 BYTE fdc_status()
 {
-  return (motor<<7)|fdc_busy;
+  int current_track,tr00;
+
+  current_track = floppy_current_track();
+  if(current_track == 0) {
+    tr00 = 1;
+  } else {
+    tr00 = 0;
+  }
+
+  if(cmd_class != CMD_TYPE_I) {
+    seek_error = 0;
+  }
+  
+  return (motor<<7)|(seek_error<<4)|(tr00<<2)|fdc_busy;
 }
 
 void fdc_handle_control()
 {
-  TRACE("CONTROL: %d", fdc_reg[FDC_REG_CONTROL]);
+  TRACE("CONTROL: %02x", fdc_reg[FDC_REG_CONTROL]);
 
   mfp_set_GPIP(MFP_GPIP_FDC);
   motor = MOTOR_ON;
   fdc_busy = FDC_BUSY;
+  seek_error = 0;
   
   if(FDC_CMD_RESTORE) {
     TRACE("CMD [RESTORE]");
-    FDC_TRACK = 0;
-    floppy_seek(0);
+    if(floppy_seek(0) == FLOPPY_ERROR) {
+      seek_error = 1;
+      TRACE("CMD [RESTORE] == SEEK_ERROR");
+    } else {
+      FDC_TRACK = 0;
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_I;
   } else if(FDC_CMD_SEEK) {
-    FDC_TRACK = fdc_reg[FDC_REG_DATA];
-    floppy_seek(FDC_TRACK);
+    if(floppy_seek(fdc_reg[FDC_REG_DATA]) == FLOPPY_ERROR) {
+      seek_error = 1;
+      TRACE("CMD [SEEK] == SEEK_ERROR");
+    } else {
+      FDC_TRACK = floppy_current_track();
+      TRACE("CMD [SEEK] == %d", FDC_TRACK);
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_I;
-  } else if(FDC_CMD_STEP) {
-    FDC_TRACK += step_direction;
-    floppy_seek_rel(step_direction);
+  } else if(FDC_CMD_STEP) { 
+    if(floppy_seek_rel(step_direction)) {
+      seek_error = 1;
+      TRACE("CMD [STEP] == SEEK_ERROR");
+    } else {
+      FDC_TRACK = floppy_current_track();
+      TRACE("CMD [STEP] == %d", FDC_TRACK);
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_I;
   } else if(FDC_CMD_STEPIN) {
     step_direction = STEP_DIR_IN;
-    FDC_TRACK += step_direction;
-    floppy_seek_rel(step_direction);
+    if(floppy_seek_rel(step_direction)) {
+      seek_error = 1;
+      TRACE("CMD [STEPIN] == SEEK_ERROR");
+    } else {
+      FDC_TRACK = floppy_current_track();
+      TRACE("CMD [STEPIN] == %d", FDC_TRACK);
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_I;
   } else if(FDC_CMD_STEPOUT) {
     step_direction = STEP_DIR_OUT;
-    FDC_TRACK += step_direction;
-    floppy_seek_rel(step_direction);
+    if(floppy_seek_rel(step_direction)) {
+      seek_error = 1;
+      TRACE("CMD [STEPOUT] == SEEK_ERROR");
+    } else {
+      FDC_TRACK = floppy_current_track();
+      TRACE("CMD [STEPOUT] == %d", FDC_TRACK);
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_I;
   } else if(FDC_CMD_READSEC) {
-    fdc_read_sector();
+    if(fdc_read_sector() == FLOPPY_ERROR) {
+      TRACE("CMD [READSEC] == READ_ERROR");
+      dma_set_error();
+    } else {
+      TRACE("CMD [READSEC] == READ_OK");
+      dma_clr_error();
+      if(FDC_CMD_MULTSEC) {
+        dma_inc_address(512 * dma_sector_count);
+      } else {
+        dma_inc_address(512);
+      }
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_II;
   } else if(FDC_CMD_WRITESEC) {
-    fdc_write_sector();
+    TRACE("CMD [WRITESEC]");
+    if(fdc_write_sector() == FLOPPY_ERROR) {
+      dma_set_error();
+    } else {
+      dma_clr_error();
+      if(FDC_CMD_MULTSEC) {
+        dma_inc_address(512 * dma_sector_count);
+      } else {
+        dma_inc_address(512);
+      }
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_II;
   } else if(FDC_CMD_READADDR) {
-    fdc_read_address();
+    TRACE("CMD [READADDR]");
+    if(fdc_read_address() == FLOPPY_ERROR) {
+      dma_set_error();
+    } else {
+      dma_clr_error();
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_III;
   } else if(FDC_CMD_READTRK) {
-    fdc_read_track();
+    TRACE("CMD [READTRK]");
+    if(fdc_read_track() == FLOPPY_ERROR) {
+      dma_set_error();
+    } else {
+      dma_clr_error();
+    }
     pending_timer = FDC_PENDING_TIME;
     cmd_class = CMD_TYPE_III;
   } else {
@@ -132,6 +205,8 @@ void fdc_set_register(int regnum, BYTE data)
   fdc_reg[regnum] = data;
   if(regnum == FDC_REG_CONTROL) {
     fdc_handle_control();
+  } else if(regnum == FDC_REG_SECTOR) {
+    floppy_sector(data);
   }
 }
 
@@ -150,24 +225,25 @@ void fdc_prepare_read(LONG addr, int count)
   dma_sector_count = count;
 }
 
-static void fdc_read_sector()
+static int fdc_read_sector()
 {
-  floppy_read_sector(dma_address, dma_sector_count);
+  return floppy_read_sector(dma_address, dma_sector_count);
 }
 
-static void fdc_write_sector()
+static int fdc_write_sector()
 {
-  floppy_write_sector(dma_address, dma_sector_count);
+  return floppy_write_sector(dma_address, dma_sector_count);
 }
 
-static void fdc_read_address()
+static int fdc_read_address()
 {
-  floppy_read_address(dma_address);
+  return floppy_read_address(dma_address);
 }
 
-static void fdc_read_track()
+static int fdc_read_track()
 {
   DEBUG("Read Track not implemented");
+  return FLOPPY_ERROR;
 }
 
 void fdc_do_interrupts(struct cpu *cpu)

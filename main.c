@@ -70,12 +70,15 @@ int main(int argc, char *argv[])
 #endif
       {0,                       0,                 0, 0 }
     };
-    c = getopt_long(argc, argv, "a:t:s:hdpyVAMvq", long_options, &option_index);
+    c = getopt_long(argc, argv, "a:b:t:s:hdpyVAMvq", long_options, &option_index);
     if(c == -1) break;
 
     switch(c) {
     case 'a':
       prefs_set("diskimage", optarg);
+      break;
+    case 'b':
+      prefs_set("diskimage2", optarg);
       break;
     case 't':
       prefs_set("tosimage", optarg);
@@ -195,11 +198,7 @@ int main(int argc, char *argv[])
     cpu_halt_for_debug();
   }
   
-  if(prefs.diskimage) {
-    floppy_init(prefs.diskimage);
-  } else {
-    floppy_init("");
-  }
+  floppy_init(prefs.diskimage, prefs.diskimage2);
 
   if(prefs.stateimage) {
     state = state_load(prefs.stateimage);

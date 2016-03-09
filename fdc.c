@@ -80,6 +80,7 @@ BYTE fdc_status()
 
   if(cmd_class != CMD_TYPE_I) {
     seek_error = 0;
+    tr00 = 0;
   }
   
   return (motor<<7)|(seek_error<<4)|(tr00<<2)|fdc_busy;

@@ -20,9 +20,10 @@ Binary setup for running tests (se below):
 ### Usage
 
 Command line options:  
-`ostis` [`-a` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [`-d`] [disk image] [`-p`] [`-y`] [`-V`]
+`ostis` [`-a` disk image] [`-b` disk image] [`-t` TOS image] [`-s` state image] [`-h`] [`-d`] [disk image] [`-p`] [`-y`] [`-V`]
 
-`-a`  - Load disk image (.ST or .MSA)  
+`-a`  - Load disk image (.ST, .MSA or .STX)  
+`-a`  - Load disk image into B: (.ST, .MSA or .STX)  
 `-t`  - TOS image (default: `tos.img`)  
 `-s`  - Save state file  
 `-h`  - Show help  

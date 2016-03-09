@@ -15,8 +15,11 @@ struct floppy {
   int sel_trk;
   int sel_sec;
   int sel_side;
-  int (*read_sector)(int track, int side, int sector, LONG addr, int count);
-  int (*write_sector)(int track, int side, int sector, LONG addr, int count);
+  int (*read_sector)(struct floppy *fl, int track, int side, int sector, LONG addr, int count);
+  int (*write_sector)(struct floppy *fl, int track, int side, int sector, LONG addr, int count);
+  /* Data related to the floppy image itself, which is file format dependant */
+  int image_data_size;
+  void *image_data;
 };
 
 void floppy_side(int);

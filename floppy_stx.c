@@ -4,9 +4,6 @@
 #include "floppy_stx.h"
 #include "diag.h"
 
-static struct floppy *fl;
-static char *filename = NULL;
-
 #define MAXSIDES 2
 #define MAXTRACKS 86
 
@@ -28,14 +25,19 @@ struct track {
   struct sector *sectors;
 };
 
-static struct track tracks[MAXTRACKS];
+struct floppy_stx {
+  char *filename;
+  struct track tracks[MAXTRACKS];
+};
   
+#define FLOPPY_STX(f, x) ((struct floppy_stx *)f->image_data)->x
 #define SECSIZE 512
 
 HANDLE_DIAGNOSTICS(floppy_stx);
 
-static int read_sector(int track, int side, int sector, LONG addr, int count)
+static int read_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
+  struct track *tracks;
   int i,j,dst_pos;
   struct sector *track_sectors;
   BYTE *fuzzy_mask;
@@ -44,6 +46,8 @@ static int read_sector(int track, int side, int sector, LONG addr, int count)
   int sec_num, sec_size;
   int start_sector = -1;
 
+  tracks = FLOPPY_STX(fl, tracks);
+  
   track_side_num = track | side << 7;
   sector_count = tracks[track_side_num].sector_count;
   track_sectors = tracks[track_side_num].sectors;
@@ -81,7 +85,7 @@ static int read_sector(int track, int side, int sector, LONG addr, int count)
   return FLOPPY_OK;
 }
 
-static int write_sector(int track, int side, int sector, LONG addr, int count)
+static int write_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
   return FLOPPY_ERROR;
 }
@@ -128,8 +132,9 @@ static void load_sector_without_header(struct sector *sector_data, int sector_in
   DEBUG("LoadSec:    Nr: %d  Sz: %d  Fz: %d  Off: %d", sector_data->nr, sector_data->size, 0, sector_data->offset);
 }
 
-static void load_track(FILE *fp)
+static void load_track(struct floppy *fl, FILE *fp)
 {
+  struct track *tracks;
   int track_side_num,track_num,track_side;
   int sectors, fuzzy_size, track_image, track_size;
   BYTE header[16];
@@ -140,7 +145,7 @@ static void load_track(FILE *fp)
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
-    ERROR("Couldn't read from %s", filename);
+    ERROR("Couldn't read from %s", FLOPPY_STX(fl, filename));
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -161,7 +166,7 @@ static void load_track(FILE *fp)
   }
 
   if(fread(data, track_size - 16, 1, fp) != 1) {
-    ERROR("Couldn't read from %s", filename);
+    ERROR("Couldn't read from %s", FLOPPY_STX(fl, filename));
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -169,6 +174,8 @@ static void load_track(FILE *fp)
 
   data_pos = data;
 
+  tracks = FLOPPY_STX(fl, tracks);
+  
   tracks[track_side_num].nr = track_num;
   tracks[track_side_num].side = track_side;
   tracks[track_side_num].size = track_size;
@@ -208,14 +215,14 @@ static void load_track(FILE *fp)
   }
 }
 
-static void load_file(FILE *fp)
+static void load_file(struct floppy *fl, FILE *fp)
 {
   BYTE header[16];
   int tracks;
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
-    ERROR("Couldn't read from %s", filename);
+    ERROR("Couldn't read from %s", FLOPPY_STX(fl, filename));
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -228,7 +235,7 @@ static void load_file(FILE *fp)
   fl->tracks = tracks;
 
   for(i = 0; i < tracks; i++) {
-    load_track(fp);
+    load_track(fl, fp);
     if(!fl->fp) {
       break;
     }
@@ -243,19 +250,20 @@ static void load_file(FILE *fp)
   return;
 }
 
-void floppy_stx_init(struct floppy *flop, char *name)
+void floppy_stx_init(struct floppy *fl, char *name)
 {
   FILE *fp;
-  fl = flop;
-  filename = name;
-
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_stx, "FSTX");
 
-  fp = fopen(filename, "rb");
+  fl->image_data = (void *)malloc(sizeof(struct floppy_stx));
+  fl->image_data_size = sizeof(struct floppy_stx);
+  FLOPPY_STX(fl, filename) = name;
+
+  fp = fopen(name, "rb");
   if(!fp) return;
   fl->fp = fp;
   
-  load_file(fp);
+  load_file(fl, fp);
   fl->read_sector = read_sector;
   fl->write_sector = write_sector;
 }

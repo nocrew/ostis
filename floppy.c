@@ -103,12 +103,12 @@ int floppy_read_sector(LONG addr, int count)
         floppy[active_device].sel_sec,
         off,
         addr, count);
-  return floppy[active_device].read_sector(floppy[active_device].sel_trk, floppy[active_device].sel_side, floppy[active_device].sel_sec, addr, count);
+  return floppy[active_device].read_sector(&floppy[active_device], floppy[active_device].sel_trk, floppy[active_device].sel_side, floppy[active_device].sel_sec, addr, count);
 }
 
 int floppy_write_sector(LONG addr, int count)
 {
-  return floppy[active_device].write_sector(floppy[active_device].sel_trk, floppy[active_device].sel_side, floppy[active_device].sel_sec, addr, count);
+  return floppy[active_device].write_sector(&floppy[active_device], floppy[active_device].sel_trk, floppy[active_device].sel_side, floppy[active_device].sel_sec, addr, count);
 }
 
 int floppy_read_address(LONG addr)
@@ -128,12 +128,12 @@ BYTE *floppy_allocate_memory()
   return (BYTE *)malloc(86 * 2 * 7000); /* Should be large enough to cover all floppy data */
 }
 
-static int dummy_read_sector(int track, int side, int sector, LONG addr, int count)
+static int dummy_read_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
   return FLOPPY_ERROR;
 }
 
-static int dummy_write_sector(int track, int side, int sector, LONG addr, int count)
+static int dummy_write_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
   return FLOPPY_ERROR;
 }

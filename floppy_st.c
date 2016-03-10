@@ -2,6 +2,7 @@
 #include "mmu.h"
 #include "floppy.h"
 #include "floppy_st.h"
+#include "diag.h"
 
 struct floppy_st {
   char *filename;
@@ -11,6 +12,8 @@ struct floppy_st {
 
 #define FLOPPY_ST(f, x) ((struct floppy_st *)f->image_data)->x
 #define SECSIZE 512
+
+HANDLE_DIAGNOSTICS(floppy_st);
 
 static void save_file(struct floppy *, long);
 
@@ -61,11 +64,11 @@ static void save_file(struct floppy *fl, long offset)
   if(!fp) return;
 
   if(fseek(fp, offset, SEEK_SET) != 0) {
-    printf("Error writing to floppy image\n");
+    ERROR("Error writing to floppy image");
   }
 
   if(fwrite(FLOPPY_ST(fl, raw_data) + offset, SECSIZE, 1, fp) != 1) {
-    printf("Error writing to floppy image\n");
+    ERROR("Error writing to floppy image");
   }
 
   fclose(fp);
@@ -86,7 +89,7 @@ static void load_file(struct floppy *fl, FILE *fp)
   if((bootsector[11]|(bootsector[12]<<8)) != SECSIZE) {
     fclose(fl->fp);
     fl->fp = NULL;
-    printf("Sector size != SECSIZE bytes (%d)\n", bootsector[11]|(bootsector[12]<<8));
+    ERROR("Sector size != SECSIZE bytes (%d)", bootsector[11]|(bootsector[12]<<8));
     return;
   }
 
@@ -99,7 +102,7 @@ static void load_file(struct floppy *fl, FILE *fp)
   // Despite having fetched the track count, we'll allocate space for 86 tracks
   FLOPPY_ST(fl, raw_data) = floppy_allocate_memory();
   if(FLOPPY_ST(fl, raw_data) == NULL) {
-    printf("Unable to allocate floppy space\n");
+    ERROR("Unable to allocate floppy space");
     return;
   }
 
@@ -109,7 +112,7 @@ static void load_file(struct floppy *fl, FILE *fp)
   if(fread(FLOPPY_ST(fl, raw_data), 1, FLOPPY_ST(fl, raw_data_size), fl->fp) != FLOPPY_ST(fl, raw_data_size)) {
     fclose(fl->fp);
     fl->fp = NULL;
-    printf("Could not read entire file\n");
+    ERROR("Could not read entire file");
     return;
   }
 
@@ -121,6 +124,9 @@ static void load_file(struct floppy *fl, FILE *fp)
 void floppy_st_init(struct floppy *fl, char *name)
 {
   FILE *fp;
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_st, "FLST");
+  
   fl->image_data = (void *)malloc(sizeof(struct floppy_st));
   fl->image_data_size = sizeof(struct floppy_st);
   FLOPPY_ST(fl, filename) = name;

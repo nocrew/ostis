@@ -2,6 +2,7 @@
 #include "mmu.h"
 #include "floppy.h"
 #include "floppy_msa.h"
+#include "diag.h"
 
 struct floppy_msa {
   char *filename;
@@ -11,6 +12,8 @@ struct floppy_msa {
 
 #define FLOPPY_MSA(f, x) ((struct floppy_msa *)f->image_data)->x
 #define SECSIZE 512
+
+HANDLE_DIAGNOSTICS(floppy_msa);
 
 static int read_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
@@ -53,7 +56,7 @@ static void load_file(struct floppy *fl, FILE *fp)
   fl->sides = (msa_header[4]<<8)|msa_header[5];
   starting_track = (msa_header[6]<<8)|msa_header[7];
   if(starting_track != 0) {
-    printf("Error: MSA files not starting with track 0 are unsupported.\n");
+    ERROR("MSA files not starting with track 0 are unsupported.");
     return;
   }
   ending_track = (msa_header[8]<<8)|msa_header[9];
@@ -63,13 +66,13 @@ static void load_file(struct floppy *fl, FILE *fp)
   
   track_data = (BYTE *)malloc(track_size);
   if(track_data == NULL) {
-    printf("Error: Unable to allocate track space\n");
+    ERROR("Unable to allocate track space");
     return;
   }
 
   FLOPPY_MSA(fl, raw_data) = floppy_allocate_memory();
   if(FLOPPY_MSA(fl, raw_data) == NULL) {
-    printf("Unable to allocate floppy space\n");
+    ERROR("Unable to allocate floppy space");
     return;
   }
 
@@ -81,12 +84,12 @@ static void load_file(struct floppy *fl, FILE *fp)
     for(side = 0; side <= fl->sides; side++) {
 
       if(fread(track_data, 1, 2, fp) != 2) {
-        printf("Error: Unable to read track data\n");
+        ERROR("Unable to read track data");
         return;
       }
       track_data_size = (track_data[0]<<8)|track_data[1];
       if(fread(track_data, 1, track_data_size, fp) != track_data_size) {
-        printf("Error: Unable to read track data\n");
+        ERROR("Unable to read track data");
         return;
       }
 
@@ -99,7 +102,7 @@ static void load_file(struct floppy *fl, FILE *fp)
             rep_byte = track_data[tpos+1];
             rep_count = (track_data[tpos+2]<<8)|track_data[tpos+3];
             if((pos + rep_count) > FLOPPY_MSA(fl, raw_data_size)) {
-              printf("Error: MSA RLE compression corrupt.\n");
+              ERROR("MSA RLE compression corrupt.");
               return;
             }
             memset(&FLOPPY_MSA(fl, raw_data)[pos], rep_byte, rep_count);
@@ -125,6 +128,9 @@ static void load_file(struct floppy *fl, FILE *fp)
 void floppy_msa_init(struct floppy *fl, char *name)
 {
   FILE *fp;
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_msa, "FMSA");
+  
   fl->image_data = (void *)malloc(sizeof(struct floppy_msa));
   fl->image_data_size = sizeof(struct floppy_msa);
   FLOPPY_MSA(fl, filename) = name;

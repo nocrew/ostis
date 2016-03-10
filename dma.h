@@ -5,6 +5,7 @@
 #include "cpu.h"
 
 LONG dma_address();
+BYTE dma_sector_count();
 void dma_set_error();
 void dma_clr_error();
 void dma_inc_address(LONG);

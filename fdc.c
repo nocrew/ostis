@@ -54,8 +54,6 @@ static signed int pending_timer = 0;
 static int step_direction = STEP_DIR_IN;
 static int cmd_class = CMD_TYPE_UNSET;
 static long lastcpucnt;
-static LONG dma_address;
-static int dma_sector_count;
 static int seek_error = 0;
 
 static int fdc_reg[6];
@@ -155,7 +153,7 @@ void fdc_handle_control()
       TRACE("CMD [READSEC] == READ_OK");
       dma_clr_error();
       if(FDC_CMD_MULTSEC) {
-        dma_inc_address(512 * dma_sector_count);
+        dma_inc_address(512 * dma_sector_count());
       } else {
         dma_inc_address(512);
       }
@@ -169,7 +167,7 @@ void fdc_handle_control()
     } else {
       dma_clr_error();
       if(FDC_CMD_MULTSEC) {
-        dma_inc_address(512 * dma_sector_count);
+        dma_inc_address(512 * dma_sector_count());
       } else {
         dma_inc_address(512);
       }
@@ -220,25 +218,19 @@ BYTE fdc_get_register(int regnum)
   }
 }
 
-void fdc_prepare_read(LONG addr, int count)
-{
-  dma_address = addr;
-  dma_sector_count = count;
-}
-
 static int fdc_read_sector()
 {
-  return floppy_read_sector(dma_address, dma_sector_count);
+  return floppy_read_sector(dma_address(), dma_sector_count());
 }
 
 static int fdc_write_sector()
 {
-  return floppy_write_sector(dma_address, dma_sector_count);
+  return floppy_write_sector(dma_address(), dma_sector_count());
 }
 
 static int fdc_read_address()
 {
-  return floppy_read_address(dma_address);
+  return floppy_read_address(dma_address());
 }
 
 static int fdc_read_track()

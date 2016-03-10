@@ -57,6 +57,11 @@ LONG dma_address()
   return (dma_addr_high<<16)|(dma_addr_med<<8)|dma_addr_low;
 }
 
+BYTE dma_sector_count()
+{
+  return dma_sector_reg;
+}
+
 static void dma_set_address(LONG addr)
 {
   dma_addr_high = (addr>>16)&0xff;
@@ -215,9 +220,6 @@ static void dma_state_restore(struct mmu_state *state)
 void dma_do_interrupts(struct cpu *cpu)
 {
   if(dma_activate) {
-    if((!MODE_HDCS) && dma_direction == DMA_READ) {
-      fdc_prepare_read(dma_address(), dma_sector_reg);
-    }
     dma_activate = 0;
   }
 }

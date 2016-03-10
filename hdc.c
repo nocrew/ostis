@@ -12,9 +12,9 @@ HANDLE_DIAGNOSTICS(hdc);
 #define HDC_WRITE      0x0a
 #define HDC_INQUIRE    0x12
 
-#define HDC_ERROR_OK    0x00
-#define HDC_ERROR_ERROR 0x02
-#define HDC_ERROR_NOCMD 0x20
+#define HDC_RETURN_OK    0x00
+#define HDC_RETURN_ERROR 0x02
+#define HDC_RETURN_NOCMD 0x20
 
 #define HDC_CTRL ((cmd&0xe0)>>5)
 #define HDC_CMD (cmd&0x1f)
@@ -24,7 +24,7 @@ BYTE cmd;
 BYTE cmddata[5];
 int cmddata_pos = 0;
 int last_ctrl = 0;
-int error_code = 0;
+int return_code = 0;
 FILE *fp;
 
 void hdc_read_sectors(LONG addr, LONG block, BYTE sectors)
@@ -84,9 +84,9 @@ LONG hdc_cmd_block()
 
 BYTE hdc_get_status()
 {
-  if(last_ctrl != 0) return HDC_ERROR_ERROR;
+  if(last_ctrl != 0) return HDC_RETURN_ERROR;
 
-  return error_code;
+  return return_code;
 }
 
 void hdc_add_cmddata(BYTE data)
@@ -109,9 +109,9 @@ void hdc_add_cmddata(BYTE data)
         hdc_write_sectors(dma_address(), hdc_cmd_block(), cmddata[3]);
         mfp_clr_GPIP(MFP_GPIP_HDC);
       } else if(HDC_CMD == HDC_INQUIRE) {
-        error_code = HDC_ERROR_NOCMD;
+        return_code = HDC_RETURN_NOCMD;
       } else if(HDC_CMD == HDC_TEST_READY) {
-        error_code = HDC_ERROR_ERROR;
+        return_code = HDC_RETURN_OK;
       } else {
         FATAL("Got HD command: %02x %02x %02x %02x %02x %02x",
               cmd, cmddata[0], cmddata[1], cmddata[2], cmddata[3], cmddata[4]);
@@ -123,7 +123,7 @@ void hdc_add_cmddata(BYTE data)
 
 void hdc_set_cmd(BYTE data)
 {
-  error_code = HDC_ERROR_OK;
+  return_code = HDC_RETURN_OK;
   cmd = data;
   DEBUG("HD CMD: Ctrl %d  Cmd %d", HDC_CTRL, HDC_CMD);
 }

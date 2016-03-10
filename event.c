@@ -25,7 +25,10 @@ static int event_key(SDL_KeyboardEvent key, int state)
   if((k.sym == ' ') || (k.sym == 27) ||
      ((k.sym >= '0') && (k.sym <= '9')) ||
      ((k.sym >= 'a') && (k.sym <= 'z')) ||
-     ((k.sym == '\r')) || ((k.sym == '\b')) || ((k.sym == '\t'))
+     (k.sym == '\'') || (k.sym == ',') || (k.sym == '-') || (k.sym == '.') ||
+     (k.sym == '/') || (k.sym == ';') || (k.sym == '=') || (k.sym == '[') ||
+     (k.sym == '\\') || (k.sym == ']') || (k.sym == '`') ||
+     (k.sym == '\r') || (k.sym == '\b') || (k.sym == '\t')
      ) {
     ikbd_queue_key(scancode[k.sym], state);
   } else if((k.sym >= SDLK_F1) && (k.sym <= SDLK_F10)) {

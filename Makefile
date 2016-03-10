@@ -42,7 +42,7 @@ all:	default
 -include $(EMU_SRC:.c=.d)
 
 %.o:	%.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 default:
 	$(MAKE) ostis CFLAGS_EXTRA="-O3"

@@ -10,9 +10,11 @@ CPU_SRC=$(addprefix cpu/,ea.c move_to_sr.c reset.c cmpi.c bcc.c lea.c	\
     roxr.c bchg.c abcd.c stop.c sbcd.c tas.c andi_to_ccr.c rtr.c)
 CPU_OBJ=$(CPU_SRC:.c=.o)
 
+-include $(CPU_SRC:.c=.d)
+
 $(LIBCPU): $(CPU_OBJ)
 	$(AR) cru $@ $(CPU_OBJ)
 	$(RANLIB) $@
 
 clean::
-	rm -f $(CPU_OBJ) $(LIBCPU) cpu/*~
+	rm -f $(CPU_OBJ) $(LIBCPU) cpu/*~ cpu/*.d

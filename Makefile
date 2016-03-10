@@ -37,10 +37,12 @@ DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS)
 
 LIB=$(LIBCPU) $(LIBDEBUG) `sdl2-config --libs`
 
-%.o:	%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
 all:	default
+
+-include $(EMU_SRC:.c=.d)
+
+%.o:	%.c
+	$(CC) $(CFLAGS) -MMD -c $< -o $@
 
 default:
 	$(MAKE) ostis CFLAGS_EXTRA="-O3"
@@ -80,4 +82,4 @@ include debug/debug.mk
 include tests/tests.mk
 
 clean::
-	rm -f *.o *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test
+	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test

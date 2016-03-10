@@ -1,6 +1,7 @@
 *~
 *.o
 *.a
+*.d
 expr.tab.c
 expr.tab.h
 lex.expr.c

@@ -8,6 +8,7 @@
 HANDLE_DIAGNOSTICS(hdc);
 
 #define HDC_READ    0x08
+#define HDC_WRITE   0x0a
 #define HDC_INQUIRE 0x12
 
 #define HDC_CTRL ((cmd&0xe0)>>5)
@@ -34,9 +35,30 @@ void hdc_read_sectors(LONG addr, LONG block, BYTE sectors)
     ERROR("Unable to read file: Addr: %d  Block %d  Sectors: %d", addr, block, sectors);
     return;
   }
-  TRACE("Read Sectors: Addr: %06x  Block %06x  Sectors: %d", addr, block, sectors);
+  TRACE("Read sectors: Addr: %06x  Block %06x  Sectors: %d", addr, block, sectors);
   for(i=0;i<SECSIZE*sectors;i++) {
     mmu_write_byte(addr+i, buffer[i]);
+  }
+}
+
+void hdc_write_sectors(LONG addr, LONG block, BYTE sectors)
+{
+  BYTE buffer[SECSIZE * 256];
+  int i;
+  
+  if(!fp) return;
+
+  TRACE("Write sectors: Addr: %06x  Block %06x  Sectors: %d", addr, block, sectors);
+  for(i=0;i<SECSIZE*sectors;i++) {
+    buffer[i] = mmu_read_byte(addr+i);
+  }
+
+  fseek(fp, block * SECSIZE, SEEK_SET);
+  if(fwrite(buffer, 1, SECSIZE * sectors, fp) != (SECSIZE * sectors)) {
+    fclose(fp);
+    fp = NULL;
+    ERROR("Unable to write file: Addr: %d  Block %d  Sectors: %d", addr, block, sectors);
+    return;
   }
 }
 
@@ -79,6 +101,10 @@ void hdc_add_cmddata(BYTE data)
         mfp_set_GPIP(MFP_GPIP_HDC);
         hdc_read_sectors(dma_address(), hdc_cmd_block(), cmddata[3]);
         mfp_clr_GPIP(MFP_GPIP_HDC);
+      } else if(HDC_CMD == HDC_WRITE) {
+        mfp_set_GPIP(MFP_GPIP_HDC);
+        hdc_write_sectors(dma_address(), hdc_cmd_block(), cmddata[3]);
+        mfp_clr_GPIP(MFP_GPIP_HDC);
       } else if(HDC_CMD == HDC_INQUIRE) {
         inquire_error = 1;
       } else {
@@ -99,6 +125,6 @@ void hdc_set_cmd(BYTE data)
 void hdc_init(char *hdfile)
 {
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(hdc, "HDC0");
-  fp = fopen(hdfile, "rb");
+  fp = fopen(hdfile, "r+");
   if(!fp) return;
 }

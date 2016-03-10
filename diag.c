@@ -96,12 +96,19 @@ static int find_module_limit(char *id)
 void print_diagnostic(int level, struct mmu *device, const char *format, ...)
 {
   va_list args;
+  int module_limit;
 
-  if(level > device->verbosity)
-    return;
-
-  if(level > find_module_limit(device->id))
-    return;
+  /* MAXDIAG means we have no special setting for that module, so obey default
+   * limit in that case. If we DO find a special setting, use that, regardless
+   * of the default value */
+  module_limit = find_module_limit(device->id);
+  if(module_limit == MAXDIAG) {
+    if(level > device->verbosity)
+      return;
+  } else {
+    if(level > module_limit)
+      return;
+  }
   
   fprintf(stderr, "%s", level_name[level]);
   if(level == 6) {

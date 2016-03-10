@@ -10,6 +10,7 @@
 #include "fdc.h"
 #include "mmu.h"
 #include "state.h"
+#include "diag.h"
 
 /* Used to prevent extra cycle counts when reading from memory for the only purpose of printing the value */
 int mmu_print_state = 0;
@@ -23,6 +24,7 @@ static uint8_t bus_error_odd_addr_id;
 #define MEM_READ(size, addr) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->read_##size(addr&0xffffff)
 #define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->write_##size(addr&0xffffff, data)
 
+HANDLE_DIAGNOSTICS(mmu)
 
 static struct mmu *find_module_by_id(char *id)
 {
@@ -54,9 +56,10 @@ void mmu_send_bus_error(int reading, LONG addr)
     flags |= CPU_BUSERR_DATA;
   }
   
-  fprintf(stdout, "BUS ERROR at 0x%08x\n", addr);
-  cpu_print_status(CPU_USE_LAST_PC);
-  
+  DEBUG("BUS ERROR at 0x%08x", addr);
+  if(mmu_device->verbosity > 4)
+    cpu_print_status(CPU_USE_LAST_PC);
+
   cpu_set_bus_error(flags, addr);
 }
 
@@ -75,8 +78,9 @@ void mmu_send_address_error(int reading, LONG addr)
     flags |= CPU_ADDRERR_DATA;
   }
   
-  fprintf(stdout, "ADDRESS ERROR at 0x%08x\n", addr);
-  cpu_print_status(CPU_USE_LAST_PC);
+  DEBUG("ADDRESS ERROR at 0x%08x", addr);
+  if(mmu_device->verbosity > 4)
+    cpu_print_status(CPU_USE_LAST_PC);
   
   cpu_set_address_error(flags, addr);
 }
@@ -223,6 +227,8 @@ void mmu_init()
   int i;
   struct mmu *bus_error_module;
   struct mmu *bus_error_module_odd_addr;
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(mmu, "MMUn");
 
   bus_error_module = mmu_bus_error_module();
   bus_error_id = mmu_get_module_id(bus_error_module);

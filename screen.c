@@ -6,6 +6,7 @@
 #include "screen.h"
 #include "shifter.h"
 #include "debug/display.h"
+#include "diag.h"
 
 struct monitor {
   int width, height, columns, lines;
@@ -34,6 +35,8 @@ struct monitor mon;
 #define PADDR(x, y) (screen->pixels + \
                          ((y) + BORDER_SIZE) * screen->pitch + \
                          ((x) + BORDER_SIZE) * screen->format->BytesPerPixel)
+
+HANDLE_DIAGNOSTICS(screen)
 
 void screen_make_texture(const char *scale)
 {
@@ -103,6 +106,8 @@ void screen_init()
   /* should be rewritten with proper error checking */
   Uint32 rmask, gmask, bmask, amask;
   
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(screen, "SCRN");
+
   if(disable) return;
   
 #if SDL_BYTEORDER != SDL_BIG_ENDIAN
@@ -137,12 +142,11 @@ void screen_init()
 				  24, rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_window_id = SDL_GetWindowID(window);
-    printf("DEBUG: screen_window_id == %d\n", screen_window_id);
+    DEBUG("screen_window_id == %d", screen_window_id);
     screen_make_texture(SDL_SCALING_NEAREST);
 
   if(screen == NULL) {
-    fprintf(stderr, "Did not get a video mode\n");
-    exit(1);
+    FATAL("Did not get a video mode");
   }
 
   rasterpos_indicator[0] = screen_generate_rasterpos_indicator(0xffffff);

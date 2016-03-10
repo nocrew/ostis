@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "mmu.h"
 #include "fdc.h"
+#include "hdc.h"
 #include "state.h"
 #include "diag.h"
 
@@ -44,6 +45,8 @@ static int dma_activate = 0;
 #define MODE_FDC_CONTROL 0
 #define MODE_FDC_TRACK   0
 #define MODE_FDC_SECTOR  0
+
+#define MODE_HDC_CMDDATA (dma_mode&(1<<1))
 
 #define FDC_REG_CONTROL 0
 #define FDC_REG_SECTOR  2
@@ -114,7 +117,7 @@ WORD dma_read_word(LONG addr)
 {
   WORD tmp;
   
-  TRACE("WriteWord: %06x", addr);
+  TRACE("ReadWord: %06x", addr);
   switch(addr) {
   case 0xff8604:
     if(MODE_SEC) {
@@ -122,8 +125,9 @@ WORD dma_read_word(LONG addr)
     } else {
       if(!mmu_print_state) {
         if(MODE_HDCS) {
-          DEBUG("HD not implemented");
-          return 0xff;
+          tmp = hdc_get_status();
+          DEBUG("HD Status: %02x", tmp);
+          return tmp;
         } else {
           tmp = fdc_get_register(MODE_FDC_REG>>1)|0xff00;
           TRACE("Calling fdc_get_register(%d) == %04x", MODE_FDC_REG>>1, tmp);
@@ -173,7 +177,11 @@ void dma_write_word(LONG addr, WORD data)
       dma_activate = 1;
     } else {
       if(MODE_HDCS) {
-        DEBUG("HD not implemented");
+        if(MODE_HDC_CMDDATA) {
+          hdc_add_cmddata(data);
+        } else {
+          hdc_set_cmd(data);
+        }
       } else {
         TRACE("Calling fdc_set_register(%d, %02x)", MODE_FDC_REG>>1, data);
         fdc_set_register(MODE_FDC_REG>>1, data);

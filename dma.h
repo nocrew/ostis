@@ -4,6 +4,7 @@
 #include "common.h"
 #include "cpu.h"
 
+LONG dma_address();
 void dma_set_error();
 void dma_clr_error();
 void dma_inc_address(LONG);

@@ -16,6 +16,7 @@
 #endif
 #include "dma.h"
 #include "fdc.h"
+#include "hdc.h"
 #include "mfp.h"
 #include "prefs.h"
 #include "shifter.h"
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
 #endif
       {0,                       0,                 0, 0 }
     };
-    c = getopt_long(argc, argv, "a:b:t:s:hdpyVAMvq", long_options, &option_index);
+    c = getopt_long(argc, argv, "a:b:c:t:s:hdpyVAMvq", long_options, &option_index);
     if(c == -1) break;
 
     switch(c) {
@@ -79,6 +80,9 @@ int main(int argc, char *argv[])
       break;
     case 'b':
       prefs_set("diskimage2", optarg);
+      break;
+    case 'c':
+      prefs_set("hdimage", optarg);
       break;
     case 't':
       prefs_set("tosimage", optarg);
@@ -189,6 +193,7 @@ int main(int argc, char *argv[])
 #endif
   dma_init();
   fdc_init();
+  hdc_init(prefs.hdimage);
   mfp_init();
   screen_disable(0);
   screen_init();

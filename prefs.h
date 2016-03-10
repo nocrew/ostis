@@ -6,6 +6,7 @@ struct prefs {
   char *stateimage;
   char *diskimage;
   char *diskimage2;
+  char *hdimage;
   char *cartimage;
 };
 

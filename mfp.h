@@ -1,8 +1,11 @@
 #ifndef MFP_H
 #define MFP_H
 
+#include "common.h"
+
 #define MFP_GPIP_ACIA 4
 #define MFP_GPIP_FDC 5
+#define MFP_GPIP_HDC 5
 
 void mfp_init();
 void mfp_print_status();

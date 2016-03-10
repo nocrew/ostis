@@ -9,6 +9,9 @@ void prefs_default()
   prefs.tosimage = strdup("tos.img");
   prefs.stateimage = NULL;
   prefs.diskimage = NULL;
+  prefs.diskimage2 = NULL;
+  prefs.cartimage = NULL;
+  prefs.hdimage = NULL;
 }
 
 void prefs_set(char *key, char *value)
@@ -25,12 +28,18 @@ void prefs_set(char *key, char *value)
       prefs.stateimage = strdup(value);
     else
       prefs.stateimage = NULL;
+  } else if(!strncasecmp("hdimage", key, 10)) {
+    if(prefs.hdimage != NULL) free(prefs.hdimage);
+    if(value != NULL)
+      prefs.hdimage = strdup(value);
+    else
+      prefs.hdimage = NULL;
   } else if(!strncasecmp("diskimage2", key, 10)) {
     if(prefs.diskimage2 != NULL) free(prefs.diskimage2);
     if(value != NULL)
       prefs.diskimage2 = strdup(value);
     else
-      prefs.diskimage = NULL;
+      prefs.diskimage2 = NULL;
   } else if(!strncasecmp("diskimage", key, 9)) {
     if(prefs.diskimage != NULL) free(prefs.diskimage);
     if(value != NULL)

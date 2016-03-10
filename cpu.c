@@ -548,6 +548,8 @@ void cpu_init()
   instr[0x4afc] = illegal_instr;
   instr_print[0x4afc] = illegal_instr_print;
   /* MOVEC, required for EmuTOS to even try to boot */
+  instr[0x4e7a] = illegal_instr;
+  instr_print[0x4e7a] = illegal_instr_print;
   instr[0x4e7b] = illegal_instr;
   instr_print[0x4e7b] = illegal_instr_print;
 

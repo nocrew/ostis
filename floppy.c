@@ -41,7 +41,8 @@ void floppy_active(int dmask)
     TRACE("Active device: %d => %d", active_device, 0);
     active_device = FLOPPY_A;
   } else {
-    FATAL("Both drives cannot be active at once");
+    /* If both drives are active at once, we will treat them as if only A is */
+    active_device = FLOPPY_A;
   }
 }
 

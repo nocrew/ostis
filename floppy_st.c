@@ -74,6 +74,28 @@ static void save_file(struct floppy *fl, long offset)
   fclose(fp);
 }
 
+static int guess_format(struct floppy *fl) {
+  if((FLOPPY_ST(fl, raw_data_size) % (SECSIZE * 9)) == 0)
+    fl->sectors = 9;
+  else if((FLOPPY_ST(fl, raw_data_size) % (SECSIZE * 10)) == 0)
+    fl->sectors = 10;
+  else if((FLOPPY_ST(fl, raw_data_size) % (SECSIZE * 11)) == 0)
+    fl->sectors = 11;
+  else
+    return -1;
+
+  fl->tracks = FLOPPY_ST(fl, raw_data_size) / SECSIZE / fl->sectors;
+  if(fl->tracks >= 80 && fl->tracks <= 86)
+    fl->sides = 0;
+  else if(fl->tracks >= 160 && fl->tracks <= 2*86 && (fl->tracks % 2) == 0) {
+    fl->sides = 1;
+    fl->tracks >>= 1;
+  } else
+    return -1;
+
+  return 0;
+}
+
 static void load_file(struct floppy *fl, FILE *fp)
 {
   static BYTE bootsector[SECSIZE];
@@ -86,17 +108,28 @@ static void load_file(struct floppy *fl, FILE *fp)
     return;
   }
 
-  if((bootsector[11]|(bootsector[12]<<8)) != SECSIZE) {
-    fclose(fl->fp);
-    fl->fp = NULL;
-    ERROR("Sector size != SECSIZE bytes (%d)", bootsector[11]|(bootsector[12]<<8));
-    return;
-  }
-
   fl->sectors = bootsector[24]|(bootsector[25]<<8);
   fl->sides = (bootsector[26]|(bootsector[27]<<8))-1;
-  fl->tracks = ((bootsector[19]|(bootsector[20]<<8))/
-		      (fl->sides+1)/fl->sectors);
+  if(fl->sides != -1)
+    fl->tracks = ((bootsector[19]|(bootsector[20]<<8))/
+		  (fl->sides+1)/fl->sectors);
+
+  fseek(fl->fp, 0, SEEK_END);
+  FLOPPY_ST(fl, raw_data_size) = ftell(fl->fp);
+  rewind(fl->fp);
+
+  if((bootsector[11]|(bootsector[12]<<8)) != SECSIZE ||
+     fl->sectors < 9 || fl->sectors > 11 ||
+     fl->sides < 0 || fl->sides > 1 ||
+     fl->tracks < 80 || fl->tracks > 86) {
+    INFO("Bad boot sector in .st image file");
+    if (guess_format(fl) == -1) {
+      fclose(fl->fp);
+      fl->fp = NULL;
+      ERROR("Sector size != SECSIZE bytes (%d)", bootsector[11]|(bootsector[12]<<8));
+      return;
+    }
+  }
 
   // Now we load the entire floppy into memory
   // Despite having fetched the track count, we'll allocate space for 86 tracks
@@ -106,9 +139,6 @@ static void load_file(struct floppy *fl, FILE *fp)
     return;
   }
 
-  fseek(fl->fp, 0, SEEK_END);
-  FLOPPY_ST(fl, raw_data_size) = ftell(fl->fp);
-  rewind(fl->fp);
   if(fread(FLOPPY_ST(fl, raw_data), 1, FLOPPY_ST(fl, raw_data_size), fl->fp) != FLOPPY_ST(fl, raw_data_size)) {
     fclose(fl->fp);
     fl->fp = NULL;

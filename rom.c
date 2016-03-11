@@ -7,15 +7,13 @@
 #include "state.h"
 #include "diag.h"
 
-#define NEWTOS 0
+static LONG ROMSIZE;
+static LONG ROMBASE;
 
-#if NEWTOS
-#define ROMSIZE 262144
-#define ROMBASE 0xe00000
-#else
-#define ROMSIZE 196608
-#define ROMBASE 0xfc0000
-#endif
+#define ROMSIZE_NEW 262144
+#define ROMBASE_NEW 0xe00000
+#define ROMSIZE_OLD 196608
+#define ROMBASE_OLD 0xfc0000
 
 #define ROMSIZE2 8
 #define ROMBASE2 0
@@ -89,6 +87,25 @@ void rom_init()
   struct mmu *rom,*rom2;
   FILE *f;
 
+  f = fopen(prefs.tosimage, "rb");
+  if(!f) {
+    FATAL("Could not open TOS image file\n");
+  }
+
+  fseek(f, 0, SEEK_END);
+  ROMSIZE = ftell(f);
+  rewind(f);
+  switch(ROMSIZE) {
+  case ROMSIZE_OLD:
+    ROMBASE = ROMBASE_OLD;
+    break;
+  case ROMSIZE_NEW:
+    ROMBASE = ROMBASE_NEW;
+    break;
+  default:
+    FATAL("Unknown ROM image format");
+  }
+
   memory = (BYTE *)malloc(sizeof(BYTE) * ROMSIZE);
   if(!memory) {
     return;
@@ -115,10 +132,6 @@ void rom_init()
 
   mmu_register(rom);
 
-  f = fopen(prefs.tosimage, "rb");
-  if(!f) {
-    FATAL("Could not open TOS image file");
-  }
   if(fread(memory, 1, ROMSIZE, f) != ROMSIZE) {
     FATAL("Error reading TOS image file");
   }

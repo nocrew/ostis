@@ -239,6 +239,11 @@ static void fill_16pxl(int rasterpos, int pnum)
   }
 }
 
+static int get_pixel_disable(int videooffset, int pxlnum)
+{
+  return 0;
+}
+
 static int get_pixel_low(int videooffset, int pxlnum)
 {
   int c;
@@ -792,4 +797,24 @@ int shifter_framecnt(int c)
     framecnt = 0;
   }
   return framecnt;
+}
+
+void shifter_disable_pixels()
+{
+  res_data[resolution].get_pixel = get_pixel_disable;
+}
+
+void shifter_enable_pixels()
+{
+  switch(resolution) {
+  case 0:
+    res_data[resolution].get_pixel = get_pixel_low;
+    break;
+  case 1:
+    res_data[resolution].get_pixel = get_pixel_medium;
+    break;
+  case 2:
+    res_data[resolution].get_pixel = get_pixel_high;
+    break;
+  }
 }

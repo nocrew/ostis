@@ -34,13 +34,18 @@ static int event_key(SDL_KeyboardEvent key, int state)
   } else if((k.sym >= SDLK_F1) && (k.sym <= SDLK_F10)) {
     ikbd_queue_key(SCAN_F1+k.sym-SDLK_F1, state);
   } else if(k.sym == SDLK_F11) {
-    if(state == EVENT_RELEASE) {
-      if(debugger)
-	return EVENT_DEBUG;
-      else {
-	state_save("ostis.state", state_collect());
-	SDL_Quit();
-	exit(0);
+    if(k.mod & KMOD_CTRL && state == EVENT_RELEASE) {
+      printf("DEBUG: Toggle screen disable\n");
+      screen_disable(!screen_check_disable());
+    } else {
+      if(state == EVENT_RELEASE) {
+        if(debugger)
+          return EVENT_DEBUG;
+        else {
+          state_save("ostis.state", state_collect());
+          SDL_Quit();
+          exit(0);
+        }
       }
     }
   } else if(k.sym == SDLK_PAUSE) {

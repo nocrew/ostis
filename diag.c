@@ -97,13 +97,23 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
 {
   va_list args;
   int module_limit;
+  char *id;
+  int verbosity;
+
+  if(device == NULL) {
+    id = "";
+    verbosity = 3;
+  } else {
+    id = device->id;
+    verbosity = device->verbosity;
+  }
 
   /* MAXDIAG means we have no special setting for that module, so obey default
    * limit in that case. If we DO find a special setting, use that, regardless
    * of the default value */
-  module_limit = find_module_limit(device->id);
+  module_limit = find_module_limit(id);
   if(module_limit == MAXDIAG) {
-    if(level > device->verbosity)
+    if(level > verbosity)
       return;
   } else {
     if(level > module_limit)
@@ -114,8 +124,10 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
   if(level == 6) {
     fprintf(stderr, " [$%06x]", cpu->pc);
   }
-  fprintf(stderr, ": %c%c%c%c: ", device->id[0], device->id[1],
-	  device->id[2], device->id[3]);
+  fprintf(stderr, ": ");
+  if(device)
+    fprintf(stderr, "%c%c%c%c: ", device->id[0], device->id[1],
+	    device->id[2], device->id[3]);
   va_start(args, format);
   vfprintf(stderr, format, args);
   va_end(args);

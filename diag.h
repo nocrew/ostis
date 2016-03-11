@@ -30,7 +30,7 @@ extern void print_diagnostic(int, struct mmu *, const char *, ...);
 #define TRACE(FORMAT, ...)  print_diagnostic(6, mmu_device, FORMAT, ##__VA_ARGS__)
 
 #define HANDLE_DIAGNOSTICS(device)				\
-static struct mmu *mmu_device;					\
+static struct mmu *mmu_device = NULL;				\
 static void device ## _diagnostics(struct mmu *device, int n)	\
 {								\
   mmu_device = device;						\

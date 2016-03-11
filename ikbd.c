@@ -198,7 +198,6 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_joystick_enabled = 0;
     break;
   case 0x1b:
-    cpu_enter_debugger();
     WARN("Set clock (not handled)");
     ikbd_cmdfn = ikbd_set_clock;
     ikbd_cmdcnt = 6;

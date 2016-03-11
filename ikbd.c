@@ -44,7 +44,7 @@ void ikbd_print_status()
   printf("IKBD:\n");
   printf("Status: %02x\n", ikbd_status);
   printf("Control: %02x\n", ikbd_control);
-  printf("Next interrupt cycle: %ld\n", ikbd_next_interrupt_cycle);
+  printf("Next interrupt cycle: %lld\n", (long long)ikbd_next_interrupt_cycle);
   printf("FIFO count: %d\n", ikbd_fifocnt);
   printf("FIFO:\n");
   for(i=0;i<ikbd_fifocnt;i++) {

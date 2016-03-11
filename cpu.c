@@ -605,7 +605,7 @@ void cpu_print_status(int which_pc)
 
   printf("PC: %08x  USP: %08x  SSP: %08x\n", pc, cpu->usp, cpu->ssp);
   printf("SR: %04x\n", cpu->sr);
-  printf("C:  %ld\n", cpu->cycle);
+  printf("C:  %lld\n", (long long)cpu->cycle);
   printf("BUS: %08x\n", mmu_read_long(8));
 
   for(i=0;i<256;i++) {

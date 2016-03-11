@@ -15,4 +15,4 @@ ostis-gdb
 ostis-test
 core
 *.labels
-
+gmon.out

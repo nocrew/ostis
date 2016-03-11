@@ -364,8 +364,10 @@ int shifter_on_display(int rasterpos)
 {
   int line,linepos;
 
-  line = rasterpos/res.hblsize;
-  linepos = rasterpos%res.hblsize;
+  //  line = rasterpos/res.hblsize;
+  //  linepos = rasterpos%res.hblsize;
+  line = res.line_from_rasterpos[rasterpos];
+  linepos = res.linepos_from_rasterpos[rasterpos];
   
   if((line < vblpre) || (line >= (vblpre+vblscr)) ||
      (linepos < hblpre) || (linepos >= (hblpre+hblscr))) {
@@ -377,15 +379,28 @@ int shifter_on_display(int rasterpos)
 static long get_videooffset(int rasterpos)
 {
   int line,linepos,voff;
-
-  line = rasterpos/res.hblsize;
-  linepos = rasterpos%res.hblsize;
+  line = res.line_from_rasterpos[rasterpos];
+  linepos = res.linepos_from_rasterpos[rasterpos];
+  //  line = rasterpos/res.hblsize;
+  //  linepos = rasterpos%res.hblsize;
 
   voff = (line-vblpre)*scr_bytes_per_line;
   voff >>= res.voff_shift;
   voff += ((linepos-hblpre)/16)*4; /* Mainly stolen from hatari */
 
   return voff;
+}
+
+static void shifter_precalc_res_data(int resolution)
+{
+  struct resolution_data *calcres;
+  int rpos;
+
+  calcres = &res_data[resolution&3];
+  for(rpos=0;rpos<calcres->screen_cycles;rpos++) {
+    calcres->line_from_rasterpos[rpos] = rpos/calcres->hblsize;
+    calcres->linepos_from_rasterpos[rpos] = rpos%calcres->hblsize;
+  }
 }
 
 static void gen_scrptr(int rasterpos)
@@ -418,7 +433,8 @@ static void shifter_gen_pixel(int rasterpos)
 {
   int linepos;
 
-  linepos = rasterpos%res.hblsize;
+  //  linepos = rasterpos%res.hblsize;
+  linepos = res.linepos_from_rasterpos[rasterpos];
 
   if(shifter_on_display(rasterpos)) {
     res.set_pixel(rasterpos,
@@ -691,6 +707,9 @@ void shifter_init()
   shifter->state_restore = shifter_state_restore;
   shifter->diagnostics = shifter_diagnostics;
 
+  shifter_precalc_res_data(0);
+  shifter_precalc_res_data(1);
+  shifter_precalc_res_data(2);
   shifter_set_resolution(0);
 
   linecnt = res.hblsize+432; /* Cycle count per line, for timer-b event */

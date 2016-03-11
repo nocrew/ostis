@@ -16,6 +16,8 @@ struct resolution_data {
   long vblscr;
   int voff_shift;
   int border;
+  int line_from_rasterpos[512*313];
+  int linepos_from_rasterpos[512*313];
 };
 
 void shifter_init();

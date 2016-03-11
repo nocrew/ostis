@@ -43,6 +43,7 @@ static int enter_debugger_after_instr = 0;
 static int bus_error_flags = 0;
 static int bus_error_address = 0;
 static LONG last_pc = 0;
+static int reset_cpu = 0;
 
 int cprint_all = 0;
 
@@ -179,6 +180,26 @@ static void cpu_do_exception(int vnum)
   }
 }
 
+static void cpu_do_reset(void)
+{
+  int i;
+
+  reset_cpu = 0;
+  cpu->pc = mmu_read_long(4);
+  cpu->sr = 0x2300;
+  cpu->ssp = cpu->a[7] = mmu_read_long(0);
+  cpu->prefetched_instr = 0;
+  cpu->has_prefetched = 0;
+
+  for(i=0;i<256;i++) {
+    exception_pending[i] = 0;
+  }
+
+  for(i=0;i<8;i++) {
+    interrupt_autovector[i] = -1;
+  }
+}
+
 int cpu_step_instr(int trace)
 {
   WORD op;
@@ -306,10 +327,18 @@ int cpu_run(int cpu_run_state)
       stop = ret;
       break;
     }
+    if(reset_cpu) {
+      cpu_do_reset();
+    }
   }
   
   event_exit();
   return ret;
+}
+
+void cpu_reset(void)
+{
+  reset_cpu = 1;
 }
 
 void cpu_do_cycle(LONG cnt)
@@ -419,27 +448,15 @@ void cpu_init()
     exit(-2);
   }
 
-  cpu->pc = mmu_read_long(4);
-  cpu->sr = 0x2300;
-  cpu->ssp = cpu->a[7] = mmu_read_long(0);
+  cpu_do_reset();
   cpu->debug_halted = 0;
   cpu->cycle = 0;
   cpu->icycle = 0;
   cpu->stopped = 0;
-  cpu->prefetched_instr = 0;
-  cpu->has_prefetched = 0;
 
   for(i=0;i<65536;i++) {
     instr[i] = default_instr;
     instr_print[i] = default_instr_print;
-  }
-
-  for(i=0;i<256;i++) {
-    exception_pending[i] = 0;
-  }
-
-  for(i=0;i<8;i++) {
-    interrupt_autovector[i] = -1;
   }
 
   reset_init((void *)instr, (void *)instr_print);

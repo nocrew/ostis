@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <signal.h>
 #include "common.h"
 #include "mmu.h"
 #include "mmu_fallback.h"
@@ -49,6 +50,13 @@ char *test_case_name;
 #define OPT_FORCE_EXTREME_DISASM 10001
 #define OPT_CROP_SCREEN          10002
 #define OPT_LOGLEVELS            10003
+
+struct sigaction reset;
+
+static void reset_action(int sig, siginfo_t *info, void *x)
+{
+  cpu_reset();
+}
 
 int main(int argc, char *argv[])
 {
@@ -211,6 +219,10 @@ int main(int argc, char *argv[])
 
   if(state != NULL)
     state_restore(state);
+
+  memset(&reset, 0, sizeof reset);
+  reset.sa_sigaction = reset_action;
+  sigaction(SIGHUP, &reset, NULL);
 
   while(cpu_run(CPU_RUN));
   return 0;

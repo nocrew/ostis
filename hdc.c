@@ -113,7 +113,8 @@ void hdc_add_cmddata(BYTE data)
       } else if(HDC_CMD == HDC_TEST_READY) {
         return_code = HDC_RETURN_OK;
       } else {
-        FATAL("Got HD command: %02x %02x %02x %02x %02x %02x",
+        return_code = HDC_RETURN_ERROR;
+        ERROR("Got unknown HD command: %02x %02x %02x %02x %02x %02x",
               cmd, cmddata[0], cmddata[1], cmddata[2], cmddata[3], cmddata[4]);
       }
     }

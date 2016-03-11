@@ -173,6 +173,15 @@ void floppy_init(char *filename, char *filename2)
   floppy[FLOPPY_OFF].read_sector = dummy_read_sector;
   floppy[FLOPPY_OFF].write_sector = dummy_write_sector;
 
+  /* Dummy floppy device for drive A and B so that there are dummy functions
+   * when the floppy is not mounted */
+  floppy[FLOPPY_A].inserted = 0;
+  floppy[FLOPPY_A].read_sector = dummy_read_sector;
+  floppy[FLOPPY_A].write_sector = dummy_write_sector;
+  floppy[FLOPPY_B].inserted = 0;
+  floppy[FLOPPY_B].read_sector = dummy_read_sector;
+  floppy[FLOPPY_B].write_sector = dummy_write_sector;
+
   if(filename) {
     load_floppy(FLOPPY_A, filename);
   }

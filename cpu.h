@@ -140,6 +140,7 @@ void cpu_set_breakpoint(LONG, int);
 void cpu_print_breakpoints();
 int cpu_unset_breakpoint(LONG);
 int cpu_run(int);
+void cpu_reset(void);
 void cpu_add_extra_cycles(int);
 
 void cprint_set_label(LONG, char *);

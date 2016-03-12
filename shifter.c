@@ -364,8 +364,6 @@ int shifter_on_display(int rasterpos)
 {
   int line,linepos;
 
-  //  line = rasterpos/res.hblsize;
-  //  linepos = rasterpos%res.hblsize;
   line = res.line_from_rasterpos[rasterpos];
   linepos = res.linepos_from_rasterpos[rasterpos];
   
@@ -381,8 +379,6 @@ static long get_videooffset(int rasterpos)
   int line,linepos,voff;
   line = res.line_from_rasterpos[rasterpos];
   linepos = res.linepos_from_rasterpos[rasterpos];
-  //  line = rasterpos/res.hblsize;
-  //  linepos = rasterpos%res.hblsize;
 
   voff = (line-vblpre)*scr_bytes_per_line;
   voff >>= res.voff_shift;
@@ -407,8 +403,8 @@ static void gen_scrptr(int rasterpos)
 {
   int line,linepos,voff;
 
-  line = rasterpos/res.hblsize;
-  linepos = rasterpos%res.hblsize;
+  line = res.line_from_rasterpos[rasterpos];
+  linepos = res.linepos_from_rasterpos[rasterpos];
 
   if(shifter_on_display(rasterpos)) {
     voff = (line-vblpre)*scr_bytes_per_line;
@@ -433,7 +429,6 @@ static void shifter_gen_pixel(int rasterpos)
 {
   int linepos;
 
-  //  linepos = rasterpos%res.hblsize;
   linepos = res.linepos_from_rasterpos[rasterpos];
 
   if(shifter_on_display(rasterpos)) {

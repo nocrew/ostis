@@ -33,7 +33,7 @@ static struct mmu *find_module_by_id(char *id)
 
   for(i=0;i<mmu_module_count;i++) {
     module = mmu_module_by_id[i];
-    if(module->id && !strncmp(id, module->id, 4)) {
+    if(!strncmp(id, module->id, 4)) {
       return module;
     }
   }
@@ -405,13 +405,11 @@ void mmu_print_map()
 
   for(i=0;i<mmu_module_count;i++) {
     module = mmu_module_by_id[i];
-    if(module->id) {
-      printf("Name : %s\n", module->name);
-      printf("Start: 0x%08x\n", module->start);
-      printf("End  : 0x%08x\n", module->start+module->size-1);
-      printf("Size : %d\n", module->size);
-      printf("\n");
-    }
+    printf("Name : %s\n", module->name);
+    printf("Start: 0x%08x\n", module->start);
+    printf("End  : 0x%08x\n", module->start+module->size-1);
+    printf("Size : %d\n", module->size);
+    printf("\n");
   }
 }
 

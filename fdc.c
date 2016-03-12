@@ -235,8 +235,7 @@ static int fdc_read_address()
 
 static int fdc_read_track()
 {
-  DEBUG("Read Track not implemented");
-  return FLOPPY_ERROR;
+  return floppy_read_track(dma_address(), dma_sector_count());
 }
 
 void fdc_do_interrupts(struct cpu *cpu)

@@ -17,6 +17,8 @@ struct floppy {
   int sel_side;
   int (*read_sector)(struct floppy *fl, int track, int side, int sector, LONG addr, int count);
   int (*write_sector)(struct floppy *fl, int track, int side, int sector, LONG addr, int count);
+  int (*read_track)(struct floppy *fl, int track, int side, LONG addr, int dma_count);
+  int (*write_track)(struct floppy *fl, int track, int side, LONG addr, int dma_count);
   /* Data related to the floppy image itself, which is file format dependant */
   int image_data_size;
   void *image_data;
@@ -30,6 +32,8 @@ int floppy_seek(int);
 int floppy_seek_rel(int);
 int floppy_read_sector(LONG, int);
 int floppy_write_sector(LONG, int);
+int floppy_read_track(LONG, int);
+int floppy_write_track(LONG, int);
 int floppy_read_address(LONG);
 void floppy_init(char *, char *);
 BYTE *floppy_allocate_memory(void);

@@ -112,6 +112,16 @@ int floppy_write_sector(LONG addr, int count)
   return floppy[active_device].write_sector(&floppy[active_device], floppy[active_device].sel_trk, floppy[active_device].sel_side, floppy[active_device].sel_sec, addr, count);
 }
 
+int floppy_read_track(LONG addr, int dma_count)
+{
+  return floppy[active_device].read_track(&floppy[active_device], floppy[active_device].sel_trk, floppy[active_device].sel_side, addr, dma_count);
+}
+
+int floppy_write_track(LONG addr, int dma_count)
+{
+  return floppy[active_device].write_track(&floppy[active_device], floppy[active_device].sel_trk, floppy[active_device].sel_side, addr, dma_count);
+}
+
 int floppy_read_address(LONG addr)
 {
   mmu_write_byte(addr, floppy[active_device].sel_trk);
@@ -137,6 +147,29 @@ static int dummy_read_sector(struct floppy *fl, int track, int side, int sector,
 static int dummy_write_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
   return FLOPPY_ERROR;
+}
+
+static int dummy_read_track(struct floppy *fl, int track, int side, LONG addr, int dma_count)
+{
+  DEBUG("DUMMY: Read track not implemented");
+  TRACE("DUMMY: ReadTrk: T: %d  Sd: %d  A: %06x  C: %d", track, side, addr, dma_count);
+  return FLOPPY_ERROR;
+}
+
+static int dummy_write_track(struct floppy *fl, int track, int side, LONG addr, int dma_count)
+{
+  DEBUG("DUMMY: Write track not implemented");
+  TRACE("DUMMY: WriteTrk: T: %d  Sd: %d  A: %06x  C: %d", track, side, addr, dma_count);
+  return FLOPPY_ERROR;
+}
+
+static void floppy_set_drive_default(int drive_id)
+{
+  floppy[drive_id].inserted = 0;
+  floppy[drive_id].read_sector = dummy_read_sector;
+  floppy[drive_id].write_sector = dummy_write_sector;
+  floppy[drive_id].read_track = dummy_read_track;
+  floppy[drive_id].write_track = dummy_write_track;
 }
 
 void load_floppy(int device, char *filename)
@@ -169,19 +202,11 @@ void floppy_init(char *filename, char *filename2)
 {
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy, "FLOP");
 
-  /* Dummy floppy device for when no drive is selected */
-  floppy[FLOPPY_OFF].inserted = 0;
-  floppy[FLOPPY_OFF].read_sector = dummy_read_sector;
-  floppy[FLOPPY_OFF].write_sector = dummy_write_sector;
-
-  /* Dummy floppy device for drive A and B so that there are dummy functions
+  /* Dummy floppy device for drive A and B, and "No drive" so that there are dummy functions
    * when the floppy is not mounted */
-  floppy[FLOPPY_A].inserted = 0;
-  floppy[FLOPPY_A].read_sector = dummy_read_sector;
-  floppy[FLOPPY_A].write_sector = dummy_write_sector;
-  floppy[FLOPPY_B].inserted = 0;
-  floppy[FLOPPY_B].read_sector = dummy_read_sector;
-  floppy[FLOPPY_B].write_sector = dummy_write_sector;
+  floppy_set_drive_default(FLOPPY_OFF);
+  floppy_set_drive_default(FLOPPY_A);
+  floppy_set_drive_default(FLOPPY_B);
 
   if(filename) {
     load_floppy(FLOPPY_A, filename);

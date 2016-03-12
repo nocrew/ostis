@@ -23,6 +23,8 @@ struct track {
   int fuzzy_size;
   int sector_count;
   struct sector *sectors;
+  int track_data_size; /* Can differ from total size */
+  BYTE *track_data;
 };
 
 struct floppy_stx {
@@ -32,6 +34,21 @@ struct floppy_stx {
   
 #define FLOPPY_STX(f, x) ((struct floppy_stx *)f->image_data)->x
 #define SECSIZE 512
+#define TRKSIZE 6250
+
+/* Indexes for generating tracks */
+#define TRKGEN_SEC9  0
+#define TRKGEN_SEC10 1
+#define TRKGEN_SEC11 2
+
+#define TRKGEN_GAP1   0 /* 0x4e */
+#define TRKGEN_GAP2A  1 /* 0x00 */
+#define TRKGEN_GAP2B  2 /* 0xa1 */
+#define TRKGEN_GAP3A  3 /* 0x4e */
+#define TRKGEN_GAP3B1 4 /* 0x00 */
+#define TRKGEN_GAP3B2 5 /* 0xa1 */
+#define TRKGEN_GAP4   6 /* 0x4e */
+#define TRKGEN_GAP5   7 /* 0x4e */
 
 HANDLE_DIAGNOSTICS(floppy_stx);
 
@@ -90,6 +107,40 @@ static int write_sector(struct floppy *fl, int track, int side, int sector, LONG
   return FLOPPY_ERROR;
 }
 
+static int read_track(struct floppy *fl, int track_num, int side, LONG addr, int dma_count)
+{
+  struct track *tracks,*track;
+  int track_side_num;
+  int size;
+  int i;
+
+  DEBUG("ReadTrk: T: %d  Sd: %d  A: %06x  C: %d", track_num, side, addr, dma_count);
+  
+  tracks = FLOPPY_STX(fl, tracks);
+  track_side_num = track_num | side << 7;
+  track = &tracks[track_side_num];
+  if(!track) {
+    return FLOPPY_ERROR;
+  }
+
+  size = track->track_data_size;
+
+  /* Do not read more than was requested by DMA */
+  if(dma_count * SECSIZE < size) {
+    size = dma_count * SECSIZE;
+  }
+
+  /* Do not read more than a maximum track */
+  if(size > TRKSIZE) {
+    size = TRKSIZE;
+  }
+  
+  for(i=0;i<size;i++) {
+    mmu_write_byte(addr + i, track->track_data[i]);
+  }
+  return FLOPPY_OK;
+}
+
 static uint16_t stx_word(BYTE *x)
 {
   return x[0] + (x[1] << 8);
@@ -132,16 +183,118 @@ static void load_sector_without_header(struct sector *sector_data, int sector_in
   DEBUG("LoadSec:    Nr: %d  Sz: %d  Fz: %d  Off: %d", sector_data->nr, sector_data->size, 0, sector_data->offset);
 }
 
+static WORD crc16(int size, BYTE *buffer)
+{
+  int i,j,byte;
+  WORD crc = 0xffff;
+
+  for(i=0;i<size;i++) {
+    byte = buffer[i];
+    crc ^= byte<<8;
+    for(j=0;j<8;j++) {
+      if(crc&0x8000) {
+        crc = (crc<<1)^0x1021;
+      } else {
+        crc <<= 1;
+      }
+      byte <<= 1;
+    }
+  }
+  return crc;
+}
+
+static void generate_track_data(int track, int side, BYTE *buffer, int sector_count, struct sector *sectors)
+{
+  int structure[3][8] = {
+    {60, 12, 3, 22, 12, 3, 40, 664}, /*  9 sectors */
+    {60, 12, 3, 22, 12, 3, 40, 50},  /* 10 sectors */
+    {10,  3, 3, 22, 12, 3,  1, 20}   /* 11 sectors */
+  };
+  int i,sec;
+  WORD crc;
+  int strnum;
+  int bufpos = 0;
+  BYTE *data;
+
+  if(sector_count < 9 || sector_count > 11) {
+    FATAL("Unable to generate track data for disks with other sector counts than 9, 10 or 11");
+  }
+
+  strnum = sector_count-9;
+
+  /* Gap 1 */
+  for(i=0;i<structure[strnum][TRKGEN_GAP1];i++) {
+    buffer[bufpos++] = 0x4e;
+  }
+
+  /* For each sector: */
+  for(sec=0;sec<sector_count;sec++) {
+    data = sectors[sec].data;
+    
+    /* Gap 2 */
+    for(i=0;i<structure[strnum][TRKGEN_GAP2A];i++) {
+      buffer[bufpos++] = 0x00;
+    }
+    for(i=0;i<structure[strnum][TRKGEN_GAP2B];i++) {
+      buffer[bufpos++] = 0xa1;
+    }
+
+    /* Index */
+    buffer[bufpos++] = 0xfe;
+    buffer[bufpos++] = track;
+    buffer[bufpos++] = side;
+    buffer[bufpos++] = sec + 1;
+    buffer[bufpos++] = 2; /* 512 bytes */
+    crc = crc16(8, &buffer[bufpos]-8);
+    buffer[bufpos++] = (crc>>8)&0xff;
+    buffer[bufpos++] = crc&0xff;
+
+    /* Gap 3 */
+    for(i=0;i<structure[strnum][TRKGEN_GAP3A];i++) {
+      buffer[bufpos++] = 0x4e;
+    }
+    for(i=0;i<structure[strnum][TRKGEN_GAP3B1];i++) {
+      buffer[bufpos++] = 0x00;
+    }
+    for(i=0;i<structure[strnum][TRKGEN_GAP3B2];i++) {
+      buffer[bufpos++] = 0xa1;
+    }
+
+    /* Data */
+    buffer[bufpos++] = 0xfb;
+    for(i=0;i<SECSIZE;i++) {
+      buffer[bufpos++] = data[i];
+    }
+    crc = crc16(SECSIZE, data);
+    buffer[bufpos++] = (crc>>8)&0xff;
+    buffer[bufpos++] = crc&0xff;
+    
+    /* Gap 4 */
+    for(i=0;i<structure[strnum][TRKGEN_GAP4];i++) {
+      buffer[bufpos++] = 0x4e;
+    }
+  }
+  /* Gap 5 */
+  for(i=0;i<structure[strnum][TRKGEN_GAP5];i++) {
+    buffer[bufpos++] = 0x4e;
+  }
+
+  if(bufpos != TRKSIZE) {
+    FATAL("Generated track size was %d bytes, not %d. This is fatal.", bufpos, TRKSIZE);
+  }
+}
+
 static void load_track(struct floppy *fl, FILE *fp)
 {
   struct track *tracks;
   int track_side_num,track_num,track_side;
-  int sectors, fuzzy_size, track_image, track_size;
-  BYTE header[16];
+  int sectors, fuzzy_size, track_image, track_size, track_data_size;
+  BYTE header[16] = {};
   BYTE data[50000];
   BYTE *fuzzy_pos;
   BYTE *data_pos;
   BYTE *header_pos;
+  int track_image_offset = 0;
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
@@ -155,6 +308,7 @@ static void load_track(struct floppy *fl, FILE *fp)
   track_num = header[0x0e]&0x7f;
   track_side = (header[0x0e]&0x80) >> 7;
   track_size = stx_long(header);
+  track_data_size = stx_word(&header[0x0c]);
   fuzzy_size = stx_long(header + 4);
   sectors = stx_word(header + 8);
   track_image = header[10] & 0xC0;
@@ -179,16 +333,33 @@ static void load_track(struct floppy *fl, FILE *fp)
   tracks[track_side_num].nr = track_num;
   tracks[track_side_num].side = track_side;
   tracks[track_side_num].size = track_size;
+  tracks[track_side_num].track_data_size = track_data_size;
   tracks[track_side_num].sector_count = sectors;
   tracks[track_side_num].fuzzy_size = fuzzy_size;
-  /* This is a bit of a hack with the sides for now */
+  tracks[track_side_num].track_data = NULL;
   tracks[track_side_num].sectors = (struct sector *)malloc(sizeof(struct sector) * sectors);
 
-  DEBUG("LoadTrk:    T: %d  Sd: %d", track_num, track_side);
+  fuzzy_pos = data;
+  if(header[10]&1) {
+    fuzzy_pos += sectors * 16;
+  }
+  data_pos = fuzzy_pos + fuzzy_size;
 
+  DEBUG("LoadTrk:    T: %d  Sd: %d  Fl: %02x  Tsz: %d", track_num, track_side, header[10], track_data_size);
+
+  if(track_image & 0x40) {
+    BYTE *ti_pos = data_pos;
+    if (track_image & 0x80) {
+      track_image_offset = stx_word(ti_pos);
+      ti_pos += 2;
+    }
+    track_data_size = stx_word(ti_pos);
+    TRACE("TI: Off: %d  Tsz: %d", track_image_offset, track_data_size);
+    tracks[track_side_num].track_data = (BYTE *)malloc(track_data_size);
+    memcpy(tracks[track_side_num].track_data, data_pos, track_data_size);
+  }
+  
   if(header[10] & 1) {
-    fuzzy_pos = data + sectors * 16;
-    data_pos = fuzzy_pos + fuzzy_size;
     for(i = 0; i < sectors; i++) {
       struct sector *current_sector = &tracks[track_side_num].sectors[i];
       header_pos = data + i * 16;
@@ -203,15 +374,9 @@ static void load_track(struct floppy *fl, FILE *fp)
     }
   }
 
-  if(track_image & 0x40) {
-    int off = 0, ts;
-    BYTE *p = data_pos;
-    if (track_image & 0x80) {
-      off = stx_word(p);
-      p += 2;
-    }
-    ts = stx_word(p);
-    DEBUG("Track image offset %d size %d", off, ts);
+  if(!tracks[track_side_num].track_data) {
+    tracks[track_side_num].track_data = (BYTE *)malloc(TRKSIZE);
+    generate_track_data(track_num, track_side, tracks[track_side_num].track_data, sectors, tracks[track_side_num].sectors);
   }
 }
 
@@ -255,7 +420,7 @@ void floppy_stx_init(struct floppy *fl, char *name)
   FILE *fp;
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_stx, "FSTX");
 
-  fl->image_data = (void *)malloc(sizeof(struct floppy_stx));
+  fl->image_data = (void *)calloc(1, sizeof(struct floppy_stx));
   fl->image_data_size = sizeof(struct floppy_stx);
   FLOPPY_STX(fl, filename) = name;
 
@@ -266,4 +431,5 @@ void floppy_stx_init(struct floppy *fl, char *name)
   load_file(fl, fp);
   fl->read_sector = read_sector;
   fl->write_sector = write_sector;
+  fl->read_track = read_track;
 }

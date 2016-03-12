@@ -11,9 +11,6 @@
 #include "state.h"
 #include "screen.h"
 
-static int tstart;
-static int tend;
-
 static struct state *laststate;
 
 static int event_key(SDL_KeyboardEvent key, int state)
@@ -76,13 +73,8 @@ static int event_key(SDL_KeyboardEvent key, int state)
       mfp_print_status();
       printf("- - - - - - - - - - - - - - - - - - - - - -\n");
       ikbd_print_status();
-      tend = SDL_GetTicks();
-      printf("DEBUG: Speed: %g FPS\n",
-             (shifter_framecnt(0)*1000.0)/(tend-tstart));
+      printf("DEBUG: Speed: %g FPS\n", shifter_fps());
       printf("-------------------------------------------\n");
-    } else {
-      shifter_framecnt(-1);
-      tstart = SDL_GetTicks();
     }
   } else if(k.sym == SDLK_F13) {
     if(state == EVENT_RELEASE) {

@@ -117,6 +117,8 @@ static int hblpre = 0;
 static int hblscr = 0;
 static int scr_bytes_per_line = SCR_BYTES_PER_LINE;
 static int framecnt;
+static int64_t last_framecnt_usec;
+static int usecs_per_framecnt_interval = 1;
 
 static int ppm_fd;
 static unsigned char *rgbimage;
@@ -767,6 +769,11 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     screen_swap(SCREEN_NORMAL);
     vbl_triggered = 1;
     framecnt++;
+    if((framecnt&0x3f) == 0) {
+      current_ticks = usec_count();
+      usecs_per_framecnt_interval = current_ticks - last_framecnt_usec;
+      last_framecnt_usec = current_ticks;
+    }
   }
 
   /* HBL Interrupt */
@@ -811,6 +818,15 @@ int shifter_framecnt(int c)
     framecnt = 0;
   }
   return framecnt;
+}
+
+float shifter_fps()
+{
+  if(usecs_per_framecnt_interval) {
+    return 1000000*64.0/usecs_per_framecnt_interval;
+  } else {
+    return 0;
+  }
 }
 
 void shifter_disable_pixels()

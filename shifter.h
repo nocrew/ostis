@@ -27,6 +27,7 @@ void shifter_print_status();
 int shifter_on_display(int rasterpos);
 int shifter_get_vsync();
 int shifter_framecnt(int);
+float shifter_fps();
 void shifter_force_gen_picture();
 void shifter_disable_pixels();
 void shifter_enable_pixels();

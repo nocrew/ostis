@@ -250,6 +250,7 @@ void psg_init()
   }
 
   if(play_audio) {
+    int first_device = 0;
     int count = SDL_GetNumAudioDevices(0);
     SDL_memset(&want, 0, sizeof(want));
     want.freq = PSG_OUTPUT_FREQ;
@@ -259,12 +260,20 @@ void psg_init()
     want.callback = psg_audio_callback;
   
     DEBUG("Audio devices: %d", count);
-    for (i = 0; i < count; ++i) {
+    if(audio_device > 0) {
+      first_device = audio_device;
+    }
+    for (i = first_device; i < count; ++i) {
       SDL_Log("Audio device %d: %s\n", i, SDL_GetAudioDeviceName(i, 0));
-      psg_audio_device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(i, 0), 0,
-                                             &want, &have, 0);
-      SDL_PauseAudioDevice(psg_audio_device, 0);
-      break;
+      if(audio_device != -1) {
+        psg_audio_device = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(i, 0), 0,
+                                               &want, &have, 0);
+        SDL_PauseAudioDevice(psg_audio_device, 0);
+        break;
+      }
+    }
+    if(audio_device == -1) {
+      exit(-1);
     }
   
   }

@@ -35,6 +35,7 @@ int ppmoutput = 0;
 int psgoutput = 0;
 int vsync_delay = 0;
 int play_audio = 0;
+int audio_device = 0;
 int monitor_sm124 = 0;
 int crop_screen = 0;
 int verbosity = 3;
@@ -50,6 +51,7 @@ char *test_case_name;
 #define OPT_FORCE_EXTREME_DISASM 10001
 #define OPT_CROP_SCREEN          10002
 #define OPT_LOGLEVELS            10003
+#define OPT_AUDIO_DEVICE         10004
 
 struct sigaction reset;
 
@@ -74,6 +76,7 @@ int main(int argc, char *argv[])
       {"force-extreme-disasm",  no_argument,       0, OPT_FORCE_EXTREME_DISASM },
       {"crop-screen",           no_argument,       0, OPT_CROP_SCREEN },
       {"loglevels" ,            required_argument, 0, OPT_LOGLEVELS },
+      {"audio-device" ,         required_argument, 0, OPT_AUDIO_DEVICE },
 #if TEST_BUILD
       {"test-case",             required_argument, 0, OPT_TEST_MODE},
 #endif
@@ -109,6 +112,13 @@ int main(int argc, char *argv[])
       break;
     case OPT_LOGLEVELS:
       diag_set_module_levels(optarg);
+      break;
+    case OPT_AUDIO_DEVICE:
+      if(!strncmp("list", optarg, 4)) {
+        audio_device = -1;
+      } else {
+        audio_device = atoi(optarg);
+      }
       break;
 #if TEST_BUILD
     case OPT_TEST_MODE:

@@ -43,6 +43,7 @@ extern int ppmoutput;
 extern int psgoutput;
 extern int vsync_delay;
 extern int play_audio;
+extern int audio_device;
 extern int monitor_sm124;
 extern int crop_screen;
 #if TEST_BUILD

@@ -25,6 +25,7 @@ BYTE cmddata[5];
 int cmddata_pos = 0;
 int last_ctrl = 0;
 int return_code = 0;
+static int connected = 0;
 FILE *fp;
 
 void hdc_read_sectors(LONG addr, LONG block, BYTE sectors)
@@ -85,7 +86,8 @@ LONG hdc_cmd_block()
 BYTE hdc_get_status()
 {
   if(last_ctrl != 0) return HDC_RETURN_ERROR;
-
+  if(!connected) return HDC_RETURN_ERROR;
+  
   return return_code;
 }
 
@@ -97,7 +99,7 @@ void hdc_add_cmddata(BYTE data)
   cmddata_pos++;
   if(cmddata_pos >= 5) {
     last_ctrl = HDC_CTRL;
-    if(last_ctrl == 0) {
+    if(last_ctrl == 0 && connected) {
       DEBUG("Got HD command: %02x %02x %02x %02x %02x %02x",
             cmd, cmddata[0], cmddata[1], cmddata[2], cmddata[3], cmddata[4]);
       if(HDC_CMD == HDC_READ) {
@@ -113,7 +115,8 @@ void hdc_add_cmddata(BYTE data)
       } else if(HDC_CMD == HDC_TEST_READY) {
         return_code = HDC_RETURN_OK;
       } else {
-        FATAL("Got HD command: %02x %02x %02x %02x %02x %02x",
+        return_code = HDC_RETURN_ERROR;
+        ERROR("Got unknown HD command: %02x %02x %02x %02x %02x %02x",
               cmd, cmddata[0], cmddata[1], cmddata[2], cmddata[3], cmddata[4]);
       }
     }
@@ -131,6 +134,11 @@ void hdc_set_cmd(BYTE data)
 void hdc_init(char *hdfile)
 {
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(hdc, "HDC0");
-  fp = fopen(hdfile, "r+");
-  if(!fp) return;
+  fp = NULL;
+  if(hdfile) {
+    fp = fopen(hdfile, "r+");
+    if(fp) {
+      connected = 1;
+    }
+  }
 }

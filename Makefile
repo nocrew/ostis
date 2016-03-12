@@ -50,10 +50,13 @@ default:
 gdb:
 	$(MAKE) ostis-gdb CFLAGS_EXTRA="-ggdb"
 
+prof:
+	$(MAKE) ostis-prof CFLAGS_EXTRA="-pg -O3 -fno-inline-small-functions" LDFLAGS_EXTRA="-pg"
+
 test:
 	$(MAKE) ostis-test CFLAGS_EXTRA="-ggdb -DTEST_BUILD"
 
-ostis ostis-gdb: $(DEPS)
+ostis ostis-gdb ostis-prof: $(DEPS)
 	$(CC) $(LDFLAGS) -o $@ $(EMU_OBJ) $(PARSEROBJ) $(LIB)
 
 ostis-test:	$(DEPS_TEST)
@@ -82,4 +85,4 @@ include debug/debug.mk
 include tests/tests.mk
 
 clean::
-	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test
+	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test ostis-prof

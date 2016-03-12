@@ -13,6 +13,7 @@ ostis.state
 ostis
 ostis-gdb
 ostis-test
+ostis-prof
 core
 *.labels
-
+gmon.out

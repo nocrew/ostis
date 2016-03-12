@@ -27,7 +27,7 @@ struct track {
 
 struct floppy_stx {
   char *filename;
-  struct track tracks[MAXTRACKS];
+  struct track tracks[MAXTRACKS*2]; /* Both sides */
 };
   
 #define FLOPPY_STX(f, x) ((struct floppy_stx *)f->image_data)->x

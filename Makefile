@@ -66,7 +66,7 @@ $(PARSEROBJ):	$(PARSERSRC)
 
 $(PARSERSRC): $(PARSERFILE)
 	$(LEX) $(PARSER).l
-	$(YACC) -b $(PARSER) $(PARSER).y
+	$(YACC) -b $(PARSER) --name-prefix=$(PARSER) $(PARSER).y
 
 # $(YSRC): $(YACCFILE)
 #	$(YACC) $<

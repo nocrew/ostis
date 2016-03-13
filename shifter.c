@@ -241,11 +241,6 @@ static void fill_16pxl(int rasterpos, int pnum)
   }
 }
 
-static int get_pixel_disable(int videooffset, int pxlnum)
-{
-  return 0;
-}
-
 static int get_pixel_low(int videooffset, int pxlnum)
 {
   int c;
@@ -457,8 +452,12 @@ static void shifter_gen_picture(int rasterpos)
 
   if((rasterpos - lastrasterpos) < 0) return;
 
-  for(i=lastrasterpos; i<=rasterpos; i++) {
-    shifter_gen_pixel(i);
+  if(!screen_check_disable()) {
+    for(i=lastrasterpos; i<=rasterpos; i++) {
+      shifter_gen_pixel(i);
+    }
+  } else {
+    i = rasterpos - lastrasterpos;
   }
   lastrasterpos = i;
 }
@@ -829,22 +828,3 @@ float shifter_fps()
   }
 }
 
-void shifter_disable_pixels()
-{
-  res_data[resolution].get_pixel = get_pixel_disable;
-}
-
-void shifter_enable_pixels()
-{
-  switch(resolution) {
-  case 0:
-    res_data[resolution].get_pixel = get_pixel_low;
-    break;
-  case 1:
-    res_data[resolution].get_pixel = get_pixel_medium;
-    break;
-  case 2:
-    res_data[resolution].get_pixel = get_pixel_high;
-    break;
-  }
-}

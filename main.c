@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
       break;
     case 'h':
     default:
-      printf("Usage: %s [-a diskimage] [-t tosimage] [-s stateimage] [-h] [-d] [-p] [-v]\n",
+      printf("Usage: %s [-AdMpqvVy] [-a diskimage1] [-b diskimage2] [-c hdimage] [-t tosimage] [-s stateimage]\n",
 	     argv[0]);
       exit(-1);
       break;

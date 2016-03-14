@@ -186,16 +186,18 @@ void load_floppy(int device, char *filename)
 
   fclose(fp);
   
+  floppy[device].filename = filename;
+
   // If header starts with 0x0e0f we treat this as an MSA file,
   // if it starts with 0x52535900 it's an STX image,
   // otherwise it's considered to be a raw image.
   if(header[0] == 0x0e && header[1] == 0x0f) {
-    floppy_msa_init(&floppy[device], filename);
+    floppy_msa_init(&floppy[device]);
   } else if(header[0] == 0x52 && header[1] == 0x53 &&
 	    header[2] == 0x59 && header[3] == 0x00) {
-    floppy_stx_init(&floppy[device], filename);
+    floppy_stx_init(&floppy[device]);
   } else { 
-    floppy_st_init(&floppy[device], filename);
+    floppy_st_init(&floppy[device]);
   }
 }
 void floppy_init(char *filename, char *filename2)

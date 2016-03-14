@@ -5,7 +5,6 @@
 #include "diag.h"
 
 struct floppy_st {
-  char *filename;
   LONG raw_data_size;
   BYTE *raw_data;
 };
@@ -40,7 +39,7 @@ static int write_sector(struct floppy *fl, int track, int side, int sector, LONG
   int pos,i,j;
 
   if(!fl->inserted) return FLOPPY_ERROR;
-  if(!FLOPPY_ST(fl, filename)) return FLOPPY_ERROR;
+  if(!fl->filename) return FLOPPY_ERROR;
 
   if(sector < 1) sector = 1;
 
@@ -60,7 +59,7 @@ static int write_sector(struct floppy *fl, int track, int side, int sector, LONG
 
 static void save_file(struct floppy *fl, long offset)
 {
-  FILE *fp = fopen(FLOPPY_ST(fl, filename), "r+b");
+  FILE *fp = fopen(fl->filename, "r+b");
   if(!fp) return;
 
   if(fseek(fp, offset, SEEK_SET) != 0) {
@@ -151,16 +150,15 @@ static void load_file(struct floppy *fl, FILE *fp)
   fl->inserted = 1;
 }
 
-void floppy_st_init(struct floppy *fl, char *name)
+void floppy_st_init(struct floppy *fl)
 {
   FILE *fp;
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_st, "FLST");
   
   fl->image_data = (void *)malloc(sizeof(struct floppy_st));
-  FLOPPY_ST(fl, filename) = name;
 
-  fp = fopen(name, "rb");
+  fp = fopen(fl->filename, "rb");
   if(!fp) return;
 
   load_file(fl, fp);

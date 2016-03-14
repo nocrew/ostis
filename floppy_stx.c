@@ -28,7 +28,6 @@ struct track {
 };
 
 struct floppy_stx {
-  char *filename;
   struct track tracks[MAXTRACKS+128]; /* Both sides */
 };
   
@@ -298,7 +297,7 @@ static void load_track(struct floppy *fl, FILE *fp)
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
-    ERROR("Couldn't read from %s", FLOPPY_STX(fl, filename));
+    ERROR("Couldn't read from %s", fl->filename);
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -320,7 +319,7 @@ static void load_track(struct floppy *fl, FILE *fp)
   }
 
   if(fread(data, track_size - 16, 1, fp) != 1) {
-    ERROR("Couldn't read from %s", FLOPPY_STX(fl, filename));
+    ERROR("Couldn't read from %s", fl->filename);
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -387,7 +386,7 @@ static void load_file(struct floppy *fl, FILE *fp)
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {
-    ERROR("Couldn't read from %s", FLOPPY_STX(fl, filename));
+    ERROR("Couldn't read from %s", fl->filename);
     fclose(fp);
     fl->fp = NULL;
     return;
@@ -415,15 +414,14 @@ static void load_file(struct floppy *fl, FILE *fp)
   return;
 }
 
-void floppy_stx_init(struct floppy *fl, char *name)
+void floppy_stx_init(struct floppy *fl)
 {
   FILE *fp;
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_stx, "FSTX");
 
   fl->image_data = (void *)calloc(1, sizeof(struct floppy_stx));
-  FLOPPY_STX(fl, filename) = name;
 
-  fp = fopen(name, "rb");
+  fp = fopen(fl->filename, "rb");
   if(!fp) return;
   fl->fp = fp;
   

@@ -5,7 +5,6 @@
 #include "diag.h"
 
 struct floppy_msa {
-  char *filename;
   LONG raw_data_size;
   BYTE *raw_data;
 };
@@ -125,16 +124,15 @@ static void load_file(struct floppy *fl, FILE *fp)
 }
 
 
-void floppy_msa_init(struct floppy *fl, char *name)
+void floppy_msa_init(struct floppy *fl)
 {
   FILE *fp;
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_msa, "FMSA");
   
   fl->image_data = (void *)malloc(sizeof(struct floppy_msa));
-  FLOPPY_MSA(fl, filename) = name;
 
-  fp = fopen(name, "rb");
+  fp = fopen(fl->filename, "rb");
   if(!fp) return;
 
   load_file(fl, fp);

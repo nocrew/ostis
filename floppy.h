@@ -21,6 +21,7 @@ struct floppy {
   int (*write_track)(struct floppy *fl, int track, int side, LONG addr, int dma_count);
   /* Data related to the floppy image itself, which is file format dependant */
   void *image_data;
+  const char *filename;
 };
 
 void floppy_side(int);

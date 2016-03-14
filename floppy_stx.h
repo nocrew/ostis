@@ -3,6 +3,6 @@
 
 #include "floppy.h"
 
-extern void floppy_stx_init(struct floppy *, char *);
+extern void floppy_stx_init(struct floppy *);
 
 #endif

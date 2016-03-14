@@ -33,7 +33,8 @@ struct floppy_stx {
   
 #define FLOPPY_STX(f, x) ((struct floppy_stx *)f->image_data)->x
 #define SECSIZE 512
-#define TRKSIZE 6250
+#define TRKSIZE_MIN 6250
+#define TRKSIZE 6256
 
 /* Indexes for generating tracks */
 #define TRKGEN_SEC9  0
@@ -271,8 +272,9 @@ static void generate_track_data(int track, int side, BYTE *buffer, int sector_co
     buffer[bufpos++] = 0x4e;
   }
 
-  if(bufpos != TRKSIZE) {
-    FATAL("Generated track size was %d bytes, not %d. This is fatal.", bufpos, TRKSIZE);
+  if(bufpos < TRKSIZE_MIN || bufpos > TRKSIZE) {
+    FATAL("Generated track size was %d bytes, not %d-%d. This is fatal.",
+	  bufpos, TRKSIZE_MIN, TRKSIZE);
   }
 }
 

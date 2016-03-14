@@ -5,12 +5,10 @@
 #include "diag.h"
 
 struct floppy_st {
-  char *filename;
   LONG raw_data_size;
   BYTE *raw_data;
 };
 
-#define FLOPPY_ST(f, x) ((struct floppy_st *)f->image_data)->x
 #define SECSIZE 512
 
 HANDLE_DIAGNOSTICS(floppy_st);
@@ -23,12 +21,13 @@ static int read_sector(struct floppy *fl, int track, int side, int sector, LONG 
   pos = track * (fl->sides+1) * fl->sectors * SECSIZE;
   pos += (sector-1) * SECSIZE;
   pos += side * fl->sectors * SECSIZE;
+  struct floppy_st *image = fl->image_data;
 
   for(i=0;i<count;i++) {
     /* Check if we're trying to read outside floppy data */
-    if((pos+i*SECSIZE) >= (FLOPPY_ST(fl, raw_data_size)-SECSIZE)) return FLOPPY_ERROR;
+    if((pos+i*SECSIZE) >= (image->raw_data_size-SECSIZE)) return FLOPPY_ERROR;
     for(j=0;j<SECSIZE;j++) {
-      mmu_write_byte(addr+i*SECSIZE+j, FLOPPY_ST(fl, raw_data)[pos+i*SECSIZE+j]);
+      mmu_write_byte(addr+i*SECSIZE+j, image->raw_data[pos+i*SECSIZE+j]);
     }
   }
   
@@ -37,10 +36,11 @@ static int read_sector(struct floppy *fl, int track, int side, int sector, LONG 
 
 static int write_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
+  struct floppy_st *image = fl->image_data;
   int pos,i,j;
 
   if(!fl->inserted) return FLOPPY_ERROR;
-  if(!FLOPPY_ST(fl, filename)) return FLOPPY_ERROR;
+  if(!fl->filename) return FLOPPY_ERROR;
 
   if(sector < 1) sector = 1;
 
@@ -49,9 +49,9 @@ static int write_sector(struct floppy *fl, int track, int side, int sector, LONG
   pos += side * fl->sectors * SECSIZE;
 
   for(i=0;i<count;i++) {
-    if((pos+i*SECSIZE) >= (FLOPPY_ST(fl, raw_data_size)-SECSIZE)) return FLOPPY_ERROR;
+    if((pos+i*SECSIZE) >= (image->raw_data_size-SECSIZE)) return FLOPPY_ERROR;
     for(j=0;j<SECSIZE;j++) {
-      FLOPPY_ST(fl, raw_data)[pos+i*SECSIZE+j] = mmu_read_byte(addr+i*SECSIZE+j);
+      image->raw_data[pos+i*SECSIZE+j] = mmu_read_byte(addr+i*SECSIZE+j);
     }
     save_file(fl, pos+i*SECSIZE);
   }
@@ -60,14 +60,15 @@ static int write_sector(struct floppy *fl, int track, int side, int sector, LONG
 
 static void save_file(struct floppy *fl, long offset)
 {
-  FILE *fp = fopen(FLOPPY_ST(fl, filename), "r+b");
+  struct floppy_st *image = fl->image_data;
+  FILE *fp = fopen(fl->filename, "r+b");
   if(!fp) return;
 
   if(fseek(fp, offset, SEEK_SET) != 0) {
     ERROR("Error writing to floppy image");
   }
 
-  if(fwrite(FLOPPY_ST(fl, raw_data) + offset, SECSIZE, 1, fp) != 1) {
+  if(fwrite(image->raw_data + offset, SECSIZE, 1, fp) != 1) {
     ERROR("Error writing to floppy image");
   }
 
@@ -75,16 +76,18 @@ static void save_file(struct floppy *fl, long offset)
 }
 
 static int guess_format(struct floppy *fl) {
-  if((FLOPPY_ST(fl, raw_data_size) % (SECSIZE * 9)) == 0)
+  struct floppy_st *image = fl->image_data;
+
+  if((image->raw_data_size % (SECSIZE * 9)) == 0)
     fl->sectors = 9;
-  else if((FLOPPY_ST(fl, raw_data_size) % (SECSIZE * 10)) == 0)
+  else if((image->raw_data_size % (SECSIZE * 10)) == 0)
     fl->sectors = 10;
-  else if((FLOPPY_ST(fl, raw_data_size) % (SECSIZE * 11)) == 0)
+  else if((image->raw_data_size % (SECSIZE * 11)) == 0)
     fl->sectors = 11;
   else
     return -1;
 
-  fl->tracks = FLOPPY_ST(fl, raw_data_size) / SECSIZE / fl->sectors;
+  fl->tracks = image->raw_data_size / SECSIZE / fl->sectors;
   if(fl->tracks >= 80 && fl->tracks <= 86)
     fl->sides = 0;
   else if(fl->tracks >= 160 && fl->tracks <= 2*86 && (fl->tracks % 2) == 0) {
@@ -98,6 +101,7 @@ static int guess_format(struct floppy *fl) {
 
 static void load_file(struct floppy *fl, FILE *fp)
 {
+  struct floppy_st *image = fl->image_data;
   static BYTE bootsector[SECSIZE];
 
   fl->fp = fp;
@@ -115,7 +119,7 @@ static void load_file(struct floppy *fl, FILE *fp)
 		  (fl->sides+1)/fl->sectors);
 
   fseek(fl->fp, 0, SEEK_END);
-  FLOPPY_ST(fl, raw_data_size) = ftell(fl->fp);
+  image->raw_data_size = ftell(fl->fp);
   rewind(fl->fp);
 
   if((bootsector[11]|(bootsector[12]<<8)) != SECSIZE ||
@@ -133,13 +137,13 @@ static void load_file(struct floppy *fl, FILE *fp)
 
   // Now we load the entire floppy into memory
   // Despite having fetched the track count, we'll allocate space for 86 tracks
-  FLOPPY_ST(fl, raw_data) = floppy_allocate_memory();
-  if(FLOPPY_ST(fl, raw_data) == NULL) {
+  image->raw_data = floppy_allocate_memory();
+  if(image->raw_data == NULL) {
     ERROR("Unable to allocate floppy space");
     return;
   }
 
-  if(fread(FLOPPY_ST(fl, raw_data), 1, FLOPPY_ST(fl, raw_data_size), fl->fp) != FLOPPY_ST(fl, raw_data_size)) {
+  if(fread(image->raw_data, 1, image->raw_data_size, fl->fp) != image->raw_data_size) {
     fclose(fl->fp);
     fl->fp = NULL;
     ERROR("Could not read entire file");
@@ -151,17 +155,15 @@ static void load_file(struct floppy *fl, FILE *fp)
   fl->inserted = 1;
 }
 
-void floppy_st_init(struct floppy *fl, char *name)
+void floppy_st_init(struct floppy *fl)
 {
   FILE *fp;
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_st, "FLST");
   
-  fl->image_data = (void *)malloc(sizeof(struct floppy_st));
-  fl->image_data_size = sizeof(struct floppy_st);
-  FLOPPY_ST(fl, filename) = name;
+  fl->image_data = malloc(sizeof(struct floppy_st));
 
-  fp = fopen(name, "rb");
+  fp = fopen(fl->filename, "rb");
   if(!fp) return;
 
   load_file(fl, fp);

@@ -31,7 +31,6 @@ struct floppy_stx {
   struct track tracks[MAXTRACKS+128]; /* Both sides */
 };
   
-#define FLOPPY_STX(f, x) ((struct floppy_stx *)f->image_data)->x
 #define SECSIZE 512
 #define TRKSIZE_MIN 6250
 #define TRKSIZE 6256
@@ -54,6 +53,7 @@ HANDLE_DIAGNOSTICS(floppy_stx);
 
 static int read_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
 {
+  struct floppy_stx *image = fl->image_data;
   struct track *tracks;
   int i,j,dst_pos;
   struct sector *track_sectors;
@@ -63,7 +63,7 @@ static int read_sector(struct floppy *fl, int track, int side, int sector, LONG 
   int sec_num, sec_size;
   int start_sector = -1;
 
-  tracks = FLOPPY_STX(fl, tracks);
+  tracks = image->tracks;
   
   track_side_num = track | side << 7;
   sector_count = tracks[track_side_num].sector_count;
@@ -109,6 +109,7 @@ static int write_sector(struct floppy *fl, int track, int side, int sector, LONG
 
 static int read_track(struct floppy *fl, int track_num, int side, LONG addr, int dma_count)
 {
+  struct floppy_stx *image = fl->image_data;
   struct track *tracks,*track;
   int track_side_num;
   int size;
@@ -116,7 +117,7 @@ static int read_track(struct floppy *fl, int track_num, int side, LONG addr, int
 
   DEBUG("ReadTrk: T: %d  Sd: %d  A: %06x  C: %d", track_num, side, addr, dma_count);
   
-  tracks = FLOPPY_STX(fl, tracks);
+  tracks = image->tracks;
   track_side_num = track_num | side << 7;
   track = &tracks[track_side_num];
   if(!track) {
@@ -280,6 +281,7 @@ static void generate_track_data(int track, int side, BYTE *buffer, int sector_co
 
 static void load_track(struct floppy *fl, FILE *fp)
 {
+  struct floppy_stx *image = fl->image_data;
   void (*init_sector)(struct sector *, int, BYTE *, BYTE *, BYTE *);
   struct track *tracks;
   int track_side_num,track_num,track_side;
@@ -322,7 +324,7 @@ static void load_track(struct floppy *fl, FILE *fp)
 
   data_pos = data;
 
-  tracks = FLOPPY_STX(fl, tracks);
+  tracks = image->tracks;
   
   tracks[track_side_num].nr = track_num;
   tracks[track_side_num].side = track_side;

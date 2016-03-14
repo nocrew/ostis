@@ -9,7 +9,6 @@ struct floppy_msa {
   BYTE *raw_data;
 };
 
-#define FLOPPY_MSA(f, x) ((struct floppy_msa *)f->image_data)->x
 #define SECSIZE 512
 
 HANDLE_DIAGNOSTICS(floppy_msa);
@@ -20,12 +19,13 @@ static int read_sector(struct floppy *fl, int track, int side, int sector, LONG 
   pos = track * (fl->sides+1) * fl->sectors * SECSIZE;
   pos += (sector-1) * SECSIZE;
   pos += side * fl->sectors * SECSIZE;
+  struct floppy_msa *image = fl->image_data;
 
   for(i=0;i<count;i++) {
     /* Check if we're trying to read outside floppy data */
-    if((pos+i*SECSIZE) >= (FLOPPY_MSA(fl, raw_data_size)-SECSIZE)) return FLOPPY_ERROR;
+    if((pos+i*SECSIZE) >= (image->raw_data_size-SECSIZE)) return FLOPPY_ERROR;
     for(j=0;j<SECSIZE;j++) {
-      mmu_write_byte(addr+i*SECSIZE+j, FLOPPY_MSA(fl, raw_data)[pos+i*SECSIZE+j]);
+      mmu_write_byte(addr+i*SECSIZE+j, image->raw_data[pos+i*SECSIZE+j]);
     }
   }
   
@@ -45,6 +45,7 @@ static void load_file(struct floppy *fl, FILE *fp)
   int track_size;
   BYTE *track_data;
   int track_data_size;
+  struct floppy_msa *image = fl->image_data;
 
   if(fread(msa_header, 10, 1, fp) != 1) {
     fclose(fp);
@@ -69,13 +70,13 @@ static void load_file(struct floppy *fl, FILE *fp)
     return;
   }
 
-  FLOPPY_MSA(fl, raw_data) = floppy_allocate_memory();
-  if(FLOPPY_MSA(fl, raw_data) == NULL) {
+  image->raw_data = floppy_allocate_memory();
+  if(image->raw_data == NULL) {
     ERROR("Unable to allocate floppy space");
     return;
   }
 
-  FLOPPY_MSA(fl, raw_data_size) = (fl->sectors * SECSIZE) * fl->tracks * (fl->sides + 1);
+  image->raw_data_size = (fl->sectors * SECSIZE) * fl->tracks * (fl->sides + 1);
 
   pos = 0;
 
@@ -100,20 +101,20 @@ static void load_file(struct floppy *fl, FILE *fp)
           if(track_data[tpos] == 0xe5) {
             rep_byte = track_data[tpos+1];
             rep_count = (track_data[tpos+2]<<8)|track_data[tpos+3];
-            if((pos + rep_count) > FLOPPY_MSA(fl, raw_data_size)) {
+            if((pos + rep_count) > image->raw_data_size) {
               ERROR("MSA RLE compression corrupt.");
               return;
             }
-            memset(&FLOPPY_MSA(fl, raw_data)[pos], rep_byte, rep_count);
+            memset(&image->raw_data[pos], rep_byte, rep_count);
             pos += rep_count;
             tpos += 3;
           } else {
-            FLOPPY_MSA(fl, raw_data)[pos] = track_data[tpos];
+            image->raw_data[pos] = track_data[tpos];
             pos++;
           }
         }
       } else {
-        memcpy(&FLOPPY_MSA(fl, raw_data)[pos], track_data, track_data_size);
+        memcpy(&image->raw_data[pos], track_data, track_data_size);
         pos += track_size;
       }
     }

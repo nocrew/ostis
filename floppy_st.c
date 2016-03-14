@@ -158,7 +158,6 @@ void floppy_st_init(struct floppy *fl, char *name)
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_st, "FLST");
   
   fl->image_data = (void *)malloc(sizeof(struct floppy_st));
-  fl->image_data_size = sizeof(struct floppy_st);
   FLOPPY_ST(fl, filename) = name;
 
   fp = fopen(name, "rb");

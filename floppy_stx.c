@@ -421,7 +421,6 @@ void floppy_stx_init(struct floppy *fl, char *name)
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_stx, "FSTX");
 
   fl->image_data = (void *)calloc(1, sizeof(struct floppy_stx));
-  fl->image_data_size = sizeof(struct floppy_stx);
   FLOPPY_STX(fl, filename) = name;
 
   fp = fopen(name, "rb");

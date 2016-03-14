@@ -160,12 +160,12 @@ static void load_sector_with_header(struct sector *sector_data, BYTE *header, BY
   sector_data->size = 128 << (header[0x0b]&0x3);
   if(header[0x0e] & 0x80) {
     sector_data->is_fuzzy = 1;
-    sector_data->fuzzy_mask = (BYTE *)malloc(sector_data->size);
+    sector_data->fuzzy_mask = malloc(sector_data->size);
     memcpy(sector_data->fuzzy_mask, fuzzy_mask, sector_data->size);
   } else {
     sector_data->is_fuzzy = 0;
   }
-  sector_data->data = (BYTE *)malloc(sector_data->size);
+  sector_data->data = malloc(sector_data->size);
   memcpy(sector_data->data, track_data + sector_data->offset, sector_data->size);
 
   DEBUG("LoadSecHdr: Nr: %d  Sz: %d  Fz: %d  Off: %d", sector_data->nr, sector_data->size, sector_data->is_fuzzy, sector_data->offset);
@@ -177,7 +177,7 @@ static void load_sector_without_header(struct sector *sector_data, int sector_in
   sector_data->nr = sector_index + 1;
   sector_data->size = SECSIZE;
   sector_data->is_fuzzy = 0; /* Without header, it will never be fuzzy */
-  sector_data->data = (BYTE *)malloc(sector_data->size);
+  sector_data->data = malloc(sector_data->size);
   memcpy(sector_data->data, track_data + sector_data->offset, sector_data->size);
   DEBUG("LoadSec:    Nr: %d  Sz: %d  Fz: %d  Off: %d", sector_data->nr, sector_data->size, 0, sector_data->offset);
 }
@@ -336,7 +336,7 @@ static void load_track(struct floppy *fl, FILE *fp)
   tracks[track_side_num].sector_count = sectors;
   tracks[track_side_num].fuzzy_size = fuzzy_size;
   tracks[track_side_num].track_data = NULL;
-  tracks[track_side_num].sectors = (struct sector *)malloc(sizeof(struct sector) * sectors);
+  tracks[track_side_num].sectors = malloc(sizeof(struct sector) * sectors);
 
   fuzzy_pos = data;
   if(header[10]&1) {
@@ -354,7 +354,7 @@ static void load_track(struct floppy *fl, FILE *fp)
     }
     track_data_size = stx_word(ti_pos);
     TRACE("TI: Off: %d  Tsz: %d", track_image_offset, track_data_size);
-    tracks[track_side_num].track_data = (BYTE *)malloc(track_data_size);
+    tracks[track_side_num].track_data = malloc(track_data_size);
     memcpy(tracks[track_side_num].track_data, data_pos, track_data_size);
   }
   
@@ -374,7 +374,7 @@ static void load_track(struct floppy *fl, FILE *fp)
   }
 
   if(!tracks[track_side_num].track_data) {
-    tracks[track_side_num].track_data = (BYTE *)malloc(TRKSIZE);
+    tracks[track_side_num].track_data = malloc(TRKSIZE);
     generate_track_data(track_num, track_side, tracks[track_side_num].track_data, sectors, tracks[track_side_num].sectors);
   }
 }

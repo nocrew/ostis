@@ -63,7 +63,7 @@ static void load_file(struct floppy *fl, FILE *fp)
 
   track_size = fl->sectors * SECSIZE;
   
-  track_data = (BYTE *)malloc(track_size);
+  track_data = malloc(track_size);
   if(track_data == NULL) {
     ERROR("Unable to allocate track space");
     return;
@@ -130,7 +130,7 @@ void floppy_msa_init(struct floppy *fl)
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_msa, "FMSA");
   
-  fl->image_data = (void *)malloc(sizeof(struct floppy_msa));
+  fl->image_data = malloc(sizeof(struct floppy_msa));
 
   fp = fopen(fl->filename, "rb");
   if(!fp) return;

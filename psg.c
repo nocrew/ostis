@@ -142,6 +142,8 @@ static void psg_set_register(BYTE data)
     break;
   case PSG_EPERL:
   case PSG_EPERH:
+    env_first = 0;
+    env_cnt = env_set_period();
     break;
   case PSG_ENV:
     env_first = 0;

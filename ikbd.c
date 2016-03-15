@@ -91,6 +91,7 @@ static void ikbd_mouse_report(void)
   ikbd_queue_fifo(but);
   x = (int)(((float)x * ikbd_absolute_x) / 1024.0);
   y = (int)(((float)y * ikbd_absolute_y) / 628.0);
+  TRACE("Mouse at %d %d", x, y);
   ikbd_queue_fifo(x >> 8);
   ikbd_queue_fifo(x & 0xff);
   ikbd_queue_fifo(y >> 8);
@@ -248,6 +249,7 @@ static void ikbd_queue_fifo(BYTE data)
 {
   if(ikbd_fifocnt == IKBDFIFO) {
     ikbd_status |= 0x20;
+    DEBUG("Overrun");
   } else {
     ikbd_fifo[ikbd_fifocnt] = data;
     ikbd_fifocnt++;

@@ -232,15 +232,6 @@ static void set_pixel_high(int rasterpos, int pnum)
   }
 }
 
-static void fill_16pxl(int rasterpos, int pnum)
-{
-  int i;
-
-  for(i=0;i<16;i++) {
-    res.set_pixel(rasterpos+i, pnum);
-  }
-}
-
 static int get_pixel_low(int videooffset, int pxlnum)
 {
   int c;
@@ -338,25 +329,6 @@ static int get_pixel_high(int videooffset, int pxlnum)
   return c;
 }
 
-static void set_16pxl(int rasterpos, int videooffset)
-{
-  int i,c;
-  WORD d[4];
-
-  d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
-  d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
-  d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
-  d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
-  
-  for(i=15;i>=0;i--) {
-    c = ((((d[0]>>i)&1)<<3)|
-         (((d[1]>>i)&1)<<2)|
-         (((d[2]>>i)&1)<<1)|
-         (((d[3]>>i)&1)));
-    res.set_pixel(rasterpos+(15-i), c);
-  }
-}
-
 int shifter_on_display(int rasterpos)
 {
   int line,linepos;
@@ -434,15 +406,6 @@ static void shifter_gen_pixel(int rasterpos)
 				(linepos-hblpre)&15));
   } else {
     res.set_pixel(rasterpos, res.border); /* Background in border */
-  }
-}
-
-static void shifter_gen_16pxl(int rasterpos)
-{
-  if(shifter_on_display(rasterpos)) {
-    fill_16pxl(rasterpos, 0);
-  } else {
-    set_16pxl(rasterpos, get_videooffset(rasterpos));
   }
 }
 

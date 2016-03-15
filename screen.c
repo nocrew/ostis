@@ -212,10 +212,8 @@ void screen_swap(int indicate_rasterpos)
 void screen_disable(int yes)
 {
   if(yes) {
-    shifter_disable_pixels();
     disable = 1;
   } else {
-    shifter_enable_pixels();
     disable = 0;
   }
 }

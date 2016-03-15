@@ -21,7 +21,8 @@ static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
 static uint64_t ikbd_next_interrupt_cycle = 0;
 static BYTE ikbd_buttons = 0;
-static BYTE ikbd_mouse_enabled = 0;
+static BYTE ikbd_mouse_enabled = 1;
+static int ikbd_mouse_inverted = 0;
 static int ikbd_absolute_x = 0;
 static int ikbd_absolute_y = 0;
 static BYTE ikbd_joystick_enabled = 0;
@@ -138,9 +139,18 @@ static void ikbd_return_clock(void)
   ikbd_queue_fifo(bcd_sec);
 }
 
+static void ikbd_do_reset(void)
+{
+  ikbd_buttons = 0;
+  ikbd_mouse_enabled = 1;
+  ikbd_mouse_inverted = 0;
+  ikbd_joystick_enabled = 0;
+}
+
 static void ikbd_reset(void)
 {
   DEBUG("Reset %02x", ikbd_cmdbuf[0]);
+  ikbd_do_reset();
   if(ikbd_cmdbuf[0] == 0x01) {
     ikbd_queue_fifo(0xf1);
   }
@@ -182,8 +192,11 @@ static void ikbd_set_cmd(BYTE cmd)
     ikbd_cmdfn = ikbd_load_mouse_position;
     ikbd_cmdcnt = 5;
     break;
+  case 0x0f:
+    ikbd_mouse_inverted = 1;
+    break;
   case 0x10:
-    WARN("Set y=0 at top not handled");
+    ikbd_mouse_inverted = 0;
     break;
   case 0x12:
     DEBUG("Disable mouse");
@@ -390,6 +403,8 @@ void ikbd_queue_motion(int x, int y)
   TRACE("Mouse moved %d %d", x, y);
   ikbd_queue_fifo(0xF8 | ikbd_buttons);
   ikbd_queue_fifo(x & 0xFF);
+  if(ikbd_mouse_inverted)
+    y = -y;
   ikbd_queue_fifo(y & 0xFF);
 }
 
@@ -441,6 +456,8 @@ void ikbd_init()
   ikbd->diagnostics = ikbd_diagnostics;
 
   mmu_register(ikbd);
+
+  ikbd_do_reset();
 }
 
 void ikbd_do_interrupts(struct cpu *cpu)

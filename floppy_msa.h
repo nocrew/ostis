@@ -3,6 +3,6 @@
 
 #include "floppy.h"
 
-void floppy_msa_init(struct floppy *, char *);
+void floppy_msa_init(struct floppy *);
 
 #endif

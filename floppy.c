@@ -135,8 +135,7 @@ int floppy_read_address(LONG addr)
 
 BYTE *floppy_allocate_memory()
 {
-  //  return (BYTE *)malloc(86 * (floppy[active_device].sides+1) * floppy[active_device].sectors * 512);
-  return (BYTE *)malloc(86 * 2 * 7000); /* Should be large enough to cover all floppy data */
+  return malloc(86 * 2 * 7000); /* Should be large enough to cover all floppy data */
 }
 
 static int dummy_read_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)
@@ -186,16 +185,18 @@ void load_floppy(int device, char *filename)
 
   fclose(fp);
   
+  floppy[device].filename = filename;
+
   // If header starts with 0x0e0f we treat this as an MSA file,
   // if it starts with 0x52535900 it's an STX image,
   // otherwise it's considered to be a raw image.
   if(header[0] == 0x0e && header[1] == 0x0f) {
-    floppy_msa_init(&floppy[device], filename);
+    floppy_msa_init(&floppy[device]);
   } else if(header[0] == 0x52 && header[1] == 0x53 &&
 	    header[2] == 0x59 && header[3] == 0x00) {
-    floppy_stx_init(&floppy[device], filename);
+    floppy_stx_init(&floppy[device]);
   } else { 
-    floppy_st_init(&floppy[device], filename);
+    floppy_st_init(&floppy[device]);
   }
 }
 void floppy_init(char *filename, char *filename2)

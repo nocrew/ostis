@@ -31,11 +31,6 @@ static void ikbd_do_interrupts(struct cpu *cpu);
 
 HANDLE_DIAGNOSTICS(ikbd)
 
-int ikbd_get_fifocnt()
-{
-  return ikbd_fifocnt;
-}
-
 void ikbd_print_status()
 {
   int i;

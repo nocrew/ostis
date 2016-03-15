@@ -306,11 +306,6 @@ static void update_timer(int tnum, long cycles)
   }
 }
 
-BYTE mfp_get_ISRB()
-{
-  return mfpreg[ISRB];
-}
-
 static int mfp_get_GPIP(int bnum)
 {
   return mfpreg[GPIP] & (1<<bnum);

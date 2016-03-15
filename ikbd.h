@@ -17,7 +17,6 @@ void ikbd_joystick(int direction);
 void ikbd_fire(int state);
 void ikbd_do_interrupt(struct cpu *);
 void ikbd_print_status();
-int ikbd_get_fifocnt();
 void ikbd_write_byte(BYTE);
 
 #endif

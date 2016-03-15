@@ -224,13 +224,13 @@ static int ikbd_pop_fifo()
   BYTE tmp;
 
   if(ikbd_fifocnt == 0) return -1;
-  mfp_set_GPIP(MFP_GPIP_ACIA);
   tmp = ikbd_fifo[0];
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0) {
     ikbd_status |= 0x81;
-    mfp_clr_GPIP(MFP_GPIP_ACIA);
+  } else {
+    mfp_set_GPIP(MFP_GPIP_ACIA);
   }
   return tmp;
 }

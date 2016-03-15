@@ -21,7 +21,7 @@ static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
 static uint64_t ikbd_next_interrupt_cycle = 0;
 static BYTE ikbd_buttons = 0;
-static BYTE ikbd_mouse_enabled = 0;
+static BYTE ikbd_mouse_enabled = 1;
 static int ikbd_mouse_inverted = 0;
 static int ikbd_absolute_x = 0;
 static int ikbd_absolute_y = 0;
@@ -139,9 +139,18 @@ static void ikbd_return_clock(void)
   ikbd_queue_fifo(bcd_sec);
 }
 
+static void ikbd_do_reset(void)
+{
+  ikbd_buttons = 0;
+  ikbd_mouse_enabled = 1;
+  ikbd_mouse_inverted = 0;
+  ikbd_joystick_enabled = 0;
+}
+
 static void ikbd_reset(void)
 {
   DEBUG("Reset %02x", ikbd_cmdbuf[0]);
+  ikbd_do_reset();
   if(ikbd_cmdbuf[0] == 0x01) {
     ikbd_queue_fifo(0xf1);
   }
@@ -224,13 +233,13 @@ static int ikbd_pop_fifo()
   BYTE tmp;
 
   if(ikbd_fifocnt == 0) return -1;
-  mfp_set_GPIP(MFP_GPIP_ACIA);
   tmp = ikbd_fifo[0];
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
   if(ikbd_fifocnt > 0) {
     ikbd_status |= 0x81;
-    mfp_clr_GPIP(MFP_GPIP_ACIA);
+  } else {
+    mfp_set_GPIP(MFP_GPIP_ACIA);
   }
   return tmp;
 }
@@ -447,6 +456,8 @@ void ikbd_init()
   ikbd->diagnostics = ikbd_diagnostics;
 
   mmu_register(ikbd);
+
+  ikbd_do_reset();
 }
 
 void ikbd_do_interrupts(struct cpu *cpu)

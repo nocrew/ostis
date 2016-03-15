@@ -5,6 +5,7 @@
 #include "mfp.h"
 #include "shifter.h"
 #include "ikbd.h"
+#include "acia.h"
 #include "psg.h"
 #include "dma.h"
 #include "fdc.h"
@@ -434,5 +435,6 @@ void mmu_do_interrupts(struct cpu *cpu)
   }
 
   fdc_do_interrupts(cpu);
+  ikbd_do_interrupt(cpu);
 }
 

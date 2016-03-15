@@ -9,6 +9,7 @@
 #include "mfp.h"
 #include "screen.h"
 #include "mmu.h"
+#include "ram.h"
 #include "state.h"
 #include "diag.h"
 
@@ -239,10 +240,10 @@ static int get_pixel_low(int videooffset, int pxlnum)
   static WORD d[4];
 
   if((curaddr+videooffset*2) != lastpos) {
-    d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
-    d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
-    d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
-    d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+    d[3] = ram_read_word(curaddr+videooffset*2+0);
+    d[2] = ram_read_word(curaddr+videooffset*2+2);
+    d[1] = ram_read_word(curaddr+videooffset*2+4);
+    d[0] = ram_read_word(curaddr+videooffset*2+6);
     lastpos = curaddr+videooffset*2;
   }
   
@@ -260,10 +261,10 @@ static int get_pixel_medium(int videooffset, int pxlnum)
   static WORD d[4];
 
   if((curaddr+videooffset) != lastpos) {
-    d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
-    d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
-    d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
-    d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+    d[3] = ram_read_word(curaddr+videooffset*2+0);
+    d[2] = ram_read_word(curaddr+videooffset*2+2);
+    d[1] = ram_read_word(curaddr+videooffset*2+4);
+    d[0] = ram_read_word(curaddr+videooffset*2+6);
     lastpos = curaddr+videooffset;
   }
 
@@ -292,10 +293,10 @@ static int get_pixel_high(int videooffset, int pxlnum)
   static WORD d[4];
 
   if((curaddr+videooffset) != lastpos) {
-    d[3] = mmu_read_word_print(curaddr+videooffset*2+0);
-    d[2] = mmu_read_word_print(curaddr+videooffset*2+2);
-    d[1] = mmu_read_word_print(curaddr+videooffset*2+4);
-    d[0] = mmu_read_word_print(curaddr+videooffset*2+6);
+    d[3] = ram_read_word(curaddr+videooffset*2+0);
+    d[2] = ram_read_word(curaddr+videooffset*2+2);
+    d[1] = ram_read_word(curaddr+videooffset*2+4);
+    d[0] = ram_read_word(curaddr+videooffset*2+6);
     lastpos = curaddr+videooffset;
   }
 

@@ -28,7 +28,7 @@ static BYTE ram_read_byte(LONG addr)
   return *(real(addr));
 }
 
-static WORD ram_read_word(LONG addr)
+WORD ram_read_word(LONG addr)
 {
   return (ram_read_byte(addr)<<8)|ram_read_byte(addr+1);
 }

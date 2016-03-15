@@ -137,6 +137,7 @@ static void mfp_write_byte(LONG addr, BYTE data)
   if((r != ISRA) && (r != ISRB)) {
     mfpreg[r] = data;
   } else {
+    TRACE("Clear ISR: %02x %02x", mfpreg[r], data);
     mfpreg[r] &= data;
   }
 }
@@ -376,6 +377,7 @@ static void mfp_set_ISR(int inum)
 {
   int t;
 
+  TRACE("Set ISR %d", inum);
   t = ISR|(1<<inum);
   mfpreg[ISRA] = (t>>8);
   mfpreg[ISRB] = (t&0xff);
@@ -385,6 +387,7 @@ static void mfp_clr_ISR(int inum)
 {
   int t;
 
+  TRACE("Clear ISR %d", inum);
   t = ISR&(~(1<<inum));
   mfpreg[ISRA] = (t>>8);
   mfpreg[ISRB] = (t&0xff);
@@ -401,6 +404,7 @@ static int mfp_higher_ISR(int inum)
 
 void mfp_set_pending(int inum)
 {
+  TRACE("Set pending %d", inum);
   if(!(IER & (1<<inum))) {
     return;
   }
@@ -442,6 +446,7 @@ static void mfp_do_interrupt(int inum)
   }
   mfp_clr_IPR(inum);
 
+  TRACE("Interrupt %d", vec);
   cpu_set_interrupt(IPL_MFP, vec);
 }
 

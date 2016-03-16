@@ -17,7 +17,7 @@ static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
 static uint64_t ikbd_next_interrupt_cycle = 0;
 static BYTE ikbd_buttons = 0;
-static BYTE ikbd_mouse_enabled = 1;
+static BYTE ikbd_mouse_enabled = 0;
 static int ikbd_mouse_inverted = 0;
 static int ikbd_absolute_x = 0;
 static int ikbd_absolute_y = 0;
@@ -136,6 +136,8 @@ static void ikbd_do_reset(void)
   ikbd_mouse_enabled = 1;
   ikbd_mouse_inverted = 0;
   ikbd_joystick_enabled = 0;
+  ikbd_fifocnt = 0;
+  ikbd_cmdcnt = 0;
 }
 
 static void ikbd_reset(void)
@@ -363,8 +365,6 @@ void ikbd_fire(int state)
 void ikbd_init()
 {
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(ikbd, "IKBD");
-
-  ikbd_do_reset();
 }
 
 void ikbd_do_interrupt(struct cpu *cpu)

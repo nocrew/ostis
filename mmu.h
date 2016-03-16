@@ -27,6 +27,7 @@ struct mmu {
   int (*state_collect)(struct mmu_state *);
   void (*state_restore)(struct mmu_state *);
   void (*diagnostics)();
+  void (*interrupt)(struct cpu *);
 };
 
 struct mmu_module {

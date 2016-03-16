@@ -31,6 +31,7 @@ static BYTE ikbd_cmdcnt = 0;
 static void (*ikbd_cmdfn)(void);
 
 static void ikbd_queue_fifo(BYTE data);
+static void ikbd_do_interrupts(struct cpu *cpu);
 
 HANDLE_DIAGNOSTICS(ikbd)
 
@@ -451,13 +452,14 @@ void ikbd_init()
   ikbd->state_collect = ikbd_state_collect;
   ikbd->state_restore = ikbd_state_restore;
   ikbd->diagnostics = ikbd_diagnostics;
+  ikbd->interrupt = ikbd_do_interrupts;
 
   mmu_register(ikbd);
 
   ikbd_do_reset();
 }
 
-void ikbd_do_interrupts(struct cpu *cpu)
+static void ikbd_do_interrupts(struct cpu *cpu)
 {
   if(cpu->cycle > ikbd_next_interrupt_cycle) {
     if(ikbd_control&0x80) {

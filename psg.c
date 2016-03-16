@@ -94,6 +94,7 @@ static int snd_fd;
 static int psg_running = 1;
 
 static void psg_audio_callback(void *, Uint8 *, int);
+static void psg_do_interrupts(struct cpu *cpu);
 
 HANDLE_DIAGNOSTICS(psg)
 
@@ -239,6 +240,7 @@ void psg_init()
   psg->state_collect = psg_state_collect;
   psg->state_restore = psg_state_restore;
   psg->diagnostics = psg_diagnostics;
+  psg->interrupt = psg_do_interrupts;
 
   mmu_register(psg);
 
@@ -434,7 +436,7 @@ static void psg_generate_samples()
   }
 }
 
-void psg_do_interrupts(struct cpu *cpu)
+static void psg_do_interrupts(struct cpu *cpu)
 {
   long tmpcpu;
   

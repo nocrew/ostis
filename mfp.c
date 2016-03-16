@@ -55,6 +55,8 @@ static long divider[8] = { 0, 4, 10, 16, 50, 64, 100, 200 };
 static BYTE mfpreg[24];
 static BYTE timercnt[4];
 
+static void mfp_do_interrupts(struct cpu *cpu);
+
 HANDLE_DIAGNOSTICS(mfp)
 
 static BYTE mfp_read_byte(LONG addr)
@@ -221,6 +223,7 @@ void mfp_init()
   mfp->state_collect = mfp_state_collect;
   mfp->state_restore = mfp_state_restore;
   mfp->diagnostics = mfp_diagnostics;
+  mfp->interrupt = mfp_do_interrupts;
 
   mmu_register(mfp);
 }
@@ -445,7 +448,7 @@ static void mfp_do_interrupt(int inum)
   cpu_set_interrupt(IPL_MFP, vec);
 }
 
-void mfp_do_interrupts(struct cpu *cpu)
+static void mfp_do_interrupts(struct cpu *cpu)
 {
   long mfpcycle;
   long tmpcpu;

@@ -424,10 +424,15 @@ void mmu_print_map()
 
 void mmu_do_interrupts(struct cpu *cpu)
 {
-  mfp_do_interrupts(cpu);
-  dma_do_interrupts(cpu);
+  int i;
+  struct mmu *module;
+
+  for(i=0;i<mmu_module_count;i++) {
+    module = mmu_module_by_id[i];
+    if(module->interrupt)
+      module->interrupt(cpu);
+  }
+
   fdc_do_interrupts(cpu);
-  ikbd_do_interrupts(cpu);
-  psg_do_interrupts(cpu);
 }
 

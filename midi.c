@@ -79,14 +79,9 @@ void midi_init()
 {
   struct mmu *midi;
 
-  midi = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!midi) {
-    return;
-  }
+  midi = mmu_create("MIDI", "MIDI");
   midi->start = MIDIBASE;
   midi->size = MIDISIZE;
-  midi->name = strdup("MIDI");
-  memcpy(midi->id, "MIDI", 4);
   midi->read_byte = midi_read_byte;
   midi->read_word = midi_read_word;
   midi->read_long = midi_read_long;

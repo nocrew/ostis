@@ -50,15 +50,10 @@ static void mmu_fallback_state_restore(struct mmu_state *state)
 static void mmu_fallback_register(char *name, LONG addr, int size)
 {
   struct mmu *mmu_fallback;
-  mmu_fallback = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!mmu_fallback) {
-    return;
-  }
+  mmu_fallback = mmu_create(name, "Fallback");
 
   mmu_fallback->start = addr;
   mmu_fallback->size = size;
-  memcpy(mmu_fallback->id, name, 4);
-  mmu_fallback->name = strdup(name);
   mmu_fallback->read_byte = mmu_fallback_read_byte;
   mmu_fallback->read_word = mmu_fallback_read_word;
   mmu_fallback->read_long = mmu_fallback_read_long;

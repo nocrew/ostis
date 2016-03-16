@@ -144,10 +144,8 @@ static struct mmu *mmu_bus_error_module()
 {
   struct mmu *bus_error;
 
-  bus_error = (struct mmu *)malloc(sizeof(struct mmu));
+  bus_error = mmu_create("BSER", "Bus error");
 
-  memcpy(bus_error->id, "BSER", 4);
-  bus_error->name = strdup("BSER");
   bus_error->read_byte = mmu_read_byte_bus_error;
   bus_error->read_word = mmu_read_word_bus_error;
   bus_error->read_long = mmu_read_long_bus_error;
@@ -161,10 +159,8 @@ static struct mmu *mmu_bus_error_module()
 static struct mmu *mmu_clone_module(struct mmu *module)
 {
   struct mmu *clone;
-  clone = (struct mmu *)malloc(sizeof(struct mmu));
+  clone = mmu_create(module->id, module->name);
 
-  memcpy(clone->id, "BSER", 4);
-  clone->name = strdup("BSER");
   clone->read_byte = module->read_byte;
   clone->read_word =  module->read_word;
   clone->read_long =  module->read_long;
@@ -371,6 +367,19 @@ void mmu_state_restore(struct mmu_state *state)
   }
 }
 
+struct mmu * mmu_create(const char *id, const char *name)
+{
+  struct mmu *device = malloc(sizeof(struct mmu));
+  if(device == NULL)
+    FATAL("Could not allocate device");
+
+  memset(device, 0, sizeof(struct mmu));
+  memcpy(device->id, id, sizeof device->id);
+  device->name = name;
+
+  return device;
+}
+
 void mmu_register(struct mmu *data)
 {
   extern void diagnostics_level(struct mmu *, int);
@@ -415,10 +424,15 @@ void mmu_print_map()
 
 void mmu_do_interrupts(struct cpu *cpu)
 {
-  mfp_do_interrupts(cpu);
-  dma_do_interrupts(cpu);
+  int i;
+  struct mmu *module;
+
+  for(i=0;i<mmu_module_count;i++) {
+    module = mmu_module_by_id[i];
+    if(module->interrupt)
+      module->interrupt(cpu);
+  }
+
   fdc_do_interrupts(cpu);
-  ikbd_do_interrupts(cpu);
-  psg_do_interrupts(cpu);
 }
 

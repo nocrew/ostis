@@ -648,15 +648,10 @@ void shifter_init()
 {
   struct mmu *shifter;
 
-  shifter = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!shifter) {
-    return;
-  }
+  shifter = mmu_create("SHFT", "Shifter");
   
   shifter->start = SHIFTERBASE;
   shifter->size = SHIFTERSIZE;
-  memcpy(shifter->id, "SHFT", 4);
-  shifter->name = strdup("Shifter");
   shifter->read_byte = shifter_read_byte;
   shifter->read_word = shifter_read_word;
   shifter->read_long = shifter_read_long;

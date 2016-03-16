@@ -29,7 +29,6 @@ static WORD dma_mode = 0;
 static BYTE dma_sector_reg = 0;
 static BYTE dma_status = 0;
 static int dma_direction = DMA_READ;
-static int dma_activate = 0;
 
 #define MODE_FDCS  ((~dma_mode)&(1<<3))
 #define MODE_HDCS  (dma_mode&(1<<3))
@@ -88,7 +87,6 @@ static void dma_reset(int new_direction)
 {
   dma_direction = new_direction;
   dma_sector_reg = 0;
-  dma_activate = 0;
   dma_status = STATUS_NO_ERROR | STATUS_SEC_ZERO | STATUS_NO_FDC_DRQ;
 }
 
@@ -179,7 +177,6 @@ void dma_write_word(LONG addr, WORD data)
     if(MODE_SEC) {
       TRACE("Setting dma_sector_reg == %d", data);
       dma_sector_reg = data;
-      dma_activate = 1;
     } else {
       if(MODE_HDCS) {
         if(MODE_HDC_CMDDATA) {
@@ -216,13 +213,6 @@ static void dma_state_restore(struct mmu_state *state)
 {
 }
 
-
-void dma_do_interrupts(struct cpu *cpu)
-{
-  if(dma_activate) {
-    dma_activate = 0;
-  }
-}
 
 void dma_init()
 {

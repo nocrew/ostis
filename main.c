@@ -10,6 +10,7 @@
 #include "cpu.h"
 #include "psg.h"
 #include "midi.h"
+#include "acia.h"
 #include "ikbd.h"
 #include "diag.h"
 #if INCLUDE_RTC
@@ -205,6 +206,7 @@ int main(int argc, char *argv[])
   }
   psg_init();
   midi_init();
+  acia_init();
   ikbd_init();
 #if INCLUDE_RTC
   rtc_init();

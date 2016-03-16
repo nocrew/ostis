@@ -439,14 +439,9 @@ void ikbd_init()
 {
   struct mmu *ikbd;
 
-  ikbd = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!ikbd) {
-    return;
-  }
+  ikbd = mmu_create("IKBD", "Intelligent keyboard");
   ikbd->start = IKBDBASE;
   ikbd->size = IKBDSIZE;
-  memcpy(ikbd->id, "IKBD", 4);
-  ikbd->name = strdup("IKBD");
   ikbd->read_byte = ikbd_read_byte;
   ikbd->read_word = ikbd_read_word;
   ikbd->read_long = ikbd_read_long;

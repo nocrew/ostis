@@ -218,15 +218,10 @@ void dma_init()
 {
   struct mmu *dma;
 
-  dma = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!dma) {
-    return;
-  }
+  dma = mmu_create("DMA0", "DMA");
 
   dma->start = DMABASE;
   dma->size = DMASIZE;
-  memcpy(dma->id, "DMA0", 4);
-  dma->name = strdup("DMA");
   dma->read_byte = dma_read_byte;
   dma->read_word = dma_read_word;
   dma->read_long = dma_read_long;

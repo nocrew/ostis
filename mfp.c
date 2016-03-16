@@ -208,15 +208,10 @@ void mfp_init()
 {
   struct mmu *mfp;
 
-  mfp = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!mfp) {
-    return;
-  }
+  mfp = mmu_create("MFP0", "MFP 68901");
 
   mfp->start = MFPBASE;
   mfp->size = MFPSIZE;
-  memcpy(mfp->id, "MFP0", 4);
-  mfp->name = strdup("MFP");
   mfp->read_byte = mfp_read_byte;
   mfp->read_word = mfp_read_word;
   mfp->read_long = mfp_read_long;

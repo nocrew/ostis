@@ -227,14 +227,9 @@ void psg_init()
   int i;
   struct mmu *psg;
 
-  psg = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!psg) {
-    return;
-  }
+  psg = mmu_create("PSG0", "Programmable Sound Generator");
   psg->start = PSGBASE;
   psg->size = PSGSIZE;
-  memcpy(psg->id, "PSG0", 4);
-  psg->name = strdup("PSG");
   psg->read_byte = psg_read_byte;
   psg->read_word = psg_read_word;
   psg->read_long = psg_read_long;

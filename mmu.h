@@ -14,7 +14,7 @@ struct mmu_state {
 struct mmu {
   struct mmu *next;
   char id[4];
-  char *name;
+  const char *name;
   LONG start;
   LONG size;
   int verbosity;
@@ -38,6 +38,7 @@ struct mmu_state *mmu_state_collect();
 void mmu_state_restore(struct mmu_state *);
 
 void mmu_init();
+struct mmu *mmu_create(const char *, const char *);
 void mmu_register(struct mmu *);
 void mmu_send_bus_error(int, LONG);
 void mmu_print_map();

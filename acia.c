@@ -1,3 +1,23 @@
+/*
+ * MC6805 ACIA	Connected to
+ *
+ * D0-D7	BUS:D0-D7
+ * E		CPU:E
+ * R/W		R/W
+ * CS0		GLUE:6850CS
+ * CS1		+5V
+ * CS2		BUS:A2
+ * RS		BUS:A1
+ * IRQ		MFP:I4
+ * TX CLK	0.5MHz
+ * RX CLK	0.5MHz
+ * TX DATA	IKBD
+ * RX DATA	IKBD
+ * CTS		GND
+ * RTS		-
+ * DCD		GND
+ */
+
 #include "common.h"
 #include "mmu.h"
 #include "mfp.h"

@@ -1,3 +1,50 @@
+/*
+ * MFP 68901	Connected to
+ *
+ * [CONTROL]
+ *  CLK		4MHz
+ *  RESET	RESET
+ *  VCC		+5V
+ *  GND		GND
+ * [BUS]
+ *  D0-D7	BUS:D0-D7
+ *  RS1-RS5	BUS A1-A5
+ *  CS		GLUE:MFPCS
+ *  R/W		R/W
+ *  DS		LDS
+ *  DTACK	DTACK
+ * [INTERRUPT CONTROL]
+ *  IRQ		GLUE:MFPINT
+ *  IEO		-
+ *  IEI		GND
+ *  IACK	IACK
+ * [TIMERS]
+ *  XTAL1	2.4576Hz
+ *  XTAL2	2.4576Hz
+ *  TAO		-
+ *  TAI		PARALLEL:BUSY
+ *  TBO		-
+ *  TBI		GLUE:DE
+ *  TCO		-
+ *  TDO		MFP:TC, MFP:RC
+ * [UART]
+ *  RR		-
+ *  SI		RS232:RD
+ *  RC		MFP:TD0
+ *  SO		RS232:SD
+ *  TC		MFP:TD0
+ *  TR		-
+ * [GPIP]
+ *  I0		PARALLEL:BUSY
+ *  I1		RS232:CD
+ *  I2		RS232:CS
+ *  I3		-
+ *  I4		ACIA:IRQ
+ *  I5		FDC:INTR, HDC:INT
+ *  I6		RS232:CI
+ *  I7		MONITOR:MONO
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

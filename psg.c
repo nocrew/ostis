@@ -1,3 +1,28 @@
+/*
+ * YM2149	Connected to
+ *
+ * DA0-DA7	BUS:D8-D15
+ * CLOCK	2MHz
+ * RESET	RESET
+ * A8		+5V
+ * A9		GND
+ * BDIR		?
+ * BC1		?
+ * BC2		+5V
+ * IOA0		FDC:SIDE SELECT
+ * IOA1		FDC:DRIVE 0 SELECT
+ * IOA2		FDC:DRIVE 1 SELECT
+ * IOA3		RS232:RS
+ * IOA4		RS232:ER
+ * IOA5		PARALLEL:STROBE
+ * IOA6		MONITOR:GPO
+ * IOA7		-
+ * IOB0-7	PARALLEL:D0-D7
+ * ANALOG A	AUDIO:OUT
+ * ANALOG B	AUDIO:OUT
+ * ANALOG C	AUDIO:OUT
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

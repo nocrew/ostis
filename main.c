@@ -22,6 +22,7 @@
 #include "mfp.h"
 #include "prefs.h"
 #include "shifter.h"
+#include "glue.h"
 #include "screen.h"
 #include "floppy.h"
 #include "debug/debug.h"
@@ -216,6 +217,7 @@ int main(int argc, char *argv[])
   hdc_init(prefs.hdimage);
   mfp_init();
   screen_disable(0);
+  glue_init();
   screen_init();
   shifter_init();
   if(debugger) {

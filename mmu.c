@@ -10,6 +10,7 @@
 #include "dma.h"
 #include "fdc.h"
 #include "mmu.h"
+#include "ram.h"
 #include "state.h"
 #include "diag.h"
 
@@ -403,4 +404,14 @@ void mmu_do_interrupts(struct cpu *cpu)
 
   fdc_do_interrupts(cpu);
   ikbd_do_interrupt(cpu);
+}
+
+void mmu_de(int enable)
+{
+  if(enable) {
+    TRACE("Display enable");
+    shifter_load(ram_read_word(0));
+  } else {
+    shifter_border();
+  }
 }

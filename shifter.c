@@ -12,6 +12,7 @@
 #include "ram.h"
 #include "state.h"
 #include "diag.h"
+#include "glue.h"
 
 #define SHIFTERSIZE 128
 #define SHIFTERBASE 0xff8200
@@ -444,6 +445,8 @@ static void shifter_set_resolution(BYTE data)
 
   if(ppmoutput || crop_screen)
     res.border = 0;
+
+  glue_set_resolution(data & 3);
 }
 
 static BYTE shifter_read_byte(LONG addr)
@@ -766,3 +769,12 @@ float shifter_fps()
   }
 }
 
+void shifter_load(WORD data)
+{
+  TRACE("Load %04x", data);
+}
+
+void shifter_border(void)
+{
+  TRACE("Border");
+}

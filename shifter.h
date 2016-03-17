@@ -29,5 +29,7 @@ int shifter_get_vsync();
 int shifter_framecnt(int);
 float shifter_fps();
 void shifter_force_gen_picture();
+void shifter_load(WORD);
+void shifter_border(void);
 
 #endif

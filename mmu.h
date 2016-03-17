@@ -55,7 +55,6 @@ void bus_write_long(LONG, LONG);
 
 extern int mmu_print_state;
 
-void mmu_scraddr(LONG);
 void mmu_de(int);
 void mmu_vsync(void);
 

@@ -14,8 +14,8 @@
 #include "diag.h"
 #include "glue.h"
 
-#define SHIFTERSIZE 128
-#define SHIFTERBASE 0xff8200
+#define SHIFTERSIZE 64
+#define SHIFTERBASE 0xff8240
 
 #define HBLSIZE 512
 #define HBLPRE 64
@@ -87,10 +87,6 @@ static long palette_g[16*2]; /* x2 for slightly different border col */
 static long palette_b[16*2]; /* x2 for slightly different border col */
 
 static WORD stpal[16];
-static LONG curaddr; /* Current address used for display */
-static LONG scraddr; /* Address for next VBL */
-static LONG scrptr;  /* Actual screen pointer, read only from emulator */
-static BYTE syncreg; /* 50/60Hz + Internal/External Sync flags */
 static BYTE resolution; /* Low, medium or high resolution. */
 static struct resolution_data res;
 
@@ -133,10 +129,6 @@ static void set_palette(int pnum, int value, int part)
   }
 }
 
-static void gen_scrptr(int rasterpos)
-{
-}
-
 static void shifter_set_resolution(BYTE data)
 {
   resolution = data;
@@ -152,21 +144,6 @@ static void shifter_set_resolution(BYTE data)
 static BYTE shifter_read_byte(LONG addr)
 {
   switch(addr) {
-  case 0xff8201:
-    return (scraddr&0xff0000)>>16;
-  case 0xff8203:
-    return (scraddr&0xff00)>>8;
-  case 0xff8205:
-    gen_scrptr(res.screen_cycles-vsynccnt);
-    return (scrptr&0xff0000)>>16;
-  case 0xff8207:
-    gen_scrptr(res.screen_cycles-vsynccnt);
-    return (scrptr&0xff00)>>8;
-  case 0xff8209:
-    gen_scrptr(res.screen_cycles-vsynccnt);
-    return scrptr&0xff;
-  case 0xff820a:
-    return syncreg;
   case 0xff8260:
     return resolution;
   default:
@@ -190,28 +167,7 @@ static WORD shifter_read_word(LONG addr)
 static void shifter_write_byte(LONG addr, BYTE data)
 {
   WORD tmp;
-
   switch(addr) {
-  case 0xff8201:
-    scraddr = (scraddr&0xff00)|(data<<16);
-    mmu_scraddr(scraddr);
-    return;
-  case 0xff8203:
-    scraddr = (scraddr&0xff0000)|(data<<8);
-    mmu_scraddr(scraddr);
-    return;
-  case 0xff820a:
-    if((res.screen_cycles-vsynccnt) < (res.hblsize*res.vblpre)) {
-      vblpre = res.vblpre-BORDERTOP;
-      vblscr = res.vblscr+BORDERTOP;
-    } else if((res.screen_cycles-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
-      if(vblscr != res.vblscr) {
-	vblscr = BORDERTOP;
-      }
-      vblscr = res.vblscr+BORDERBOTTOM;
-    }
-    syncreg = data;
-    return;
   case 0xff8260:
     shifter_set_resolution(data);
     return;
@@ -227,10 +183,8 @@ static void shifter_write_byte(LONG addr, BYTE data)
         stpal[(addr-0xff8240)>>1] = (tmp&0xff)|(data<<8);
 	set_palette((addr-0xff8240)>>1, data, 1);
       }
-      return;
-    } else {
-      return;
     }
+    return;
   }
 }
 
@@ -247,16 +201,12 @@ static int shifter_state_collect(struct mmu_state *state)
   /* Size:
    * 
    * stpal[16]   == 16*2
-   * curaddr     == 4
-   * scraddr     == 4
-   * scrptr      == 4
    * linenum     == 4
    * linecnt     == 4
    * vsynccnt    == 4
    * hsynccnt    == 4
    * lastcpucnt  == 4
    * resolution  == 1
-   * syncreg     == 1
    */
 
   state->size = 70;
@@ -267,16 +217,12 @@ static int shifter_state_collect(struct mmu_state *state)
   for(r=0;r<16;r++) {
     state_write_mem_word(&state->data[r*2], stpal[r]);
   }
-  state_write_mem_long(&state->data[16*2], curaddr);
-  state_write_mem_long(&state->data[16*2+4*1], scraddr);
-  state_write_mem_long(&state->data[16*2+4*2], scrptr);
   state_write_mem_long(&state->data[16*2+4*3], linenum);
   state_write_mem_long(&state->data[16*2+4*4], linecnt);
   state_write_mem_long(&state->data[16*2+4*5], vsynccnt);
   state_write_mem_long(&state->data[16*2+4*6], hsynccnt);
   state_write_mem_long(&state->data[16*2+4*8], lastcpucnt);
   state_write_mem_byte(&state->data[16*2+4*9], resolution);
-  state_write_mem_byte(&state->data[16*2+4*9+1], syncreg);
   
   return STATE_VALID;
 }
@@ -289,16 +235,12 @@ static void shifter_state_restore(struct mmu_state *state)
     set_palette(r, stpal[r]>>8, 1);
     set_palette(r, stpal[r], 2);
   }
-  curaddr = state_read_mem_long(&state->data[16*2]);
-  scraddr = state_read_mem_long(&state->data[16*2+4*1]);
-  scrptr = state_read_mem_long(&state->data[16*2+4*2]);
   linenum = state_read_mem_long(&state->data[16*2+4*3]);
   linecnt = state_read_mem_long(&state->data[16*2+4*4]);
   vsynccnt = state_read_mem_long(&state->data[16*2+4*5]);
   hsynccnt = state_read_mem_long(&state->data[16*2+4*6]);
   lastcpucnt = state_read_mem_long(&state->data[16*2+4*8]);
   resolution = state_read_mem_byte(&state->data[16*2+4*9]);
-  syncreg = state_read_mem_byte(&state->data[16*2+4*9+1]);
 }
 
 void shifter_build_ppm()
@@ -381,7 +323,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(vsynccnt < 0) {
     vblpre = res.vblpre;
     vblscr = res.vblscr;
-    scrptr = curaddr = scraddr;
     vsynccnt += res.screen_cycles;
     linenum = 0;
     hsynccnt += res.hblsize;

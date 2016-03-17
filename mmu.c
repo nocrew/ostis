@@ -20,6 +20,9 @@
 #include "state.h"
 #include "diag.h"
 
+#define MMUSIZE 64
+#define MMUBASE 0xff8200
+
 /* Used to prevent extra cycle counts when reading from memory for the only purpose of printing the value */
 int mmu_print_state = 0;
 
@@ -28,8 +31,9 @@ static uint8_t mmu_module_count = 0;
 static struct mmu *mmu_module_by_id[256];
 static uint8_t bus_error_id;
 static uint8_t bus_error_odd_addr_id;
-static LONG scradr = 0;
-static LONG curadr = 0;
+static LONG scraddr = 0;
+static LONG scrptr = 0;
+static BYTE syncreg;
 
 #define MEM_READ(size, addr) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->read_##size(addr&0xffffff)
 #define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->write_##size(addr&0xffffff, data)
@@ -194,13 +198,58 @@ static void mmu_populate_functions(struct mmu *module)
   }
 }
 
+static BYTE mmu_read_byte(LONG addr)
+{
+  switch(addr) {
+  case 0xff8201:
+    return (scraddr&0xff0000)>>16;
+  case 0xff8203:
+    return (scraddr&0xff00)>>8;
+  case 0xff8205:
+    return (scrptr&0xff0000)>>16;
+  case 0xff8207:
+    return (scrptr&0xff00)>>8;
+  case 0xff8209:
+    return scrptr&0xff;
+  case 0xff820a:
+    return syncreg;
+  default:
+    return 0;
+  }
+}
+
+static WORD mmu_read_word(LONG addr)
+{
+  return (mmu_read_byte(addr)<<8)|mmu_read_byte(addr+1);
+}
+
+static void mmu_write_byte(LONG addr, BYTE data)
+{
+  switch(addr) {
+  case 0xff8201:
+    scraddr = (scraddr&0xff00)|(data<<16);
+    return;
+  case 0xff8203:
+    scraddr = (scraddr&0xff0000)|(data<<8);
+    return;
+  case 0xff820a:
+    syncreg = data;
+    return;
+  }
+}
+
+static void mmu_write_word(LONG addr, WORD data)
+{
+  mmu_write_byte(addr, (data&0xff00)>>8);
+  mmu_write_byte(addr+1, (data&0xff));
+}
+
 void mmu_init()
 {
   int i;
+  struct mmu *mmu;
   struct mmu *bus_error_module;
   struct mmu *bus_error_module_odd_addr;
-
-  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(mmu, "MMUn");
 
   bus_error_module = mmu_bus_error_module();
   bus_error_id = mmu_get_module_id(bus_error_module);
@@ -217,6 +266,16 @@ void mmu_init()
       mmu_module_at_addr[i] = bus_error_id;
     }
   }
+
+  mmu = mmu_create("MMU0", "Memory Controller");
+  mmu->start = MMUBASE;
+  mmu->size = MMUSIZE;
+  mmu->read_byte = mmu_read_byte;
+  mmu->read_word = mmu_read_word;
+  mmu->write_byte = mmu_write_byte;
+  mmu->write_word = mmu_write_word;
+  mmu->diagnostics = mmu_diagnostics;
+  mmu_register(mmu);
 }
 
 
@@ -414,18 +473,12 @@ void mmu_do_interrupts(struct cpu *cpu)
   ikbd_do_interrupt(cpu);
 }
 
-void mmu_scraddr(LONG a)
-{
-  scradr = a;
-}
-
-
 void mmu_de(int enable)
 {
   if(enable) {
     TRACE("Display enable");
-    shifter_load(ram_read_word(curadr));
-    curadr += 2;
+    shifter_load(ram_read_word(scrptr));
+    scrptr += 2;
   } else {
     shifter_border();
   }
@@ -433,5 +486,5 @@ void mmu_de(int enable)
 
 void mmu_vsync(void)
 {
-  curadr = scradr;
+  scrptr = scraddr;
 }

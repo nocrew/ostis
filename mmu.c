@@ -486,5 +486,6 @@ void mmu_de(int enable)
 
 void mmu_vsync(void)
 {
+  DEBUG("Vsync");
   scrptr = scraddr;
 }

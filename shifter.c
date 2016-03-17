@@ -29,6 +29,9 @@
 
 static void shifter_draw_low(WORD *);
 static void shifter_draw_medium(WORD *);
+static void shifter_draw_high(WORD *);
+static void shifter_border_low(void);
+static void shifter_border_high(void);
 
 static struct resolution_data res_data[] = {
   {
@@ -43,7 +46,8 @@ static struct resolution_data res_data[] = {
     .vblsize = VBLSIZE,
     .vblpre = VBLPRE,
     .vblscr = VBLSCR,
-    .voff_shift = 1,
+    .voff_shift = 0,
+    .border = shifter_border_low
   },
   {
     // Medium resolution
@@ -57,10 +61,13 @@ static struct resolution_data res_data[] = {
     .vblsize = VBLSIZE,
     .vblpre = VBLPRE,
     .vblscr = VBLSCR,
-    .voff_shift = 1,
+    .voff_shift = 0,
+    .border = shifter_border_low
   },
   {
     // High resolution
+    .draw = shifter_draw_high,
+    .bitplanes = 1,
     .screen_cycles = 224*501,
     .hblsize = 224,
     .hblpre = 30,
@@ -69,7 +76,8 @@ static struct resolution_data res_data[] = {
     .vblsize = 501,
     .vblpre = 50,
     .vblscr = 400,
-    .voff_shift = 2,
+    .voff_shift = 1,
+    .border = shifter_border_high
   },
   {
     // Whoops, bad resolution
@@ -89,10 +97,13 @@ static long vsynccnt = 0; /* 160256 cycles in one screen */
 static long hsynccnt; /* Offset for first hbl interrupt */
 static long lastcpucnt;
 static int rasterpos; /* Position on the screen. */
+static int plane = 0;
+static int border_r=0, border_g=0, border_b=0;
+static int brighter = 0x1f;
 
-static long palette_r[16*2]; /* x2 for slightly different border col */
-static long palette_g[16*2]; /* x2 for slightly different border col */
-static long palette_b[16*2]; /* x2 for slightly different border col */
+static long palette_r[16];
+static long palette_g[16];
+static long palette_b[16];
 
 static WORD stpal[16];
 static BYTE resolution; /* Low, medium or high resolution. */
@@ -122,15 +133,12 @@ static void set_palette(int pnum, int value, int part)
   case 1: /* Low byte, only Red */
     c = (value&0x7)<<5;
     palette_r[pnum] = c;
-    palette_r[pnum+16] = c|0x1f; /* Brighter for border */
     break;
   case 2: /* High byte, only Green and Blue */
     c = (value&0x7)<<5;
     palette_b[pnum] = c;
-    palette_b[pnum+16] = c|0x1f; /* Brighter for border */
     c = (value&0x70)<<1;
     palette_g[pnum] = c;
-    palette_g[pnum+16] = c|0x1f; /* Brighter for border */
     break;
   default: /* Currently unused */
     break;
@@ -139,13 +147,12 @@ static void set_palette(int pnum, int value, int part)
 
 static void shifter_set_resolution(BYTE data)
 {
+  DEBUG("Resolution %d", data);
+  rasterpos = 0;
+  plane = 0;
   resolution = data;
-
   res = res_data[data&3];
-
-  if(ppmoutput || crop_screen)
-    res.border = 0;
-
+  res.border();
   glue_set_resolution(data & 3);
 }
 
@@ -191,6 +198,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
         stpal[(addr-0xff8240)>>1] = (tmp&0xff)|(data<<8);
 	set_palette((addr-0xff8240)>>1, data, 1);
       }
+      res.border();
     }
     return;
   }
@@ -292,6 +300,8 @@ void shifter_init()
   shifter->diagnostics = shifter_diagnostics;
 
   shifter_set_resolution(0);
+  if(ppmoutput || crop_screen)
+    brighter = 0;
 
   linecnt = res.hblsize+432; /* Cycle count per line, for timer-b event */
   hsynccnt = res.hblsize+16; /* Offset for first hbl interrupt */
@@ -448,18 +458,41 @@ static void shifter_draw_medium(WORD *data)
   }
 }
 
+static void shifter_draw_high(WORD *data)
+{
+  int i, c;
+
+  for (i = 0; i < 16; i++) {
+    c = (shift_out(data) ? border_r : ~border_r);
+    rgbimage[rasterpos++] = c;
+    rgbimage[rasterpos++] = c;
+    rgbimage[rasterpos++] = c;
+  }
+}
+
 void shifter_load(WORD data)
 {
   static WORD reg[4];
-  static int i = 0;
   TRACE("Load %04x", data);
 
-  reg[res.bitplanes-1-i] = data;
-  i++;
-  if(i == res.bitplanes) {
-    i = 0;
+  reg[res.bitplanes-1-plane] = data;
+  plane++;
+  if(plane == res.bitplanes) {
+    plane = 0;
     res.draw(reg);
   }
+}
+
+static void shifter_border_low(void)
+{
+  border_r = palette_r[0]|brighter;
+  border_g = palette_g[0]|brighter;
+  border_b = palette_b[0]|brighter;
+}
+
+static void shifter_border_high(void)
+{
+  border_r = border_g = border_b = ((stpal[0] & 1) ? 0 : 0xff);
 }
 
 void shifter_border(void)
@@ -468,12 +501,12 @@ void shifter_border(void)
 
   TRACE("Border");
 
-  for(i = 0; i < 8; i++) {
-    rgbimage[rasterpos++] = 0xff;
-    rgbimage[rasterpos++] = 0xff;
-    rgbimage[rasterpos++] = 0xff;
+  for(i = 0; i < (8 << res.voff_shift); i++) {
+    rgbimage[rasterpos++] = border_r;
+    rgbimage[rasterpos++] = border_g;
+    rgbimage[rasterpos++] = border_b;
   }
 
-  if(rasterpos >= 6*res.screen_cycles)
+  if(rasterpos >= (6*res.screen_cycles << res.voff_shift))
     rasterpos = 0;
 }

@@ -15,7 +15,7 @@ struct resolution_data {
   long vblpre;
   long vblscr;
   int voff_shift;
-  int border;
+  void (*border)(void);
 };
 
 void shifter_init();

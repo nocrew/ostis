@@ -135,7 +135,7 @@ int floppy_read_address(LONG addr)
 
 BYTE *floppy_allocate_memory()
 {
-  return malloc(86 * 2 * 7000); /* Should be large enough to cover all floppy data */
+  return xmalloc(86 * 2 * 7000); /* Should be large enough to cover all floppy data */
 }
 
 static int dummy_read_sector(struct floppy *fl, int track, int side, int sector, LONG addr, int count)

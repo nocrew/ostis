@@ -220,7 +220,7 @@ static int mfp_state_collect(struct mmu_state *state)
    */
 
   state->size = 48;
-  state->data = (char *)malloc(state->size);
+  state->data = (char *)xmalloc(state->size);
   if(state->data == NULL) {
     return STATE_INVALID;
   }

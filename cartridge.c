@@ -52,7 +52,7 @@ void cartridge_init(char *filename)
   FILE *fp;
   int file_size = 0;
 
-  memory = (BYTE *)malloc(sizeof(BYTE) * CARTRIDGESIZE);
+  memory = (BYTE *)xmalloc(sizeof(BYTE) * CARTRIDGESIZE);
   if(!memory) {
     return;
   }

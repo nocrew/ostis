@@ -224,7 +224,6 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   default:
     break;
   }
-  shifter_build_image(0);
   screen_swap(DEBUG_INDICATE_RASTERPOS);
   display_swap_screen();
   return 0;

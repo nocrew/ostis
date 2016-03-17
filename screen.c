@@ -159,23 +159,6 @@ void screen_copyimage(unsigned char *src)
 
 void screen_clear()
 {
-  int i;
-  unsigned char *p;
-
-  p = screen->pixels;
-
-  for(i=0;i<512*314;i++) {
-    if((((i/512)&1) && (i&1)) ||
-       (!((i/512)&1) && !(i&1)))
-      p[i*3+0] = p[i*3+1] = p[i*3+2] = 0;
-    else {
-      if(shifter_on_display(i)) {
-	p[i*3+0] = p[i*3+1] = p[i*3+2] = 0xf0;
-      } else {
-	p[i*3+0] = p[i*3+1] = p[i*3+2] = 0xff;
-      }
-    }
-  }
 }
 
 void screen_swap(int indicate_rasterpos)

@@ -336,7 +336,7 @@ struct mmu_state *mmu_state_collect()
   for(i=0; i<mmu_module_count; i++) {
     module = mmu_module_by_id[i];
     if(module->state_collect != NULL) {
-      new = (struct mmu_state *)xmalloc(sizeof(struct mmu_state));
+      new = (struct mmu_state *)malloc(sizeof(struct mmu_state));
       if(new != NULL) {
 	strncpy(new->id, module->id, 4);
 	if(module->state_collect(new) == STATE_VALID) {
@@ -370,7 +370,7 @@ void mmu_state_restore(struct mmu_state *state)
 
 struct mmu * mmu_create(const char *id, const char *name)
 {
-  struct mmu *device = xmalloc(sizeof(struct mmu));
+  struct mmu *device = malloc(sizeof(struct mmu));
   if(device == NULL)
     FATAL("Could not allocate device");
 

@@ -54,13 +54,13 @@ static int rom_state_collect(struct mmu_state *state)
 {
   if(!strcmp("ROM0", state->id)) {
     state->size = ROMSIZE;
-    state->data = (char *)xmalloc(state->size);
+    state->data = (char *)malloc(state->size);
     if(state->data == NULL)
       return STATE_INVALID;
     memcpy(state->data, memory, state->size);
   } else {
     state->size = ROMSIZE2;
-    state->data = (char *)xmalloc(state->size);
+    state->data = (char *)malloc(state->size);
     if(state->data == NULL)
       return STATE_INVALID;
     memcpy(state->data, memory2, state->size);
@@ -106,7 +106,7 @@ void rom_init()
     FATAL("Unknown ROM image format");
   }
 
-  memory = (BYTE *)xmalloc(sizeof(BYTE) * ROMSIZE);
+  memory = (BYTE *)malloc(sizeof(BYTE) * ROMSIZE);
   if(!memory) {
     return;
   }
@@ -128,7 +128,7 @@ void rom_init()
   }
   fclose(f);
   
-  memory2 = (BYTE *)xmalloc(sizeof(BYTE) * ROMSIZE2);
+  memory2 = (BYTE *)malloc(sizeof(BYTE) * ROMSIZE2);
   if(!memory2) {
     return;
   }

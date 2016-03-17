@@ -63,7 +63,7 @@ static void ram_write_long(LONG addr, LONG data)
 static int ram_state_collect(struct mmu_state *state)
 {
   state->size = RAM_PHYSMAX+1-RAMBASE;
-  state->data = (char *)xmalloc(state->size);
+  state->data = (char *)malloc(state->size);
   if(state->data == NULL)
     return STATE_INVALID;
   memcpy(state->data, memory, state->size);
@@ -104,7 +104,7 @@ void ram_init()
 {
   struct mmu *ram,*cfg;
 
-  memory = (BYTE *)xmalloc(sizeof(BYTE) * RAMSIZE);
+  memory = (BYTE *)malloc(sizeof(BYTE) * RAMSIZE);
   if(!memory) {
     return;
   }

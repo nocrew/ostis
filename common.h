@@ -50,8 +50,5 @@ extern int crop_screen;
 extern char *testcase_name;
 #endif
 
-extern void *xmalloc(size_t);
-extern char *xstrdup(char *);
-
 #endif
 

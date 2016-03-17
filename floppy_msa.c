@@ -64,7 +64,7 @@ static void load_file(struct floppy *fl, FILE *fp)
 
   track_size = fl->sectors * SECSIZE;
   
-  track_data = xmalloc(track_size);
+  track_data = malloc(track_size);
   if(track_data == NULL) {
     ERROR("Unable to allocate track space");
     return;

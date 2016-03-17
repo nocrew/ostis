@@ -28,7 +28,7 @@ static void add_module(char *module_str)
 {
   struct diag_module *new;
   char *tmp;
-  new = (struct diag_module *)malloc(sizeof(struct diag_module));
+  new = (struct diag_module *)xmalloc(sizeof(struct diag_module));
 
   if(!module_str || module_str[0] == '\0') return;
   
@@ -65,7 +65,7 @@ void diag_set_module_levels(char *defstr)
   if(!defstr || defstr[0] == '\0') {
     return;
   }
-  str = strdup(defstr);
+  str = xstrdup(defstr);
   
   while(1) {
     tmp = strchr(str, ',');

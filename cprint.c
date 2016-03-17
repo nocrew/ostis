@@ -10,7 +10,7 @@ struct cprint *cprint_alloc(LONG addr)
 {
   struct cprint *ret;
 
-  ret = (struct cprint *)malloc(sizeof(struct cprint));
+  ret = (struct cprint *)xmalloc(sizeof(struct cprint));
   ret->addr = addr;
   ret->instr[0] = '\0';
   ret->data[0] = '\0';
@@ -59,13 +59,13 @@ void cprint_set_label(LONG addr, char *name)
     if(tmp && !strcmp(tmp, tname)) return;
   }
 
-  new = (struct cprint_label *)malloc(sizeof(struct cprint_label));
+  new = (struct cprint_label *)xmalloc(sizeof(struct cprint_label));
   new->addr = addr&0xffffff;
   if(name) {
     new->name = name;
     new->named = 1;
   } else {
-    new->name = (char *)malloc(10);
+    new->name = (char *)xmalloc(10);
     sprintf(new->name, "L_%x", addr&0xffffff);
     new->named = 0;
   }
@@ -157,7 +157,7 @@ void cprint_load_labels(char *file)
   while(!feof(f)) {
     if(fscanf(f, "%14s %08X\n", name, &addr) != 2)
       WARNING(fscanf);
-    cprint_set_label(addr, strdup(name));
+    cprint_set_label(addr, xstrdup(name));
   }
   
   fclose(f);

@@ -1,3 +1,23 @@
+/*
+ * MC6805 ACIA	Connected to
+ *
+ * D0-D7	BUS:D0-D7
+ * E		CPU:E
+ * R/W		R/W
+ * CS0		GLUE:6850CS
+ * CS1		+5V
+ * CS2		BUS:A2
+ * RS		BUS:A1
+ * IRQ		MFP:I4
+ * TX CLK	0.5MHz
+ * RX CLK	0.5MHz
+ * TX DATA	MIDI OUT
+ * RX DATA	MIDI IN
+ * CTS		GND
+ * RTS		-
+ * DCD		GND
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include "common.h"
@@ -79,14 +99,9 @@ void midi_init()
 {
   struct mmu *midi;
 
-  midi = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!midi) {
-    return;
-  }
+  midi = mmu_create("MIDI", "MIDI");
   midi->start = MIDIBASE;
   midi->size = MIDISIZE;
-  midi->name = strdup("MIDI");
-  memcpy(midi->id, "MIDI", 4);
   midi->read_byte = midi_read_byte;
   midi->read_word = midi_read_word;
   midi->read_long = midi_read_long;

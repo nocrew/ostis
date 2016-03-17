@@ -56,22 +56,13 @@ void cartridge_init(char *filename)
   if(!memory) {
     return;
   }
-  cartridge = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!cartridge) {
-    free(memory);
-    return;
-  }
+  cartridge = mmu_create("CART", "Cartridge");
 
   cartridge->start = CARTRIDGEBASE;
   cartridge->size = CARTRIDGESIZE;
-  memcpy(cartridge->id, "CART", 4);
-  cartridge->name = strdup("Cartridge");
   cartridge->read_byte = cartridge_read_byte;
   cartridge->read_word = cartridge_read_word;
   cartridge->read_long = cartridge_read_long;
-  cartridge->write_byte = NULL;
-  cartridge->write_word = NULL;
-  cartridge->write_long = NULL;
   cartridge->state_collect = cartridge_state_collect;
   cartridge->state_restore = cartridge_state_restore;
   cartridge->diagnostics = cartridge_diagnostics;

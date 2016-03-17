@@ -60,14 +60,12 @@ void rtc_init()
 {
   struct mmu *rtc;
 
-  rtc = (struct mmu *)malloc(sizeof(struct mmu));
+  rtc = mmu_create("RTC0", "Real-Time Clock");
   if(!rtc) {
     return;
   }
   rtc->start = RTCBASE;
   rtc->size = RTCSIZE;
-  memcpy(rtc->id, "RTC0", 4);
-  rtc->name = strdup("RTC");
   rtc->read_byte = rtc_read_byte;
   rtc->read_word = rtc_read_word;
   rtc->read_long = rtc_read_long;

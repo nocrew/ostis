@@ -110,22 +110,13 @@ void rom_init()
   if(!memory) {
     return;
   }
-  rom = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!rom) {
-    free(memory);
-    return;
-  }
+  rom = mmu_create("ROM0", "ROM");
   
   rom->start = ROMBASE;
   rom->size = ROMSIZE;
-  memcpy(rom->id, "ROM0", 4);
-  rom->name = strdup("ROM");
   rom->read_byte = rom_read_byte;
   rom->read_word = rom_read_word;
   rom->read_long = rom_read_long;
-  rom->write_byte = NULL;
-  rom->write_word = NULL;
-  rom->write_long = NULL;
   rom->state_collect = rom_state_collect;
   rom->state_restore = rom_state_restore;
   rom->diagnostics = rom_diagnostics;
@@ -141,24 +132,15 @@ void rom_init()
   if(!memory2) {
     return;
   }
-  rom2 = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!rom2) {
-    free(memory2);
-    return;
-  }
+  rom2 = mmu_create("ROM1", "First 8 bytes of memory");
 
   memcpy(memory2, memory, ROMSIZE2);
 
   rom2->start = ROMBASE2; /* First 8 bytes of memory is ROM */
   rom2->size = ROMSIZE2;
-  memcpy(rom2->id, "ROM1", 4);
-  rom2->name = strdup("First 8 bytes of memory");
   rom2->read_byte = rom_read_byte;
   rom2->read_word = rom_read_word;
   rom2->read_long = rom_read_long;
-  rom2->write_byte = NULL;
-  rom2->write_word = NULL;
-  rom2->write_long = NULL;
   rom2->state_collect = rom_state_collect;
   rom2->state_restore = rom_state_restore;
   rom2->diagnostics = rom_diagnostics;

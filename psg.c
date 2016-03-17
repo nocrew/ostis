@@ -1,3 +1,28 @@
+/*
+ * YM2149	Connected to
+ *
+ * DA0-DA7	BUS:D8-D15
+ * CLOCK	2MHz
+ * RESET	RESET
+ * A8		+5V
+ * A9		GND
+ * BDIR		?
+ * BC1		?
+ * BC2		+5V
+ * IOA0		FDC:SIDE SELECT
+ * IOA1		FDC:DRIVE 0 SELECT
+ * IOA2		FDC:DRIVE 1 SELECT
+ * IOA3		RS232:RS
+ * IOA4		RS232:ER
+ * IOA5		PARALLEL:STROBE
+ * IOA6		MONITOR:GPO
+ * IOA7		-
+ * IOB0-7	PARALLEL:D0-D7
+ * ANALOG A	AUDIO:OUT
+ * ANALOG B	AUDIO:OUT
+ * ANALOG C	AUDIO:OUT
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,6 +119,7 @@ static int snd_fd;
 static int psg_running = 1;
 
 static void psg_audio_callback(void *, Uint8 *, int);
+static void psg_do_interrupts(struct cpu *cpu);
 
 HANDLE_DIAGNOSTICS(psg)
 
@@ -227,14 +253,9 @@ void psg_init()
   int i;
   struct mmu *psg;
 
-  psg = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!psg) {
-    return;
-  }
+  psg = mmu_create("PSG0", "Programmable Sound Generator");
   psg->start = PSGBASE;
   psg->size = PSGSIZE;
-  memcpy(psg->id, "PSG0", 4);
-  psg->name = strdup("PSG");
   psg->read_byte = psg_read_byte;
   psg->read_word = psg_read_word;
   psg->read_long = psg_read_long;
@@ -244,6 +265,7 @@ void psg_init()
   psg->state_collect = psg_state_collect;
   psg->state_restore = psg_state_restore;
   psg->diagnostics = psg_diagnostics;
+  psg->interrupt = psg_do_interrupts;
 
   mmu_register(psg);
 
@@ -439,7 +461,7 @@ static void psg_generate_samples()
   }
 }
 
-void psg_do_interrupts(struct cpu *cpu)
+static void psg_do_interrupts(struct cpu *cpu)
 {
   long tmpcpu;
   

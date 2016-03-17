@@ -108,15 +108,9 @@ void ram_init()
   if(!memory) {
     return;
   }
-  ram = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!ram) {
-    free(memory);
-    return;
-  }
+  ram = mmu_create("RAM0", "RAM");
   ram->start = RAMBASE;
   ram->size = RAMSIZE;
-  memcpy(ram->id, "RAM0", 4);
-  ram->name = strdup("RAM");
   ram->read_byte = ram_read_byte;
   ram->read_word = ram_read_word;
   ram->read_long = ram_read_long;
@@ -129,19 +123,11 @@ void ram_init()
 
   mmu_register(ram);
 
-  cfg = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!cfg) {
-    return;
-  }
+  cfg = mmu_create("CFG0", "RAM Configuration");
   cfg->start = RAMCFGBASE;
   cfg->size = RAMCFGSIZE;
-  cfg->name = strdup("RAM Configuration");
   cfg->read_byte = ramcfg_read_byte;
-  cfg->read_word = NULL;
-  cfg->read_long = NULL;
   cfg->write_byte = ramcfg_write_byte;
-  cfg->write_word = NULL;
-  cfg->write_long = NULL;
   cfg->diagnostics = cfg_diagnostics;
 
   mmu_register(cfg);

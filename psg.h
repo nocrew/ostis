@@ -5,6 +5,5 @@
 
 void psg_init();
 void psg_print_status();
-void psg_do_interrupts(struct cpu *);
 
 #endif

@@ -1,3 +1,50 @@
+/*
+ * MFP 68901	Connected to
+ *
+ * [CONTROL]
+ *  CLK		4MHz
+ *  RESET	RESET
+ *  VCC		+5V
+ *  GND		GND
+ * [BUS]
+ *  D0-D7	BUS:D0-D7
+ *  RS1-RS5	BUS A1-A5
+ *  CS		GLUE:MFPCS
+ *  R/W		R/W
+ *  DS		LDS
+ *  DTACK	DTACK
+ * [INTERRUPT CONTROL]
+ *  IRQ		GLUE:MFPINT
+ *  IEO		-
+ *  IEI		GND
+ *  IACK	IACK
+ * [TIMERS]
+ *  XTAL1	2.4576Hz
+ *  XTAL2	2.4576Hz
+ *  TAO		-
+ *  TAI		PARALLEL:BUSY
+ *  TBO		-
+ *  TBI		GLUE:DE
+ *  TCO		-
+ *  TDO		MFP:TC, MFP:RC
+ * [UART]
+ *  RR		-
+ *  SI		RS232:RD
+ *  RC		MFP:TD0
+ *  SO		RS232:SD
+ *  TC		MFP:TD0
+ *  TR		-
+ * [GPIP]
+ *  I0		PARALLEL:BUSY
+ *  I1		RS232:CD
+ *  I2		RS232:CS
+ *  I3		-
+ *  I4		ACIA:IRQ
+ *  I5		FDC:INTR, HDC:INT
+ *  I6		RS232:CI
+ *  I7		MONITOR:MONO
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -54,6 +101,8 @@ static int intnum[4] = { INT_TIMERA, INT_TIMERB, INT_TIMERC, INT_TIMERD };
 static long divider[8] = { 0, 4, 10, 16, 50, 64, 100, 200 };
 static BYTE mfpreg[24];
 static BYTE timercnt[4];
+
+static void mfp_do_interrupts(struct cpu *cpu);
 
 HANDLE_DIAGNOSTICS(mfp)
 
@@ -208,15 +257,10 @@ void mfp_init()
 {
   struct mmu *mfp;
 
-  mfp = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!mfp) {
-    return;
-  }
+  mfp = mmu_create("MFP0", "MFP 68901");
 
   mfp->start = MFPBASE;
   mfp->size = MFPSIZE;
-  memcpy(mfp->id, "MFP0", 4);
-  mfp->name = strdup("MFP");
   mfp->read_byte = mfp_read_byte;
   mfp->read_word = mfp_read_word;
   mfp->read_long = mfp_read_long;
@@ -226,6 +270,7 @@ void mfp_init()
   mfp->state_collect = mfp_state_collect;
   mfp->state_restore = mfp_state_restore;
   mfp->diagnostics = mfp_diagnostics;
+  mfp->interrupt = mfp_do_interrupts;
 
   mmu_register(mfp);
 }
@@ -306,11 +351,6 @@ static void update_timer(int tnum, long cycles)
       }
     }
   }
-}
-
-BYTE mfp_get_ISRB()
-{
-  return mfpreg[ISRB];
 }
 
 static int mfp_get_GPIP(int bnum)
@@ -450,7 +490,7 @@ static void mfp_do_interrupt(int inum)
   cpu_set_interrupt(IPL_MFP, vec);
 }
 
-void mfp_do_interrupts(struct cpu *cpu)
+static void mfp_do_interrupts(struct cpu *cpu)
 {
   long mfpcycle;
   long tmpcpu;

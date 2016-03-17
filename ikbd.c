@@ -6,22 +6,18 @@
 #include "event.h"
 #include "mmu.h"
 #include "mfp.h"
+#include "acia.h"
 #include "state.h"
 #include "diag.h"
 
-#define IKBDSIZE 4
-#define IKBDBASE 0xfffc00
-
 #define IKBDFIFO 32
-#define IKBD_INTINTERVAL 1024
+#define IKBD_INTINTERVAL 10000
 
-static BYTE ikbd_control;
-static BYTE ikbd_status = 0x2; /* Always ready */
 static BYTE ikbd_fifo[IKBDFIFO];
 static int ikbd_fifocnt = 0;
 static uint64_t ikbd_next_interrupt_cycle = 0;
 static BYTE ikbd_buttons = 0;
-static BYTE ikbd_mouse_enabled = 1;
+static BYTE ikbd_mouse_enabled = 0;
 static int ikbd_mouse_inverted = 0;
 static int ikbd_absolute_x = 0;
 static int ikbd_absolute_y = 0;
@@ -31,20 +27,14 @@ static BYTE ikbd_cmdcnt = 0;
 static void (*ikbd_cmdfn)(void);
 
 static void ikbd_queue_fifo(BYTE data);
+static void ikbd_do_interrupts(struct cpu *cpu);
 
 HANDLE_DIAGNOSTICS(ikbd)
-
-int ikbd_get_fifocnt()
-{
-  return ikbd_fifocnt;
-}
 
 void ikbd_print_status()
 {
   int i;
   printf("IKBD:\n");
-  printf("Status: %02x\n", ikbd_status);
-  printf("Control: %02x\n", ikbd_control);
   printf("Next interrupt cycle: %lld\n", (long long)ikbd_next_interrupt_cycle);
   printf("FIFO count: %d\n", ikbd_fifocnt);
   printf("FIFO:\n");
@@ -146,6 +136,8 @@ static void ikbd_do_reset(void)
   ikbd_mouse_enabled = 1;
   ikbd_mouse_inverted = 0;
   ikbd_joystick_enabled = 0;
+  ikbd_fifocnt = 0;
+  ikbd_cmdcnt = 0;
 }
 
 static void ikbd_reset(void)
@@ -237,94 +229,35 @@ static int ikbd_pop_fifo()
   tmp = ikbd_fifo[0];
   memmove(&ikbd_fifo[0], &ikbd_fifo[1], IKBDFIFO-1);
   ikbd_fifocnt--;
-  if(ikbd_fifocnt > 0) {
-    ikbd_status |= 0x81;
-  } else {
-    mfp_set_GPIP(MFP_GPIP_ACIA);
-  }
   return tmp;
+}
+
+static void ikbd_poll(void)
+{
+  if(ikbd_fifocnt > 0 && !acia_rx_full()) {
+    acia_rx_data(ikbd_pop_fifo());
+  }
 }
 
 static void ikbd_queue_fifo(BYTE data)
 {
   if(ikbd_fifocnt == IKBDFIFO) {
-    ikbd_status |= 0x20;
     DEBUG("Overrun");
   } else {
     ikbd_fifo[ikbd_fifocnt] = data;
     ikbd_fifocnt++;
   }
-  ikbd_status |= 0x81;
 }
 
-static BYTE ikbd_read_byte(LONG addr)
+void ikbd_write_byte(BYTE data)
 {
-  static BYTE last = 0;
-  int tmp;
-
-  cpu_add_extra_cycles(6);
-
-  switch(addr) {
-  case 0xfffc00:
-    return ikbd_status;
-  case 0xfffc02:
-    ikbd_status &= ~0xa1;
-    tmp = ikbd_pop_fifo();
-    if(tmp == -1)
-      return last;
-    else
-      return last = tmp;
-  default:
-    return 0;
+  if(ikbd_cmdcnt == 0) {
+    ikbd_set_cmd(data);
+  } else {
+    ikbd_cmdbuf[--ikbd_cmdcnt] = data;
+    if(ikbd_cmdcnt == 0)
+      ikbd_cmdfn();
   }
-}
-
-static WORD ikbd_read_word(LONG addr)
-{
-  return (ikbd_read_byte(addr)<<8)|ikbd_read_byte(addr+1);
-}
-
-static LONG ikbd_read_long(LONG addr)
-{
-  return ((ikbd_read_byte(addr)<<24)|
-	  (ikbd_read_byte(addr+1)<<16)|
-	  (ikbd_read_byte(addr+2)<<8)|
-	  (ikbd_read_byte(addr+3)));
-}
-
-static void ikbd_write_byte(LONG addr, BYTE data)
-{
-  cpu_add_extra_cycles(6);
-
-  switch(addr) {
-  case 0xfffc00:
-    ikbd_control = data;
-    break;
-  case 0xfffc02:
-    ikbd_status &= ~0x80;
-    if(ikbd_cmdcnt == 0) {
-      ikbd_set_cmd(data);
-    } else {
-      ikbd_cmdbuf[--ikbd_cmdcnt] = data;
-      if(ikbd_cmdcnt == 0)
-	ikbd_cmdfn();
-    }
-    break;
-  }
-}
-
-static void ikbd_write_word(LONG addr, WORD data)
-{
-  ikbd_write_byte(addr, (data&0xff00)>>8);
-  ikbd_write_byte(addr+1, (data&0xff));
-}
-
-static void ikbd_write_long(LONG addr, LONG data)
-{
-  ikbd_write_byte(addr, (data&0xff000000)>>24);
-  ikbd_write_byte(addr+1, (data&0xff0000)>>16);
-  ikbd_write_byte(addr+2, (data&0xff00)>>8);
-  ikbd_write_byte(addr+3, (data&0xff));
 }
 
 static int ikbd_state_collect(struct mmu_state *state)
@@ -338,8 +271,6 @@ static int ikbd_state_collect(struct mmu_state *state)
    * lastcpucnt           == 4
    * ikbd_fifosize        == 4
    * ikbd_fifo            == 1*fifosize
-   * ikbd_control         == 1
-   * ikbd_status          == 1
    * ikbd_mouse_enabled   == 1
    * cmdbuf               == cmdbuf size
    * cmdcnt               == 1
@@ -357,8 +288,6 @@ static int ikbd_state_collect(struct mmu_state *state)
   for(r=0;r<IKBDFIFO;r++) {
     state_write_mem_byte(&state->data[16+r], ikbd_fifo[r]);
   }
-  state_write_mem_byte(&state->data[16+IKBDFIFO], ikbd_control);
-  state_write_mem_byte(&state->data[16+IKBDFIFO+1], ikbd_status);
   state_write_mem_byte(&state->data[16+IKBDFIFO+2], ikbd_mouse_enabled);
   state_write_mem_byte(&state->data[16+IKBDFIFO+3], ikbd_cmdcnt);
   for(r=0;r<sizeof ikbd_cmdbuf;r++) {
@@ -380,8 +309,6 @@ static void ikbd_state_restore(struct mmu_state *state)
   for(r=0;r<fifosize;r++) {
     ikbd_fifo[r] = state_read_mem_byte(&state->data[16+r]);
   }
-  ikbd_control = state_read_mem_byte(&state->data[16+IKBDFIFO]);
-  ikbd_status = state_read_mem_byte(&state->data[16+IKBDFIFO+1]);
   ikbd_mouse_enabled = state_read_mem_byte(&state->data[16+IKBDFIFO+3]);
   ikbd_cmdcnt = state_read_mem_byte(&state->data[16+IKBDFIFO+3]);
   for(r=0;r<sizeof ikbd_cmdbuf;r++) {
@@ -437,44 +364,13 @@ void ikbd_fire(int state)
 
 void ikbd_init()
 {
-  struct mmu *ikbd;
-
-  ikbd = (struct mmu *)malloc(sizeof(struct mmu));
-  if(!ikbd) {
-    return;
-  }
-  ikbd->start = IKBDBASE;
-  ikbd->size = IKBDSIZE;
-  memcpy(ikbd->id, "IKBD", 4);
-  ikbd->name = strdup("IKBD");
-  ikbd->read_byte = ikbd_read_byte;
-  ikbd->read_word = ikbd_read_word;
-  ikbd->read_long = ikbd_read_long;
-  ikbd->write_byte = ikbd_write_byte;
-  ikbd->write_word = ikbd_write_word;
-  ikbd->write_long = ikbd_write_long;
-  ikbd->state_collect = ikbd_state_collect;
-  ikbd->state_restore = ikbd_state_restore;
-  ikbd->diagnostics = ikbd_diagnostics;
-
-  mmu_register(ikbd);
-
-  ikbd_do_reset();
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(ikbd, "IKBD");
 }
 
-void ikbd_do_interrupts(struct cpu *cpu)
+void ikbd_do_interrupt(struct cpu *cpu)
 {
   if(cpu->cycle > ikbd_next_interrupt_cycle) {
-    if(ikbd_control&0x80) {
-      if(ikbd_fifocnt > 0) {
-        ikbd_status |= 0x81;
-        mfp_clr_GPIP(MFP_GPIP_ACIA);
-      } else {
-        ikbd_status &= ~(0x1);
-        mfp_set_GPIP(MFP_GPIP_ACIA);
-      }
-    }
-
+    ikbd_poll();
     ikbd_next_interrupt_cycle = cpu->cycle + IKBD_INTINTERVAL;
   }
 }

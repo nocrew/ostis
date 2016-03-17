@@ -27,9 +27,14 @@
 #define VBLSCR 200
 #define VBLPOST 40
 
+static void shifter_draw_low(WORD *);
+static void shifter_draw_medium(WORD *);
+
 static struct resolution_data res_data[] = {
   {
     // Low resolution
+    .draw = shifter_draw_low,
+    .bitplanes = 4,
     .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
@@ -42,6 +47,8 @@ static struct resolution_data res_data[] = {
   },
   {
     // Medium resolution
+    .draw = shifter_draw_medium,
+    .bitplanes = 2,
     .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
@@ -81,6 +88,7 @@ static long linecnt;
 static long vsynccnt = 0; /* 160256 cycles in one screen */
 static long hsynccnt; /* Offset for first hbl interrupt */
 static long lastcpucnt;
+static int rasterpos; /* Position on the screen. */
 
 static long palette_r[16*2]; /* x2 for slightly different border col */
 static long palette_g[16*2]; /* x2 for slightly different border col */
@@ -401,12 +409,10 @@ float shifter_fps()
   }
 }
 
-static int rasterpos;
-
-static int get_color(WORD *data)
+static int shift_out(WORD *data)
 {
   int i, c = 0;
-  for(i = 0; i < 4; i++) {
+  for(i = 0; i < res.bitplanes; i++) {
     c <<= 1;
     if(data[i] & 0x8000)
       c += 1;
@@ -415,15 +421,27 @@ static int get_color(WORD *data)
   return c;
 }
 
-static void shifter_draw(WORD *data)
+static void shifter_draw_low(WORD *data)
 {
   int i, c;
 
   for (i = 0; i < 16; i++) {
-    c = get_color(data);
+    c = shift_out(data);
     rgbimage[rasterpos++] = palette_r[c];
     rgbimage[rasterpos++] = palette_g[c];
     rgbimage[rasterpos++] = palette_b[c];
+    rgbimage[rasterpos++] = palette_r[c];
+    rgbimage[rasterpos++] = palette_g[c];
+    rgbimage[rasterpos++] = palette_b[c];
+  }
+}
+
+static void shifter_draw_medium(WORD *data)
+{
+  int i, c;
+
+  for (i = 0; i < 16; i++) {
+    c = shift_out(data);
     rgbimage[rasterpos++] = palette_r[c];
     rgbimage[rasterpos++] = palette_g[c];
     rgbimage[rasterpos++] = palette_b[c];
@@ -436,46 +454,26 @@ void shifter_load(WORD data)
   static int i = 0;
   TRACE("Load %04x", data);
 
-  reg[3-i] = data;
+  reg[res.bitplanes-1-i] = data;
   i++;
-  if(i == 4) {
+  if(i == res.bitplanes) {
     i = 0;
-    shifter_draw(reg);
+    res.draw(reg);
   }
 }
 
 void shifter_border(void)
 {
+  int i;
+
   TRACE("Border");
 
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
+  for(i = 0; i < 8; i++) {
+    rgbimage[rasterpos++] = 0xff;
+    rgbimage[rasterpos++] = 0xff;
+    rgbimage[rasterpos++] = 0xff;
+  }
 
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-  rgbimage[rasterpos++] = 0xff;
-
-  if(rasterpos >= 6*160256)
+  if(rasterpos >= 6*res.screen_cycles)
     rasterpos = 0;
 }

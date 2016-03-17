@@ -4,6 +4,8 @@
 #include "cpu.h"
 
 struct resolution_data {
+  void (*draw)(WORD *);
+  int bitplanes;
   long screen_cycles;
   long hblsize;
   long hblpre;

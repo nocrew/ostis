@@ -149,7 +149,7 @@ static int state_read_section(FILE *f, struct state_section *sec)
     return STATE_VALID;
   }
   
-  sec->data = (char *)xmalloc(sec->size);
+  sec->data = (char *)malloc(sec->size);
   if(sec->data == NULL) return STATE_INVALID;
   if(fread(sec->data, sec->size, 1, f) != 1) {
     return STATE_INVALID;
@@ -193,11 +193,11 @@ struct cpu_state *state_cpu_state_dup(struct cpu_state *cpu_state)
 {
   struct cpu_state *new;
 
-  new = (struct cpu_state *)xmalloc(sizeof(struct cpu_state));
+  new = (struct cpu_state *)malloc(sizeof(struct cpu_state));
 
   strncpy(new->id, cpu_state->id, 4);
   new->size = cpu_state->size;
-  new->data = (char *)xmalloc(new->size);
+  new->data = (char *)malloc(new->size);
   memcpy(new->data, cpu_state->data, new->size);
 
   return new;
@@ -210,11 +210,11 @@ struct mmu_state *state_mmu_state_dup(struct mmu_state *mmu_state)
   first = NULL;
 
   while(mmu_state) {
-    new = (struct mmu_state *)xmalloc(sizeof(struct mmu_state));
+    new = (struct mmu_state *)malloc(sizeof(struct mmu_state));
     
     strncpy(new->id, mmu_state->id, 4);
     new->size = mmu_state->size;
-    new->data = (char *)xmalloc(new->size);
+    new->data = (char *)malloc(new->size);
     memcpy(new->data, mmu_state->data, new->size);
     new->next = first;
     first = new;
@@ -228,7 +228,7 @@ struct state *state_dup(struct state *state)
 {
   struct state *new;
 
-  new = (struct state *)xmalloc(sizeof(struct state));
+  new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
 
   new->id = state->id;
@@ -250,10 +250,10 @@ struct state *state_collect()
 
   before = SDL_GetTicks();
 
-  new = (struct state *)xmalloc(sizeof(struct state));
+  new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
 
-  new_list = (struct state_list *)xmalloc(sizeof(struct state_list));
+  new_list = (struct state_list *)malloc(sizeof(struct state_list));
   if(new_list == NULL) return NULL;
   
   new->cpu_state = cpu_state_collect();
@@ -304,7 +304,7 @@ static long state_compress_rle(char *tmp, long size, char **input)
   char *rle;
   int i,cnt,j;
 
-  rle = (char *)xmalloc(size*2+8);
+  rle = (char *)malloc(size*2+8);
   *input = rle;
   if(rle == NULL) {
     *input = NULL;
@@ -357,7 +357,7 @@ static long state_compress_rle(char *tmp, long size, char **input)
     return 0;
   }
   
-  rle = (char *)xmalloc(j);
+  rle = (char *)malloc(j);
   memcpy(rle, *input, j);
   free(*input);
   *input = rle;
@@ -372,9 +372,9 @@ struct state *state_encode_delta(struct state *state, struct state *ref)
   int i;
   long rle_size;
 
-  tmp = (char *)xmalloc(state->cpu_state->size);
+  tmp = (char *)malloc(state->cpu_state->size);
   if(tmp == NULL) return NULL;
-  new = (struct state *)xmalloc(sizeof(struct state));
+  new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
 
   new->id = state->id;
@@ -407,14 +407,14 @@ static long state_uncompress_rle(char *rle, long size, char **output)
   unsigned int cnt;
 
   if(strncmp("RLE!", rle, 4)) {
-    *output = xmalloc(size);
+    *output = malloc(size);
     memcpy(*output, rle, size);
     return size;
   }
 
   usize = state_read_mem_long(&rle[4]);
   ucnt = 0;
-  *output = xmalloc(usize);
+  *output = malloc(usize);
 
   for(i=0;i<size;i++) {
     if(i < (size-4) && (rle[i] == rle[i+1])) {
@@ -472,7 +472,7 @@ struct state *state_decode_delta(struct state *coded, struct state *ref)
   state = state_dup(coded);
   if(state == NULL) return NULL;
 
-  tmp = (char *)xmalloc(ref->cpu_state->size);
+  tmp = (char *)malloc(ref->cpu_state->size);
   if(tmp == NULL) return NULL;
 
   usize = state_uncompress_rle(state->cpu_state->data,
@@ -521,7 +521,7 @@ struct state *state_decode_delta(struct state *coded, struct state *ref)
       return NULL;
     }
     
-    tmp = (char *)xmalloc(usize);
+    tmp = (char *)malloc(usize);
     if(tmp == NULL) return NULL;
     
     for(i=0;i<usize;i++) {
@@ -575,7 +575,7 @@ struct state *state_pack_delta(struct state *state, struct state *ref)
   if(tmp->delta == -1)
     state_clear(tmp);
   state_remove(state);
-  new_list = (struct state_list *)xmalloc(sizeof(struct state_list));
+  new_list = (struct state_list *)malloc(sizeof(struct state_list));
   if(new_list == NULL) {
     state_clear(new);
     return NULL;
@@ -656,7 +656,7 @@ struct state *state_load(char *filename)
   struct state_section sec;
   struct mmu_state *t;
   
-  new = (struct state *)xmalloc(sizeof(struct state));
+  new = (struct state *)malloc(sizeof(struct state));
   if(new == NULL) return NULL;
   new->mmu_state = NULL;
 
@@ -699,13 +699,13 @@ struct state *state_load(char *filename)
       }
       free(sec.data);
     } else if(!strncmp(sec.id, "CPU0", 4)) {
-      new->cpu_state = (struct cpu_state *)xmalloc(sizeof(struct cpu_state));
+      new->cpu_state = (struct cpu_state *)malloc(sizeof(struct cpu_state));
       if(new->cpu_state == NULL) {
 	free(new);
 	free(sec.data);
 	return NULL;
       }
-      new->cpu_state->data = (char *)xmalloc(sec.size);
+      new->cpu_state->data = (char *)malloc(sec.size);
       if(new->cpu_state->data == NULL) {
 	free(new->cpu_state);
 	free(new);
@@ -717,13 +717,13 @@ struct state *state_load(char *filename)
       memcpy(new->cpu_state->data, sec.data, sec.size);
       free(sec.data);
     } else {
-      t = (struct mmu_state *)xmalloc(sizeof(struct mmu_state));
+      t = (struct mmu_state *)malloc(sizeof(struct mmu_state));
       if(t == NULL) {
 	free(new);
 	free(sec.data);
 	return NULL;
       }
-      t->data = (char *)xmalloc(sec.size);
+      t->data = (char *)malloc(sec.size);
       if(t->data == NULL) {
 	free(t);
 	free(new);

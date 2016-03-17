@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
       break;
 #if TEST_BUILD
     case OPT_TEST_MODE:
-      test_case_name = xstrdup(optarg);
+      test_case_name = strdup(optarg);
       test_mode = 1;
       break;
 #endif
@@ -238,24 +238,4 @@ int main(int argc, char *argv[])
 
   while(cpu_run(CPU_RUN));
   return 0;
-}
-
-void *xmalloc(size_t size)
-{
-  void *result = malloc(size);
-  if(result == NULL) {
-    fprintf(stderr, "Unable to allocate %lld bytes", (long long)size);
-    exit(1);
-  }
-  return result;
-}
-
-char *xstrdup(char *s)
-{
-  char *result = strdup(s);
-  if(result == NULL) {
-    fprintf(stderr, "Call to xstrdup failed");
-    exit(1);
-  }
-  return result;
 }

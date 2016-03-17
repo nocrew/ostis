@@ -17,12 +17,12 @@ static void sbcd(struct cpu *cpu, WORD op)
       cpu->a[ry] -= 2;
     else
       cpu->a[ry] -= 1;
-    sb = mmu_read_byte(cpu->a[ry]);
+    sb = bus_read_byte(cpu->a[ry]);
     if(rx == 7)
       cpu->a[rx] -= 2;
     else
       cpu->a[rx] -= 1;
-    db = mmu_read_byte(cpu->a[rx]);
+    db = bus_read_byte(cpu->a[rx]);
     s = 10*((sb&0xf0)>>4)+((sb&0xf));
     d = 10*((db&0xf0)>>4)+((db&0xf));
     r = d-s;
@@ -31,7 +31,7 @@ static void sbcd(struct cpu *cpu, WORD op)
     if(r&0xff) SETZ;
     rb = (r%10)|(((r/10)%10)<<4);
     cpu_prefetch();
-    mmu_write_byte(cpu->a[rx], rb);
+    bus_write_byte(cpu->a[rx], rb);
     ADD_CYCLE(18);
   } else {
     sb = cpu->d[ry]&0xff;

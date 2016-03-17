@@ -88,7 +88,7 @@ static LONG ea_addr_101(struct cpu *cpu, int reg)
 {
   int o;
 
-  o = mmu_read_word(cpu->pc);
+  o = bus_read_word(cpu->pc);
   if(o&0x8000) o |= 0xffff0000;
 
   if(!rmw) {
@@ -101,7 +101,7 @@ static LONG ea_addr_110(struct cpu *cpu, int reg)
 {
   int d,o,r,a,rs;
 
-  d = mmu_read_word(cpu->pc);
+  d = bus_read_word(cpu->pc);
   if(!rmw) {
     cpu->pc += 2;
   }
@@ -129,7 +129,7 @@ static LONG ea_addr_111_pcxn(struct cpu *cpu)
 {
   int d,o,r,a,rs;
 
-  d = mmu_read_word(cpu->pc);
+  d = bus_read_word(cpu->pc);
   cpu->pc += 2;
   a = d&0x8000;
   r = (d&0x7000)>>12;
@@ -158,7 +158,7 @@ static LONG ea_addr_111(struct cpu *cpu, int reg)
   switch(reg) {
   case 0:
     ADD_CYCLE_EA(8);
-    a = mmu_read_word(cpu->pc);
+    a = bus_read_word(cpu->pc);
     if(a&0x8000) a |= 0xffff0000;
     if(!rmw) {
       cpu->pc += 2;
@@ -166,14 +166,14 @@ static LONG ea_addr_111(struct cpu *cpu, int reg)
     return a;
   case 1:
     ADD_CYCLE_EA(12);
-    a = mmu_read_long(cpu->pc);
+    a = bus_read_long(cpu->pc);
     if(!rmw) {
       cpu->pc += 4;
     }
     return a;
   case 2:
     ADD_CYCLE_EA(8);
-    a = mmu_read_word(cpu->pc);
+    a = bus_read_word(cpu->pc);
     if(a&0x8000) a |= 0xffff0000;
     cpu->pc += 2;
     return a+cpu->pc-2;
@@ -232,7 +232,7 @@ BYTE ea_read_byte(struct cpu *cpu, int mode, int noupdate)
   case 7:
     if((mode&0x7) == 4) {
       ADD_CYCLE_EA(4);
-      i = mmu_read_word(cpu->pc)&0xff;
+      i = bus_read_word(cpu->pc)&0xff;
       cpu->pc += 2;
       rmw = 0;
       return i;
@@ -244,7 +244,7 @@ BYTE ea_read_byte(struct cpu *cpu, int mode, int noupdate)
     addr = 0;
   }
   rmw = 0;
-  value = mmu_read_byte(addr);
+  value = bus_read_byte(addr);
   if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
     cpu->a[mode&0x7] -= last_register_change;
   }
@@ -291,7 +291,7 @@ WORD ea_read_word(struct cpu *cpu, int mode, int noupdate)
   case 7:
     if((mode&0x7) == 4) {
       ADD_CYCLE_EA(4);
-      i = mmu_read_word(cpu->pc);
+      i = bus_read_word(cpu->pc);
       cpu->pc += 2;
       rmw = 0;
       return i;
@@ -303,7 +303,7 @@ WORD ea_read_word(struct cpu *cpu, int mode, int noupdate)
     addr = 0;
   }
   rmw = 0;
-  value = mmu_read_word(addr);
+  value = bus_read_word(addr);
   if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
     cpu->a[mode&0x7] -= last_register_change;
   }
@@ -350,7 +350,7 @@ LONG ea_read_long(struct cpu *cpu, int mode, int noupdate)
   case 7:
     if((mode&0x7) == 4) {
       ADD_CYCLE_EA(8);
-      i = mmu_read_long(cpu->pc);
+      i = bus_read_long(cpu->pc);
       cpu->pc += 4;
       rmw = 0;
       return i;
@@ -363,7 +363,7 @@ LONG ea_read_long(struct cpu *cpu, int mode, int noupdate)
     addr = 0;
   }
   rmw = 0;
-  value = mmu_read_long(addr);
+  value = bus_read_long(addr);
   if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
     cpu->a[mode&0x7] -= last_register_change;
   }
@@ -416,7 +416,7 @@ void ea_write_byte(struct cpu *cpu, int mode, BYTE data)
     cpu_prefetch();
     ea_clear_prefetch_before_write();
   }
-  mmu_write_byte(addr, data);
+  bus_write_byte(addr, data);
   if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
     cpu->a[mode&0x7] -= last_register_change;
   }
@@ -468,7 +468,7 @@ void ea_write_word(struct cpu *cpu, int mode, WORD data)
     cpu_prefetch();
     ea_clear_prefetch_before_write();
   }
-  mmu_write_word(addr, data);
+  bus_write_word(addr, data);
   if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
     cpu->a[mode&0x7] -= last_register_change;
   }
@@ -521,7 +521,7 @@ void ea_write_long(struct cpu *cpu, int mode, LONG data)
     cpu_prefetch();
     ea_clear_prefetch_before_write();
   }
-  mmu_write_long(addr, data);
+  bus_write_long(addr, data);
   if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
     cpu->a[mode&0x7] -= last_register_change;
   }
@@ -580,7 +580,7 @@ static void ea_print_111(struct cprint *cprint, int mode, int size)
 
   switch(mode&0x7) {
   case 0:
-    a = mmu_read_word_print(addr);
+    a = bus_read_word_print(addr);
     if(a&0x8000) a |= 0xffff0000;
     cprint_set_label(a, NULL);
     if(cprint_find_label(a)) {
@@ -591,7 +591,7 @@ static void ea_print_111(struct cprint *cprint, int mode, int size)
     cprint->size += 2;
     return;
   case 1:
-    a = mmu_read_long_print(addr);
+    a = bus_read_long_print(addr);
     cprint_set_label(a, NULL);
     if(cprint_find_label(a)) {
       sprintf(str, "%s%s", str, cprint_find_label(a));
@@ -601,7 +601,7 @@ static void ea_print_111(struct cprint *cprint, int mode, int size)
     cprint->size += 4;
     return;
   case 2:
-    a = mmu_read_word_print(addr);
+    a = bus_read_word_print(addr);
     if(a&0x8000) a |= 0xffff0000;
     a += addr;
     cprint_set_label(a, NULL);
@@ -613,7 +613,7 @@ static void ea_print_111(struct cprint *cprint, int mode, int size)
     cprint->size += 2;
     return;
   case 3:
-    a = mmu_read_word_print(addr);
+    a = bus_read_word_print(addr);
     d = a&0x8000;
     r = (a&0x7000)>>12;
     l = a&0x800;
@@ -623,15 +623,15 @@ static void ea_print_111(struct cprint *cprint, int mode, int size)
     return;
   case 4:
     if(size == 0) {
-      sprintf(str, "%s#$%x", str, mmu_read_word_print(addr)&0xff);
+      sprintf(str, "%s#$%x", str, bus_read_word_print(addr)&0xff);
       cprint->size += 2;
       return;
     } else if(size == 1) {
-      sprintf(str, "%s#$%x", str, mmu_read_word_print(addr));
+      sprintf(str, "%s#$%x", str, bus_read_word_print(addr));
       cprint->size += 2;
       return;
     } else {
-      sprintf(str, "%s#$%x", str, mmu_read_long_print(addr));
+      sprintf(str, "%s#$%x", str, bus_read_long_print(addr));
       cprint->size += 4;
       return;
     }
@@ -663,7 +663,7 @@ void ea_print(struct cprint *cprint, int mode, int size)
     sprintf(str, "%s-(A%d)", str, mode&0x7);
     return;
   case 5:
-    o = mmu_read_word_print(addr);
+    o = bus_read_word_print(addr);
     if(o&0x8000) o |= 0xffff0000;
     if(o > 127)
       sprintf(str, "%s$%x(A%d)", str, o, mode&0x7);
@@ -672,15 +672,15 @@ void ea_print(struct cprint *cprint, int mode, int size)
     cprint->size += 2;
     return;
   case 6:
-    o = mmu_read_byte_print(addr+1)&0xff;
+    o = bus_read_byte_print(addr+1)&0xff;
     if(o&0x80) o |= 0xffffff00;
     sprintf(str, "%s%d(A%d,%c%d.%c)",
 	    str, 
 	    o,
 	    mode&0x7,
-	    (mmu_read_byte_print(addr)&0x80)?'A':'D',
-	    (mmu_read_byte_print(addr)>>4)&0x7,
-	    (mmu_read_byte_print(addr)&0x8)?'L':'W');
+	    (bus_read_byte_print(addr)&0x80)?'A':'D',
+	    (bus_read_byte_print(addr)>>4)&0x7,
+	    (bus_read_byte_print(addr)&0x8)?'L':'W');
     cprint->size += 2;
     return;
   case 7:

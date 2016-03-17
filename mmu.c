@@ -251,7 +251,7 @@ void mmu_init()
  * and location
  */
 
-BYTE mmu_read_byte_print(LONG addr)
+BYTE bus_read_byte_print(LONG addr)
 {
   BYTE value;
   addr &= 0xffffff;
@@ -264,24 +264,24 @@ BYTE mmu_read_byte_print(LONG addr)
   return value;
 }
 
-WORD mmu_read_word_print(LONG addr)
+WORD bus_read_word_print(LONG addr)
 {
   BYTE low,high;
   addr &= 0xffffff;
 
-  high = mmu_read_byte_print(addr);
-  low = mmu_read_byte_print(addr+1);
+  high = bus_read_byte_print(addr);
+  low = bus_read_byte_print(addr+1);
 
   return (high<<8)|low;
 }
 
-LONG mmu_read_long_print(LONG addr)
+LONG bus_read_long_print(LONG addr)
 {
   WORD low,high;
   addr &= 0xffffff;
 
-  high = mmu_read_word_print(addr);
-  low = mmu_read_word_print(addr+2);
+  high = bus_read_word_print(addr);
+  low = bus_read_word_print(addr+2);
 
   return (high<<16)|low;
 }
@@ -292,32 +292,32 @@ LONG mmu_read_long_print(LONG addr)
  * if appropriate
  */
 
-BYTE mmu_read_byte(LONG addr)
+BYTE bus_read_byte(LONG addr)
 {
   return MEM_READ(byte, addr);
 }
 
-WORD mmu_read_word(LONG addr)
+WORD bus_read_word(LONG addr)
 {
   return MEM_READ(word, addr);
 }
 
-LONG mmu_read_long(LONG addr)
+LONG bus_read_long(LONG addr)
 {
   return MEM_READ(long, addr);
 }
 
-void mmu_write_byte(LONG addr, BYTE data)
+void bus_write_byte(LONG addr, BYTE data)
 {
   MEM_WRITE(byte, addr, data);
 }
 
-void mmu_write_word(LONG addr, WORD data)
+void bus_write_word(LONG addr, WORD data)
 {
   MEM_WRITE(word, addr, data);
 }
 
-void mmu_write_long(LONG addr, LONG data)
+void bus_write_long(LONG addr, LONG data)
 {
   MEM_WRITE(long, addr, data);
 }

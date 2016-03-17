@@ -8,7 +8,7 @@ static void subi_b(struct cpu *cpu, WORD op)
 {
   BYTE s,d,r;
   
-  s = mmu_read_word(cpu->pc)&0xff;
+  s = bus_read_word(cpu->pc)&0xff;
   cpu->pc += 2;
   if(op&0x38) {
     ADD_CYCLE(12);
@@ -26,7 +26,7 @@ static void subi_w(struct cpu *cpu, WORD op)
 {
   WORD s,d,r;
   
-  s = mmu_read_word(cpu->pc);
+  s = bus_read_word(cpu->pc);
   cpu->pc += 2;
   if(op&0x38) {
     ADD_CYCLE(12);
@@ -44,7 +44,7 @@ static void subi_l(struct cpu *cpu, WORD op)
 {
   LONG s,d,r;
   
-  s = mmu_read_long(cpu->pc);
+  s = bus_read_long(cpu->pc);
   cpu->pc += 4;
   if(op&0x38) {
     ADD_CYCLE(20);
@@ -87,17 +87,17 @@ static struct cprint *subi_print(LONG addr, WORD op)
   switch(s) {
   case 0:
     strcpy(ret->instr, "SUBI.B");
-    sprintf(ret->data, "#$%x,", mmu_read_word_print(addr+ret->size)&0xff);
+    sprintf(ret->data, "#$%x,", bus_read_word_print(addr+ret->size)&0xff);
     ret->size += 2;
     break;
   case 1:
     strcpy(ret->instr, "SUBI.W");
-    sprintf(ret->data, "#$%x,", mmu_read_word_print(addr+ret->size));
+    sprintf(ret->data, "#$%x,", bus_read_word_print(addr+ret->size));
     ret->size += 2;
     break;
   case 2:
     strcpy(ret->instr, "SUBI.L");
-    sprintf(ret->data, "#$%x,", mmu_read_long_print(addr+ret->size));
+    sprintf(ret->data, "#$%x,", bus_read_long_print(addr+ret->size));
     ret->size += 4;
     break;
   }

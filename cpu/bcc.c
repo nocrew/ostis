@@ -13,7 +13,7 @@ void bcc(struct cpu *cpu, WORD op)
   w = 0;
   o = (SLONG)(SBYTE)(op&0xff);
   if(!o) {
-    o = mmu_read_word(cpu->pc);
+    o = bus_read_word(cpu->pc);
     if(o&0x8000) o |= 0xffff0000;
     o -= 2;
     cpu->pc += 2;
@@ -27,7 +27,7 @@ void bcc(struct cpu *cpu, WORD op)
   case 1: /* BSR */
     ADD_CYCLE(18);
     cpu->a[7] -= 4;
-    mmu_write_long(cpu->a[7], cpu->pc);
+    bus_write_long(cpu->a[7], cpu->pc);
     cpu->pc += o;
     return;
   case 2: /* BHI */
@@ -178,7 +178,7 @@ static struct cprint *bcc_print(LONG addr, WORD op)
     s = 1;
   } else {
     s = 0;
-    a = mmu_read_word_print(addr+ret->size);
+    a = bus_read_word_print(addr+ret->size);
     if(a&0x8000) a |= 0xffff0000;
   }
 

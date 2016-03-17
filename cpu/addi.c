@@ -8,7 +8,7 @@ static void addi_b(struct cpu *cpu, WORD op)
 {
   BYTE s,d,r;
   
-  s = mmu_read_word(cpu->pc)&0xff;
+  s = bus_read_word(cpu->pc)&0xff;
   cpu->pc += 2;
   if(op&0x38) {
     ADD_CYCLE(12);
@@ -26,7 +26,7 @@ static void addi_w(struct cpu *cpu, WORD op)
 {
   WORD s,d,r;
   
-  s = mmu_read_word(cpu->pc);
+  s = bus_read_word(cpu->pc);
   cpu->pc += 2;
   if(op&0x38) {
     ADD_CYCLE(12);
@@ -44,7 +44,7 @@ static void addi_l(struct cpu *cpu, WORD op)
 {
   LONG s,d,r;
   
-  s = mmu_read_long(cpu->pc);
+  s = bus_read_long(cpu->pc);
   cpu->pc += 4;
   if(op&0x38) {
     ADD_CYCLE(20);
@@ -90,7 +90,7 @@ static struct cprint *addi_print(LONG addr, WORD op)
   switch(s) {
   case 0:
     strcpy(ret->instr, "ADDI.B");
-    b = mmu_read_word_print(addr+ret->size)&0xff;
+    b = bus_read_word_print(addr+ret->size)&0xff;
     r = b;
     if(r&0x80) r |= 0xffffff00;
     if((r >= -128) && (r <= 127))
@@ -101,7 +101,7 @@ static struct cprint *addi_print(LONG addr, WORD op)
     break;
   case 1:
     strcpy(ret->instr, "ADDI.W");
-    w = mmu_read_word_print(addr+ret->size);
+    w = bus_read_word_print(addr+ret->size);
     r = w;
     if(r&0x8000) r |= 0xffff0000;
     if((r >= -128) && (r <= 127))
@@ -112,7 +112,7 @@ static struct cprint *addi_print(LONG addr, WORD op)
     break;
   case 2:
     strcpy(ret->instr, "ADDI.L");
-    l = mmu_read_long_print(addr+ret->size);
+    l = bus_read_long_print(addr+ret->size);
     r = (int)*((SLONG *)&l);
     if((r >= -128) && (r <= 127))
       sprintf(ret->data, "#%d,", r);

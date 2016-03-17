@@ -94,7 +94,7 @@ static int read_sector(struct floppy *fl, int track, int side, int sector, LONG 
       if(track_sectors[sec_num].is_fuzzy) {
         data = (data&fuzzy_mask[j])|(rand()&~fuzzy_mask[j]);
       }
-      mmu_write_byte(dst_pos, data);
+      bus_write_byte(dst_pos, data);
       dst_pos++;
     }
   }
@@ -137,7 +137,7 @@ static int read_track(struct floppy *fl, int track_num, int side, LONG addr, int
   }
   
   for(i=0;i<size;i++) {
-    mmu_write_byte(addr + i, track->track_data[i]);
+    bus_write_byte(addr + i, track->track_data[i]);
   }
   return FLOPPY_OK;
 }

@@ -43,7 +43,7 @@ void hdc_read_sectors(LONG addr, LONG block, BYTE sectors)
   }
   TRACE("Read sectors: Addr: %06x  Block %06x  Sectors: %d", addr, block, sectors);
   for(i=0;i<SECSIZE*sectors;i++) {
-    mmu_write_byte(addr+i, buffer[i]);
+    bus_write_byte(addr+i, buffer[i]);
   }
 }
 
@@ -56,7 +56,7 @@ void hdc_write_sectors(LONG addr, LONG block, BYTE sectors)
 
   TRACE("Write sectors: Addr: %06x  Block %06x  Sectors: %d", addr, block, sectors);
   for(i=0;i<SECSIZE*sectors;i++) {
-    buffer[i] = mmu_read_byte(addr+i);
+    buffer[i] = bus_read_byte(addr+i);
   }
 
   fseek(fp, block * SECSIZE, SEEK_SET);

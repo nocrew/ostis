@@ -11,7 +11,7 @@ void dbcc(struct cpu *cpu, WORD op)
   ENTER;
   
   r = op&7;
-  o = mmu_read_word(cpu->pc);
+  o = bus_read_word(cpu->pc);
   if(o&0x8000) o |= 0xffff0000;
   o -= 2;
   cpu->pc += 2;
@@ -128,7 +128,7 @@ static struct cprint *dbcc_print(LONG addr, WORD op)
 
   ret = cprint_alloc(addr);
 
-  a = mmu_read_word_print(addr+ret->size);
+  a = bus_read_word_print(addr+ret->size);
   if(a&0x8000) a |= 0xffff0000;
 
   a += addr+ret->size;

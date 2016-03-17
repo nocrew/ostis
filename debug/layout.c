@@ -60,21 +60,21 @@ void layout_draw_info(int lnum, int wnum)
 	    drawable((cpu->d[i]>>8)&0xff),
 	    drawable(cpu->d[i]&0xff),
 	    i, cpu->a[i],
-	    mmu_read_word_print(cpu->a[i]),
-	    mmu_read_word_print(cpu->a[i]+2),
-	    mmu_read_word_print(cpu->a[i]+4),
-	    mmu_read_word_print(cpu->a[i]+6),
-	    mmu_read_word_print(cpu->a[i]+8),
-	    drawable(mmu_read_byte_print(cpu->a[i])),
-	    drawable(mmu_read_byte_print(cpu->a[i]+1)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+2)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+3)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+4)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+5)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+6)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+7)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+8)),
-	    drawable(mmu_read_byte_print(cpu->a[i]+9))
+	    bus_read_word_print(cpu->a[i]),
+	    bus_read_word_print(cpu->a[i]+2),
+	    bus_read_word_print(cpu->a[i]+4),
+	    bus_read_word_print(cpu->a[i]+6),
+	    bus_read_word_print(cpu->a[i]+8),
+	    drawable(bus_read_byte_print(cpu->a[i])),
+	    drawable(bus_read_byte_print(cpu->a[i]+1)),
+	    drawable(bus_read_byte_print(cpu->a[i]+2)),
+	    drawable(bus_read_byte_print(cpu->a[i]+3)),
+	    drawable(bus_read_byte_print(cpu->a[i]+4)),
+	    drawable(bus_read_byte_print(cpu->a[i]+5)),
+	    drawable(bus_read_byte_print(cpu->a[i]+6)),
+	    drawable(bus_read_byte_print(cpu->a[i]+7)),
+	    drawable(bus_read_byte_print(cpu->a[i]+8)),
+	    drawable(bus_read_byte_print(cpu->a[i]+9))
 	    );
     draw_string(8, 9+8*(font+1)*i, font, text);
     lcnt++;
@@ -108,17 +108,17 @@ void layout_draw_info(int lnum, int wnum)
   for(i=0;i<MIN(10, rows-lcnt);i++) {
     sprintf(text, "m%d = %08X %04X %04X %04X %04X %04X %04X %04X %04X  ",
 	    i, win[i].addr,
-	    mmu_read_word_print(win[i].addr),
-	    mmu_read_word_print(win[i].addr+2),
-	    mmu_read_word_print(win[i].addr+4),
-	    mmu_read_word_print(win[i].addr+6),
-	    mmu_read_word_print(win[i].addr+8),
-	    mmu_read_word_print(win[i].addr+10),
-	    mmu_read_word_print(win[i].addr+12),
-	    mmu_read_word_print(win[i].addr+14));
+	    bus_read_word_print(win[i].addr),
+	    bus_read_word_print(win[i].addr+2),
+	    bus_read_word_print(win[i].addr+4),
+	    bus_read_word_print(win[i].addr+6),
+	    bus_read_word_print(win[i].addr+8),
+	    bus_read_word_print(win[i].addr+10),
+	    bus_read_word_print(win[i].addr+12),
+	    bus_read_word_print(win[i].addr+14));
     choff = strlen(text);
     for(j=0;j<16;j++) {
-      text[j+choff] = drawable(mmu_read_byte_print(win[i].addr+j));
+      text[j+choff] = drawable(bus_read_byte_print(win[i].addr+j));
     }
     text[choff+16] = '\0';
     draw_string(8, 9+8*(font+1)*(lcnt+i), font, text);
@@ -181,63 +181,63 @@ static char *layout_mem_line(LONG addr, int col)
     if(col == 78) {
       sprintf(text, "%06X %02X %04X %04X %04X %04X %04X %04X %04X %02X ",
 	      addr&0xffffff,
-	      mmu_read_byte_print(addr),
-	      mmu_read_word_print(addr+1),
-	      mmu_read_word_print(addr+3),
-	      mmu_read_word_print(addr+5),
-	      mmu_read_word_print(addr+7),
-	      mmu_read_word_print(addr+9),
-	      mmu_read_word_print(addr+11),
-	      mmu_read_word_print(addr+13),
-	      mmu_read_byte_print(addr+15));
+	      bus_read_byte_print(addr),
+	      bus_read_word_print(addr+1),
+	      bus_read_word_print(addr+3),
+	      bus_read_word_print(addr+5),
+	      bus_read_word_print(addr+7),
+	      bus_read_word_print(addr+9),
+	      bus_read_word_print(addr+11),
+	      bus_read_word_print(addr+13),
+	      bus_read_byte_print(addr+15));
       chcnt = 16;
     } else if(col == 53) {
       sprintf(text, "%06X %02X %04X %04X %04X %04X %04X %02X ",
 	      addr&0xffffff,
-	      mmu_read_byte_print(addr),
-	      mmu_read_word_print(addr+1),
-	      mmu_read_word_print(addr+3),
-	      mmu_read_word_print(addr+5),
-	      mmu_read_word_print(addr+7),
-	      mmu_read_word_print(addr+9),
-	      mmu_read_byte_print(addr+11));
+	      bus_read_byte_print(addr),
+	      bus_read_word_print(addr+1),
+	      bus_read_word_print(addr+3),
+	      bus_read_word_print(addr+5),
+	      bus_read_word_print(addr+7),
+	      bus_read_word_print(addr+9),
+	      bus_read_byte_print(addr+11));
       chcnt = 12;
     } else if(col == 23) {
       sprintf(text, "%06X %02X %04X %02X ",
 	      addr&0xffffff,
-	      mmu_read_byte_print(addr),
-	      mmu_read_word_print(addr+1),
-	      mmu_read_byte_print(addr+3));
+	      bus_read_byte_print(addr),
+	      bus_read_word_print(addr+1),
+	      bus_read_byte_print(addr+3));
       chcnt = 4;
     }
   } else {
     if(col == 78) {
       sprintf(text, "%06X %04X %04X %04X %04X %04X %04X %04X %04X  ",
 	      addr&0xffffff,
-	      mmu_read_word_print(addr),
-	      mmu_read_word_print(addr+2),
-	      mmu_read_word_print(addr+4),
-	      mmu_read_word_print(addr+6),
-	      mmu_read_word_print(addr+8),
-	      mmu_read_word_print(addr+10),
-	      mmu_read_word_print(addr+12),
-	      mmu_read_word_print(addr+14));
+	      bus_read_word_print(addr),
+	      bus_read_word_print(addr+2),
+	      bus_read_word_print(addr+4),
+	      bus_read_word_print(addr+6),
+	      bus_read_word_print(addr+8),
+	      bus_read_word_print(addr+10),
+	      bus_read_word_print(addr+12),
+	      bus_read_word_print(addr+14));
       chcnt = 16;
     } else if(col == 53) {
       sprintf(text, "%06X %04X %04X %04X %04X %04X %04X  ",
 	      addr&0xffffff,
-	      mmu_read_word_print(addr),
-	      mmu_read_word_print(addr+2),
-	      mmu_read_word_print(addr+4),
-	      mmu_read_word_print(addr+6),
-	      mmu_read_word_print(addr+8),
-	      mmu_read_word_print(addr+10));
+	      bus_read_word_print(addr),
+	      bus_read_word_print(addr+2),
+	      bus_read_word_print(addr+4),
+	      bus_read_word_print(addr+6),
+	      bus_read_word_print(addr+8),
+	      bus_read_word_print(addr+10));
       chcnt = 12;
     } else if(col == 23) {
       sprintf(text, "%06X %04X %04X  ",
 	      addr&0xffffff,
-	      mmu_read_word_print(addr),
-	      mmu_read_word_print(addr+2));
+	      bus_read_word_print(addr),
+	      bus_read_word_print(addr+2));
       chcnt = 4;
     }
   }
@@ -245,7 +245,7 @@ static char *layout_mem_line(LONG addr, int col)
   choff = strlen(text);
   
   for(i=0;i<chcnt;i++) {
-    text[i+choff] = drawable(mmu_read_byte_print(addr+i));
+    text[i+choff] = drawable(bus_read_byte_print(addr+i));
   }
   text[choff+chcnt] = '\0';
 

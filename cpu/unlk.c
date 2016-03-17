@@ -12,7 +12,7 @@ static void unlk(struct cpu *cpu, WORD op)
   r = op&0x7;
 
   cpu->a[7] = cpu->a[r];
-  cpu->a[r] = mmu_read_long(cpu->a[7]);
+  cpu->a[r] = bus_read_long(cpu->a[7]);
   cpu->a[7] += 4;
 
   ADD_CYCLE(12);

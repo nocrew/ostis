@@ -17,16 +17,16 @@ static void subx_b(struct cpu *cpu, WORD op)
       cpu->a[ry] -= 2;
     else
       cpu->a[ry] -= 1;
-    s = mmu_read_byte(cpu->a[ry]);
+    s = bus_read_byte(cpu->a[ry]);
     if(rx == 7)
       cpu->a[rx] -= 2;
     else
       cpu->a[rx] -= 1;
-    d = mmu_read_byte(cpu->a[rx]);
+    d = bus_read_byte(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;
     cpu_prefetch();
-    mmu_write_byte(cpu->a[rx], r);
+    bus_write_byte(cpu->a[rx], r);
     ADD_CYCLE(18);
   } else {
     s = cpu->d[ry]&0xff;
@@ -51,12 +51,12 @@ static void subx_w(struct cpu *cpu, WORD op)
 
   if(op&0x8) {
     cpu->a[ry] -= 2;
-    s = mmu_read_word(cpu->a[ry]);
+    s = bus_read_word(cpu->a[ry]);
     cpu->a[rx] -= 2;
-    d = mmu_read_word(cpu->a[rx]);
+    d = bus_read_word(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;
-    mmu_write_word(cpu->a[rx], r);
+    bus_write_word(cpu->a[rx], r);
     ADD_CYCLE(18);
   } else {
     s = cpu->d[ry]&0xffff;
@@ -81,12 +81,12 @@ static void subx_l(struct cpu *cpu, WORD op)
 
   if(op&0x8) {
     cpu->a[ry] -= 4;
-    s = mmu_read_long(cpu->a[ry]);
+    s = bus_read_long(cpu->a[ry]);
     cpu->a[rx] -= 4;
-    d = mmu_read_long(cpu->a[rx]);
+    d = bus_read_long(cpu->a[rx]);
     r = d-s;
     if(CHKX) r -= 1;
-    mmu_write_long(cpu->a[rx], r);
+    bus_write_long(cpu->a[rx], r);
     ADD_CYCLE(30);
   } else {
     s = cpu->d[ry];

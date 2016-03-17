@@ -57,9 +57,9 @@ expr:	VAL { $$ = $1; }
 	| expr '/' expr { $$ = $1 / $3; }
 	| expr '*' expr { $$ = $1 * $3; }
 	| '(' expr ')' { $$ = $2; }
-	| '[' expr ']' { $$ = mmu_read_long_print($2); }
-	| '[' expr ']' SIZEW { $$ = mmu_read_word_print($2); }
-	| '[' expr ']' SIZEB { $$ = mmu_read_byte_print($2); }
+	| '[' expr ']' { $$ = bus_read_long_print($2); }
+	| '[' expr ']' SIZEW { $$ = bus_read_word_print($2); }
+	| '[' expr ']' SIZEB { $$ = bus_read_byte_print($2); }
 	| expr EQ expr { $$ = ($1 == $3); }
 	| expr NE expr { $$ = ($1 != $3); }
 	| expr LT expr { $$ = ($1 < $3); }

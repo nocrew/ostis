@@ -124,12 +124,12 @@ int floppy_write_track(LONG addr, int dma_count)
 
 int floppy_read_address(LONG addr)
 {
-  mmu_write_byte(addr, floppy[active_device].sel_trk);
-  mmu_write_byte(addr+1, floppy[active_device].sel_side);
-  mmu_write_byte(addr+2, floppy[active_device].sel_sec);
-  mmu_write_byte(addr+3, 2); /* 512 byte for now */
-  mmu_write_byte(addr+4, 0);
-  mmu_write_byte(addr+5, 0);
+  bus_write_byte(addr, floppy[active_device].sel_trk);
+  bus_write_byte(addr+1, floppy[active_device].sel_side);
+  bus_write_byte(addr+2, floppy[active_device].sel_sec);
+  bus_write_byte(addr+3, 2); /* 512 byte for now */
+  bus_write_byte(addr+4, 0);
+  bus_write_byte(addr+5, 0);
   return 0;
 }
 

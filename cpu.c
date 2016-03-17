@@ -81,7 +81,7 @@ static WORD fetch_instr(struct cpu *cpu)
     cpu->pc += 2;
     return cpu->prefetched_instr;
   }
-  op = mmu_read_word(cpu->pc);
+  op = bus_read_word(cpu->pc);
   cpu->pc += 2;
   return op;
 }
@@ -99,16 +99,16 @@ static void cpu_exception_full_stacked(int vnum)
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
-  mmu_write_long(cpu->a[7], cpu->pc);
+  bus_write_long(cpu->a[7], cpu->pc);
   cpu->a[7] -= 2;
-  mmu_write_word(cpu->a[7], oldsr);
+  bus_write_word(cpu->a[7], oldsr);
   cpu->a[7] -= 2;
-  mmu_write_word(cpu->a[7], mmu_read_word(cpu->pc));
+  bus_write_word(cpu->a[7], bus_read_word(cpu->pc));
   cpu->a[7] -= 4;
-  mmu_write_long(cpu->a[7], bus_error_address);
+  bus_write_long(cpu->a[7], bus_error_address);
   cpu->a[7] -= 2;
-  mmu_write_word(cpu->a[7], bus_error_flags);
-  cpu->pc = mmu_read_long(4*vnum);
+  bus_write_word(cpu->a[7], bus_error_flags);
+  cpu->pc = bus_read_long(4*vnum);
   cpu_clr_exception(vnum);
   cpu_do_cycle(50);
 }
@@ -121,11 +121,11 @@ static void cpu_exception_general(int vnum)
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
-  mmu_write_long(cpu->a[7], cpu->pc);
+  bus_write_long(cpu->a[7], cpu->pc);
   cpu->a[7] -= 2;
-  mmu_write_word(cpu->a[7], oldsr);
+  bus_write_word(cpu->a[7], oldsr);
   cpu_exception_reset_sr();
-  cpu->pc = mmu_read_long(4*vnum);
+  cpu->pc = bus_read_long(4*vnum);
   cpu_clr_exception(vnum);
   cpu_do_cycle(34);
 }
@@ -143,21 +143,21 @@ static void cpu_exception_interrupt(int vnum)
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
-    mmu_write_long(cpu->a[7], cpu->pc);
+    bus_write_long(cpu->a[7], cpu->pc);
     cpu->a[7] -= 2;
-    mmu_write_word(cpu->a[7], oldsr);
+    bus_write_word(cpu->a[7], oldsr);
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
-    cpu->pc = mmu_read_long(4*vnum);
+    cpu->pc = bus_read_long(4*vnum);
     cpu_clr_exception(vnum);
     cpu_do_cycle(48);
   } else {
     cpu->a[7] -= 4;
-    mmu_write_long(cpu->a[7], cpu->pc);
+    bus_write_long(cpu->a[7], cpu->pc);
     cpu->a[7] -= 2;
-    mmu_write_word(cpu->a[7], oldsr);
+    bus_write_word(cpu->a[7], oldsr);
     cpu_exception_reset_sr();
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
-    cpu->pc = mmu_read_long(4*interrupt_autovector[inum]);
+    cpu->pc = bus_read_long(4*interrupt_autovector[inum]);
     interrupt_autovector[inum] = -1;
     cpu_clr_exception(vnum);
     cpu_do_cycle(24);
@@ -185,9 +185,9 @@ static void cpu_do_reset(void)
   int i;
 
   reset_cpu = 0;
-  cpu->pc = mmu_read_long(4);
+  cpu->pc = bus_read_long(4);
   cpu->sr = 0x2300;
-  cpu->ssp = cpu->a[7] = mmu_read_long(0);
+  cpu->ssp = cpu->a[7] = bus_read_long(0);
   cpu->prefetched_instr = 0;
   cpu->has_prefetched = 0;
 
@@ -428,7 +428,7 @@ void cpu_set_sr(WORD sr)
 
 void cpu_prefetch()
 {
-  cpu->prefetched_instr = mmu_read_word(cpu->pc);
+  cpu->prefetched_instr = bus_read_word(cpu->pc);
   cpu->has_prefetched = 1;
 }
 
@@ -604,7 +604,7 @@ void cpu_print_status(int which_pc)
   printf("PC: %08x  USP: %08x  SSP: %08x\n", pc, cpu->usp, cpu->ssp);
   printf("SR: %04x\n", cpu->sr);
   printf("C:  %lld\n", (long long)cpu->cycle);
-  printf("BUS: %08x\n", mmu_read_long(8));
+  printf("BUS: %08x\n", bus_read_long(8));
 
   for(i=0;i<256;i++) {
     if(exception_pending[i]) {

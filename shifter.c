@@ -577,7 +577,7 @@ static int shifter_state_collect(struct mmu_state *state)
    */
 
   state->size = 70;
-  state->data = (char *)xmalloc(state->size);
+  state->data = xmalloc(state->size);
   if(state->data == NULL) {
     return STATE_INVALID;
   }

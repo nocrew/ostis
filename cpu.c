@@ -441,7 +441,7 @@ void cpu_init()
 {
   int i;
 
-  cpu = (struct cpu *)xmalloc(sizeof(struct cpu));
+  cpu = xmalloc(sizeof(struct cpu));
   if(!cpu) {
     exit(-2);
   }
@@ -751,7 +751,7 @@ void cpu_set_breakpoint(LONG addr, int cnt)
 {
   struct cpubrk *t;
 
-  t = (struct cpubrk *)xmalloc(sizeof(struct cpubrk));
+  t = xmalloc(sizeof(struct cpubrk));
   t->addr = addr&0xffffff;
   t->cnt = cnt;
   t->next = brk;
@@ -818,7 +818,7 @@ void cpu_set_watchpoint(char *cond, int cnt)
 {
   struct cpuwatch *t;
   
-  t = (struct cpuwatch *)xmalloc(sizeof(struct cpuwatch));
+  t = xmalloc(sizeof(struct cpuwatch));
   t->cond = cond;
   t->cnt = cnt;
   t->next = watch;
@@ -850,7 +850,7 @@ struct cpu_state *cpu_state_collect()
   struct cpu_state *new;
   int r;
 
-  new = (struct cpu_state *)xmalloc(sizeof(struct cpu_state));
+  new = xmalloc(sizeof(struct cpu_state));
   if(new == NULL) return NULL;
 
   memcpy(new->id, "CPU0", 4);
@@ -871,7 +871,7 @@ struct cpu_state *cpu_state_collect()
    * 
    */
   new->size = STATE_END;
-  new->data = (char *)xmalloc(new->size);
+  new->data = malloc(new->size);
   if(new->data == NULL) {
     free(new);
     return NULL;

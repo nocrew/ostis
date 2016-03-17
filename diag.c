@@ -28,7 +28,7 @@ static void add_module(char *module_str)
 {
   struct diag_module *new;
   char *tmp;
-  new = (struct diag_module *)xmalloc(sizeof(struct diag_module));
+  new = xmalloc(sizeof(struct diag_module));
 
   if(!module_str || module_str[0] == '\0') return;
   

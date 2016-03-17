@@ -336,7 +336,7 @@ struct mmu_state *mmu_state_collect()
   for(i=0; i<mmu_module_count; i++) {
     module = mmu_module_by_id[i];
     if(module->state_collect != NULL) {
-      new = (struct mmu_state *)xmalloc(sizeof(struct mmu_state));
+      new = xmalloc(sizeof(struct mmu_state));
       if(new != NULL) {
 	strncpy(new->id, module->id, 4);
 	if(module->state_collect(new) == STATE_VALID) {

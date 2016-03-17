@@ -3,6 +3,7 @@
  *		practically everything
  */
 
+#include "mmu.h"
 #include "glue.h"
 #include "diag.h"
 
@@ -62,7 +63,7 @@ static void glue_machine(void)
     switch(line) {
     case  64: v = 1; break;
     case 264: v = 0; break;
-    case 313: line = 0; break;
+    case 313: line = 0; mmu_vsync(); break;
     }
     break;
   }

@@ -411,27 +411,6 @@ static void shifter_gen_pixel(int rasterpos)
   }
 }
 
-static void shifter_gen_picture(int rasterpos)
-{
-  int i;
-
-  if((rasterpos - lastrasterpos) < 0) return;
-
-  if(!screen_check_disable()) {
-    for(i=lastrasterpos; i<=rasterpos; i++) {
-      shifter_gen_pixel(i);
-    }
-  } else {
-    i = rasterpos - lastrasterpos;
-  }
-  lastrasterpos = i;
-}
-
-void shifter_force_gen_picture()
-{
-  shifter_gen_picture(res.screen_cycles-vsynccnt);
-}
-
 void shifter_build_image(int debug)
 {
   
@@ -494,9 +473,11 @@ static void shifter_write_byte(LONG addr, BYTE data)
   switch(addr) {
   case 0xff8201:
     scraddr = (scraddr&0xff00)|(data<<16);
+    mmu_scraddr(scraddr);
     return;
   case 0xff8203:
     scraddr = (scraddr&0xff0000)|(data<<8);
+    mmu_scraddr(scraddr);
     return;
   case 0xff820a:
     if((res.screen_cycles-vsynccnt) < (res.hblsize*res.vblpre)) {
@@ -534,8 +515,6 @@ static void shifter_write_byte(LONG addr, BYTE data)
 
 static void shifter_write_word(LONG addr, WORD data)
 {
-  if((addr >= 0xff8240) && (addr <= 0xff825f))
-    shifter_gen_picture(res.screen_cycles-vsynccnt);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
 }
@@ -687,7 +666,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(vsynccnt < 0) {
     vblpre = res.vblpre;
     vblscr = res.vblscr;
-    shifter_gen_picture(res.screen_cycles);
     scrptr = curaddr = scraddr;
     vsynccnt += res.screen_cycles;
     linenum = 0;
@@ -720,7 +698,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(hsynccnt < 0) {
     hblpre = res.hblpre;
     hblscr = res.hblscr;
-    shifter_gen_picture(res.screen_cycles-vsynccnt);
     hsynccnt += res.hblsize;
     hbl_triggered = 1;
     cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
@@ -769,12 +746,81 @@ float shifter_fps()
   }
 }
 
+static int rasterpos;
+
+static int get_color(WORD *data)
+{
+  int i, c = 0;
+  for(i = 0; i < 4; i++) {
+    c <<= 1;
+    if(data[i] & 0x8000)
+      c += 1;
+    data[i] <<= 1;
+  }
+  return c;
+}
+
+static void shifter_draw(WORD *data)
+{
+  int i, c;
+
+  for (i = 0; i < 16; i++) {
+    c = get_color(data);
+    rgbimage[rasterpos++] = palette_r[c];
+    rgbimage[rasterpos++] = palette_g[c];
+    rgbimage[rasterpos++] = palette_b[c];
+    rgbimage[rasterpos++] = palette_r[c];
+    rgbimage[rasterpos++] = palette_g[c];
+    rgbimage[rasterpos++] = palette_b[c];
+  }
+}
+
 void shifter_load(WORD data)
 {
+  static WORD reg[4];
+  static int i = 0;
   TRACE("Load %04x", data);
+
+  reg[3-i] = data;
+  i++;
+  if(i == 4) {
+    i = 0;
+    shifter_draw(reg);
+  }
 }
 
 void shifter_border(void)
 {
   TRACE("Border");
+
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+  rgbimage[rasterpos++] = 0xff;
+
+  if(rasterpos >= 6*160256)
+    rasterpos = 0;
 }

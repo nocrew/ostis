@@ -1,3 +1,9 @@
+/*
+ * Custom MMU	Connected to
+ * pin 51	GLUE:VSYNC
+ * ?		SHIFTER:LOAD
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include "common.h"
@@ -22,6 +28,8 @@ static uint8_t mmu_module_count = 0;
 static struct mmu *mmu_module_by_id[256];
 static uint8_t bus_error_id;
 static uint8_t bus_error_odd_addr_id;
+static LONG scradr = 0;
+static LONG curadr = 0;
 
 #define MEM_READ(size, addr) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->read_##size(addr&0xffffff)
 #define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->write_##size(addr&0xffffff, data)
@@ -406,12 +414,24 @@ void mmu_do_interrupts(struct cpu *cpu)
   ikbd_do_interrupt(cpu);
 }
 
+void mmu_scraddr(LONG a)
+{
+  scradr = a;
+}
+
+
 void mmu_de(int enable)
 {
   if(enable) {
     TRACE("Display enable");
-    shifter_load(ram_read_word(0));
+    shifter_load(ram_read_word(curadr));
+    curadr += 2;
   } else {
     shifter_border();
   }
+}
+
+void mmu_vsync(void)
+{
+  curadr = scradr;
 }

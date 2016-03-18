@@ -12,39 +12,39 @@ static void movep(struct cpu *cpu, WORD op)
 
   ar = op&0x7;
   dr = (op&0xe00)>>9;
-  a = mmu_read_word(cpu->pc);
+  a = bus_read_word(cpu->pc);
   if(a&0x8000) a |= 0xffff0000;
   a += cpu->a[ar];
   cpu->pc += 2;
     
   switch((op&0xc0)>>6) {
   case 0:
-    d = (mmu_read_byte(a)<<8)|mmu_read_byte(a+2);
+    d = (bus_read_byte(a)<<8)|bus_read_byte(a+2);
     cpu->d[dr] = (cpu->d[dr]&0xffff0000)|(d&0xffff);
     ADD_CYCLE(16);
     return;
   case 1:
-    d = ((mmu_read_byte(a)<<24)|
-	 (mmu_read_byte(a+2)<<16)|
-	 (mmu_read_byte(a+4)<<8)|
-	 (mmu_read_byte(a+6)));
+    d = ((bus_read_byte(a)<<24)|
+	 (bus_read_byte(a+2)<<16)|
+	 (bus_read_byte(a+4)<<8)|
+	 (bus_read_byte(a+6)));
     cpu->d[dr] = d;
     ADD_CYCLE(24);
     return;
   case 2:
     d = cpu->d[dr]&0xffff;
     cpu_prefetch();
-    mmu_write_byte(a, (BYTE)((d&0xff00)>>8));
-    mmu_write_byte(a+2, (BYTE)((d&0xff)));
+    bus_write_byte(a, (BYTE)((d&0xff00)>>8));
+    bus_write_byte(a+2, (BYTE)((d&0xff)));
     ADD_CYCLE(16);
     return;
   case 3:
     d = cpu->d[dr];
     cpu_prefetch();
-    mmu_write_byte(a, (BYTE)((d&0xff000000)>>24));
-    mmu_write_byte(a+2, (BYTE)((d&0xff0000)>>16));
-    mmu_write_byte(a+4, (BYTE)((d&0xff00)>>8));
-    mmu_write_byte(a+6, (BYTE)((d&0xff)));
+    bus_write_byte(a, (BYTE)((d&0xff000000)>>24));
+    bus_write_byte(a+2, (BYTE)((d&0xff0000)>>16));
+    bus_write_byte(a+4, (BYTE)((d&0xff00)>>8));
+    bus_write_byte(a+6, (BYTE)((d&0xff)));
     ADD_CYCLE(24);
     return;
   }
@@ -59,7 +59,7 @@ static struct cprint *movep_print(LONG addr, WORD op)
   
   ar = op&0x7;
   dr = (op&0xe00)>>9;
-  o = mmu_read_word(addr+ret->size);
+  o = bus_read_word(addr+ret->size);
   if(o&0x8000) o |= 0xffff0000;
   ret->size += 2;
 

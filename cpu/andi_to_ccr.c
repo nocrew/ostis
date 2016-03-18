@@ -11,7 +11,7 @@ static void andi_to_ccr(struct cpu *cpu, WORD op)
   ENTER;
 
   ADD_CYCLE(20);
-  d = mmu_read_word(cpu->pc)&0x1f;
+  d = bus_read_word(cpu->pc)&0x1f;
   cpu->pc += 2;
   sr = cpu->sr;
   sr = (sr&0xff00)|((sr&0xff)&d);
@@ -25,7 +25,7 @@ static struct cprint *andi_to_ccr_print(LONG addr, WORD op)
   ret = cprint_alloc(addr);
 
   strcpy(ret->instr, "ANDI");
-  sprintf(ret->data, "#$%x,CCR", mmu_read_word_print(addr+ret->size)&0xff);
+  sprintf(ret->data, "#$%x,CCR", bus_read_word_print(addr+ret->size)&0xff);
   ret->size += 2;
   
   return ret;

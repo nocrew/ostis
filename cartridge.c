@@ -28,14 +28,6 @@ static WORD cartridge_read_word(LONG addr)
   return (cartridge_read_byte(addr)<<8)|cartridge_read_byte(addr+1);
 }
 
-static LONG cartridge_read_long(LONG addr)
-{
-  return ((cartridge_read_byte(addr)<<24)|
-       (cartridge_read_byte(addr+1)<<16)|
-       (cartridge_read_byte(addr+2)<<8)|
-       (cartridge_read_byte(addr+3)));
-}
-
 static int cartridge_state_collect(struct mmu_state *state)
 {
   state->size = 0;
@@ -62,7 +54,6 @@ void cartridge_init(char *filename)
   cartridge->size = CARTRIDGESIZE;
   cartridge->read_byte = cartridge_read_byte;
   cartridge->read_word = cartridge_read_word;
-  cartridge->read_long = cartridge_read_long;
   cartridge->state_collect = cartridge_state_collect;
   cartridge->state_restore = cartridge_state_restore;
   cartridge->diagnostics = cartridge_diagnostics;

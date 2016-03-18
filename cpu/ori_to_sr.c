@@ -11,7 +11,7 @@ static void ori_to_sr(struct cpu *cpu, WORD op)
 
   if(cpu->sr&0x2000) {
     ADD_CYCLE(20);
-    d = mmu_read_word(cpu->pc);
+    d = bus_read_word(cpu->pc);
     cpu->pc += 2;
     cpu_set_sr(cpu->sr|d);
     cpu->tracedelay = 1;
@@ -27,7 +27,7 @@ static struct cprint *ori_to_sr_print(LONG addr, WORD op)
   ret = cprint_alloc(addr);
 
   strcpy(ret->instr, "ORI");
-  sprintf(ret->data, "#$%x,SR", mmu_read_word_print(addr+ret->size));
+  sprintf(ret->data, "#$%x,SR", bus_read_word_print(addr+ret->size));
   ret->size += 2;
   
   return ret;

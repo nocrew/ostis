@@ -128,13 +128,13 @@ static int edit_do_setmem()
     return EDIT_FAILURE;
 
   if(bits == 8) {
-    mmu_write_byte(addr, value&0xff);
+    bus_write_byte(addr, value&0xff);
   }
   if(bits == 16) {
-    mmu_write_word(addr, value&0xffff);
+    bus_write_word(addr, value&0xffff);
   }
   if(bits == 32) {
-    mmu_write_long(addr, value);
+    bus_write_long(addr, value);
   }
   
   return EDIT_SUCCESS;

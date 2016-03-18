@@ -25,7 +25,7 @@ static int read_sector(struct floppy *fl, int track, int side, int sector, LONG 
     /* Check if we're trying to read outside floppy data */
     if((pos+i*SECSIZE) >= (image->raw_data_size-SECSIZE)) return FLOPPY_ERROR;
     for(j=0;j<SECSIZE;j++) {
-      mmu_write_byte(addr+i*SECSIZE+j, image->raw_data[pos+i*SECSIZE+j]);
+      bus_write_byte(addr+i*SECSIZE+j, image->raw_data[pos+i*SECSIZE+j]);
     }
   }
   

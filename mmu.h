@@ -20,10 +20,8 @@ struct mmu {
   int verbosity;
   BYTE (*read_byte)(LONG);
   WORD (*read_word)(LONG);
-  LONG (*read_long)(LONG);
   void (*write_byte)(LONG, BYTE);
   void (*write_word)(LONG, WORD);
-  void (*write_long)(LONG, LONG);
   int (*state_collect)(struct mmu_state *);
   void (*state_restore)(struct mmu_state *);
   void (*diagnostics)();
@@ -45,15 +43,15 @@ void mmu_send_bus_error(int, LONG);
 void mmu_print_map();
 void mmu_do_interrupts(struct cpu *);
 
-BYTE mmu_read_byte(LONG);
-WORD mmu_read_word(LONG);
-LONG mmu_read_long(LONG);
-BYTE mmu_read_byte_print(LONG);
-WORD mmu_read_word_print(LONG);
-LONG mmu_read_long_print(LONG);
-void mmu_write_byte(LONG, BYTE);
-void mmu_write_word(LONG, WORD);
-void mmu_write_long(LONG, LONG);
+BYTE bus_read_byte(LONG);
+WORD bus_read_word(LONG);
+LONG bus_read_long(LONG);
+BYTE bus_read_byte_print(LONG);
+WORD bus_read_word_print(LONG);
+LONG bus_read_long_print(LONG);
+void bus_write_byte(LONG, BYTE);
+void bus_write_word(LONG, WORD);
+void bus_write_long(LONG, LONG);
 
 extern int mmu_print_state;
 

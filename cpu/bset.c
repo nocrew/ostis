@@ -8,7 +8,7 @@ static void bset_i(struct cpu *cpu, int mode)
 {
   BYTE b,d;
 
-  b = (BYTE)mmu_read_word(cpu->pc)&0xff;
+  b = (BYTE)bus_read_word(cpu->pc)&0xff;
   b &= 31;
   cpu->pc += 2;
   if(mode&0x38) {
@@ -67,7 +67,7 @@ static struct cprint *bset_print(LONG addr, WORD op)
 
   switch((op&0x100)>>8) {
   case 0:
-    b = mmu_read_word_print(addr+ret->size)&0x1f;
+    b = bus_read_word_print(addr+ret->size)&0x1f;
     ret->size += 2;
     if(op&0x38) {
       b &= 7;

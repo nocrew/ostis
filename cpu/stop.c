@@ -9,7 +9,7 @@ static void stop(struct cpu *cpu, WORD op)
 
   if(cpu->sr&0x2000) {
     ADD_CYCLE(4);
-    cpu_set_sr(mmu_read_word(cpu->pc));
+    cpu_set_sr(bus_read_word(cpu->pc));
     cpu->pc += 2;
     cpu->stopped = 1;
   } else {
@@ -24,7 +24,7 @@ static struct cprint *stop_print(LONG addr, WORD op)
   ret = cprint_alloc(addr);
 
   strcpy(ret->instr, "STOP");
-  sprintf(ret->data, "#$%04x", mmu_read_word_print(addr+ret->size));
+  sprintf(ret->data, "#$%04x", bus_read_word_print(addr+ret->size));
   ret->size += 2;
   
   return ret;

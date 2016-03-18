@@ -484,14 +484,6 @@ static WORD shifter_read_word(LONG addr)
   return (shifter_read_byte(addr)<<8)|shifter_read_byte(addr+1);
 }
 
-static LONG shifter_read_long(LONG addr)
-{
-  return ((shifter_read_byte(addr)<<24)|
-          (shifter_read_byte(addr+1)<<16)|
-          (shifter_read_byte(addr+2)<<8)|
-          (shifter_read_byte(addr+3)));
-}
-
 static void shifter_write_byte(LONG addr, BYTE data)
 {
   WORD tmp;
@@ -543,17 +535,6 @@ static void shifter_write_word(LONG addr, WORD data)
     shifter_gen_picture(res.screen_cycles-vsynccnt);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
-}
-
-static void shifter_write_long(LONG addr, LONG data)
-{
-  if((addr >= 0xff8240) && (addr <= 0xff825f)) {
-    shifter_gen_picture(res.screen_cycles-vsynccnt);
-  }
-  shifter_write_byte(addr, (data&0xff000000)>>24);
-  shifter_write_byte(addr+1, (data&0xff0000)>>16);
-  shifter_write_byte(addr+2, (data&0xff00)>>8);
-  shifter_write_byte(addr+3, (data&0xff));
 }
 
 static int shifter_state_collect(struct mmu_state *state)
@@ -654,10 +635,8 @@ void shifter_init()
   shifter->size = SHIFTERSIZE;
   shifter->read_byte = shifter_read_byte;
   shifter->read_word = shifter_read_word;
-  shifter->read_long = shifter_read_long;
   shifter->write_byte = shifter_write_byte;
   shifter->write_word = shifter_write_word;
-  shifter->write_long = shifter_write_long;
   shifter->state_collect = shifter_state_collect;
   shifter->state_restore = shifter_state_restore;
   shifter->diagnostics = shifter_diagnostics;

@@ -13,7 +13,7 @@ static void ori_b(struct cpu *cpu, WORD op)
   } else {
     ADD_CYCLE(8);
   }
-  s = mmu_read_word(cpu->pc)&0xff;
+  s = bus_read_word(cpu->pc)&0xff;
   cpu->pc += 2;
   d = ea_read_byte(cpu, op&0x3f, 1);
   r = s|d;
@@ -31,7 +31,7 @@ static void ori_w(struct cpu *cpu, WORD op)
   } else {
     ADD_CYCLE(8);
   }
-  s = mmu_read_word(cpu->pc);
+  s = bus_read_word(cpu->pc);
   cpu->pc += 2;
   d = ea_read_word(cpu, op&0x3f, 1);
   r = s|d;
@@ -49,7 +49,7 @@ static void ori_l(struct cpu *cpu, WORD op)
   } else {
     ADD_CYCLE(16);
   }
-  s = mmu_read_long(cpu->pc);
+  s = bus_read_long(cpu->pc);
   cpu->pc += 4;
   d = ea_read_long(cpu, op&0x3f, 1);
   r = s|d;
@@ -87,17 +87,17 @@ static struct cprint *ori_print(LONG addr, WORD op)
   switch(s) {
   case 0:
     strcpy(ret->instr, "ORI.B");
-    sprintf(ret->data, "#$%x,", mmu_read_word_print(addr+ret->size)&0xff);
+    sprintf(ret->data, "#$%x,", bus_read_word_print(addr+ret->size)&0xff);
     ret->size += 2;
     break;
   case 1:
     strcpy(ret->instr, "ORI.W");
-    sprintf(ret->data, "#$%x,", mmu_read_word_print(addr+ret->size));
+    sprintf(ret->data, "#$%x,", bus_read_word_print(addr+ret->size));
     ret->size += 2;
     break;
   case 2:
     strcpy(ret->instr, "ORI.L");
-    sprintf(ret->data, "#$%x,", mmu_read_long_print(addr+ret->size));
+    sprintf(ret->data, "#$%x,", bus_read_long_print(addr+ret->size));
     ret->size += 4;
     break;
   }

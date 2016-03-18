@@ -33,14 +33,6 @@ WORD ram_read_word(LONG addr)
   return (ram_read_byte(addr)<<8)|ram_read_byte(addr+1);
 }
 
-static LONG ram_read_long(LONG addr)
-{
-  return ((ram_read_byte(addr)<<24)|
-       (ram_read_byte(addr+1)<<16)|
-       (ram_read_byte(addr+2)<<8)|
-       (ram_read_byte(addr+3)));
-}
-
 static void ram_write_byte(LONG addr, BYTE data)
 {
   *(real(addr)) = data;
@@ -50,14 +42,6 @@ static void ram_write_word(LONG addr, WORD data)
 {
   ram_write_byte(addr, (data&0xff00)>>8);
   ram_write_byte(addr+1, (data&0xff));
-}
-
-static void ram_write_long(LONG addr, LONG data)
-{
-  ram_write_byte(addr, (data&0xff000000)>>24);
-  ram_write_byte(addr+1, (data&0xff0000)>>16);
-  ram_write_byte(addr+2, (data&0xff00)>>8);
-  ram_write_byte(addr+3, (data&0xff));
 }
 
 static int ram_state_collect(struct mmu_state *state)
@@ -113,10 +97,8 @@ void ram_init()
   ram->size = RAMSIZE;
   ram->read_byte = ram_read_byte;
   ram->read_word = ram_read_word;
-  ram->read_long = ram_read_long;
   ram->write_byte = ram_write_byte;
   ram->write_word = ram_write_word;
-  ram->write_long = ram_write_long;
   ram->state_collect = ram_state_collect;
   ram->state_restore = ram_state_restore;
   ram->diagnostics = ram_diagnostics;

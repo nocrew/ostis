@@ -15,7 +15,7 @@ static void jsr(struct cpu *cpu, WORD op)
   newpc = ea_get_addr(cpu, op&0x3f);
   cpu->a[7] -= 4;
   cpu_prefetch();
-  mmu_write_long(cpu->a[7], cpu->pc);
+  bus_write_long(cpu->a[7], cpu->pc);
   cpu->pc = newpc;
   if(newpc != cpu->a[7] && newpc != (cpu->a[7]+2)) {
     cpu_clear_prefetch();

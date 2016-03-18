@@ -14,9 +14,9 @@ static void rte(struct cpu *cpu, WORD op)
 
   if(cpu->sr&0x2000) {
     ADD_CYCLE(20);
-    sr = mmu_read_word(cpu->a[7]);
+    sr = bus_read_word(cpu->a[7]);
     cpu->a[7] += 2;
-    pc = mmu_read_long(cpu->a[7]);
+    pc = bus_read_long(cpu->a[7]);
     cpu->a[7] += 4;
 #if EXTREME_EXCEPTION_DEBUG
     printf("DEBUG: %d Leaving interrupt [%08x / %04x => %08x / %04x]\n", cpu->cycle, cpu->pc, cpu->sr, pc, sr);

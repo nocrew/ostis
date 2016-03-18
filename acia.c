@@ -90,14 +90,6 @@ static WORD acia_read_word(LONG addr)
   return (acia_read_byte(addr)<<8)|acia_read_byte(addr+1);
 }
 
-static LONG acia_read_long(LONG addr)
-{
-  return ((acia_read_byte(addr)<<24)|
-	  (acia_read_byte(addr+1)<<16)|
-	  (acia_read_byte(addr+2)<<8)|
-	  (acia_read_byte(addr+3)));
-}
-
 static void acia_write_byte(LONG addr, BYTE data)
 {
   cpu_add_extra_cycles(6);
@@ -125,14 +117,6 @@ static void acia_write_word(LONG addr, WORD data)
   acia_write_byte(addr+1, (data&0xff));
 }
 
-static void acia_write_long(LONG addr, LONG data)
-{
-  acia_write_byte(addr, (data&0xff000000)>>24);
-  acia_write_byte(addr+1, (data&0xff0000)>>16);
-  acia_write_byte(addr+2, (data&0xff00)>>8);
-  acia_write_byte(addr+3, (data&0xff));
-}
-
 void acia_init()
 {
   struct mmu *acia;
@@ -145,10 +129,8 @@ void acia_init()
   acia->size = ACIASIZE;
   acia->read_byte = acia_read_byte;
   acia->read_word = acia_read_word;
-  acia->read_long = acia_read_long;
   acia->write_byte = acia_write_byte;
   acia->write_word = acia_write_word;
-  acia->write_long = acia_write_long;
   acia->diagnostics = acia_diagnostics;
 
   mmu_register(acia);

@@ -7,7 +7,7 @@ static void rts(struct cpu *cpu, WORD op)
 {
   ENTER;
 
-  cpu->pc = mmu_read_long(cpu->a[7]);
+  cpu->pc = bus_read_long(cpu->a[7]);
   cpu->a[7] += 4;
   ADD_CYCLE(16);
 }

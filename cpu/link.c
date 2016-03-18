@@ -10,7 +10,7 @@ static void link(struct cpu *cpu, WORD op)
 
   ENTER;
 
-  d = mmu_read_word(cpu->pc);
+  d = bus_read_word(cpu->pc);
   cpu->pc += 2;
   if(d&0x8000) d |= 0xffff0000;
   
@@ -18,7 +18,7 @@ static void link(struct cpu *cpu, WORD op)
 
   cpu->a[7] -= 4;
   cpu_prefetch();
-  mmu_write_long(cpu->a[7], cpu->a[r]);
+  bus_write_long(cpu->a[7], cpu->a[r]);
   cpu->a[r] = cpu->a[7];
   cpu->a[7] += d;
 
@@ -32,7 +32,7 @@ static struct cprint *link_print(LONG addr, WORD op)
 
   ret = cprint_alloc(addr);
 
-  d = mmu_read_word_print(addr+ret->size);
+  d = bus_read_word_print(addr+ret->size);
   if(d&0x8000) d |= 0xffff0000;
   ret->size += 2;
   

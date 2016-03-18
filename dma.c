@@ -145,11 +145,6 @@ WORD dma_read_word(LONG addr)
   return 0xffff;
 }
 
-LONG dma_read_long(LONG addr)
-{
-  return (dma_read_word(addr)<<16)|dma_read_word(addr+1);
-}
-
 void dma_write_byte(LONG addr, BYTE data)
 {
   TRACE("WriteByte: %06x %02x", addr, data);
@@ -197,12 +192,6 @@ void dma_write_word(LONG addr, WORD data)
   }
 }
 
-void dma_write_long(LONG addr, LONG data)
-{
-  dma_write_word(addr, (data&0xffff0000)>>16);
-  dma_write_word(addr+2, data&0xffff);
-}
-
 static int dma_state_collect(struct mmu_state *state)
 {
   state->size = 0;
@@ -224,10 +213,8 @@ void dma_init()
   dma->size = DMASIZE;
   dma->read_byte = dma_read_byte;
   dma->read_word = dma_read_word;
-  dma->read_long = dma_read_long;
   dma->write_byte = dma_write_byte;
   dma->write_word = dma_write_word;
-  dma->write_long = dma_write_long;
   dma->state_collect = dma_state_collect;
   dma->state_restore = dma_state_restore;
   dma->diagnostics = dma_diagnostics;

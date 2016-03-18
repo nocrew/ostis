@@ -59,7 +59,7 @@ struct sigaction reset;
 
 static void reset_action(int sig, siginfo_t *info, void *x)
 {
-  cpu_reset();
+  cpu_reset_in();
 }
 
 int main(int argc, char *argv[])

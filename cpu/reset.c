@@ -6,6 +6,8 @@ static void reset(struct cpu *cpu, WORD op)
 {
   ENTER;
 
+  cpu_reset_out();
+
   ADD_CYCLE(128);
 }
 

@@ -344,9 +344,14 @@ int cpu_run(int cpu_run_state)
   return ret;
 }
 
-void cpu_reset(void)
+void cpu_reset_in(void)
 {
   reset_cpu = 1;
+}
+
+void cpu_reset_out(void)
+{
+  // Call reset in just about every other device.
 }
 
 void cpu_do_cycle(LONG cnt)

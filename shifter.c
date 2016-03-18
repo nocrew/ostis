@@ -12,9 +12,10 @@
 #include "ram.h"
 #include "state.h"
 #include "diag.h"
+#include "glue.h"
 
-#define SHIFTERSIZE 128
-#define SHIFTERBASE 0xff8200
+#define SHIFTERSIZE 64
+#define SHIFTERBASE 0xff8240
 
 #define HBLSIZE 512
 #define HBLPRE 64
@@ -26,18 +27,17 @@
 #define VBLSCR 200
 #define VBLPOST 40
 
-static int get_pixel_low(int, int);
-static int get_pixel_medium(int, int);
-static int get_pixel_high(int, int);
-static void set_pixel_low(int, int);
-static void set_pixel_medium(int, int);
-static void set_pixel_high(int, int);
+static void shifter_draw_low(WORD *);
+static void shifter_draw_medium(WORD *);
+static void shifter_draw_high(WORD *);
+static void shifter_border_low(void);
+static void shifter_border_high(void);
 
 static struct resolution_data res_data[] = {
   {
     // Low resolution
-    .get_pixel = get_pixel_low,
-    .set_pixel = set_pixel_low,
+    .draw = shifter_draw_low,
+    .bitplanes = 4,
     .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
@@ -46,13 +46,13 @@ static struct resolution_data res_data[] = {
     .vblsize = VBLSIZE,
     .vblpre = VBLPRE,
     .vblscr = VBLSCR,
-    .voff_shift = 1,
-    .border = 16
+    .voff_shift = 0,
+    .border = shifter_border_low
   },
   {
     // Medium resolution
-    .get_pixel = get_pixel_medium,
-    .set_pixel = set_pixel_medium,
+    .draw = shifter_draw_medium,
+    .bitplanes = 2,
     .screen_cycles = HBLSIZE*VBLSIZE,
     .hblsize = HBLSIZE,
     .hblpre = HBLPRE,
@@ -61,13 +61,13 @@ static struct resolution_data res_data[] = {
     .vblsize = VBLSIZE,
     .vblpre = VBLPRE,
     .vblscr = VBLSCR,
-    .voff_shift = 1,
-    .border = (16 << 16) + 16
+    .voff_shift = 0,
+    .border = shifter_border_low
   },
   {
     // High resolution
-    .get_pixel = get_pixel_high,
-    .set_pixel = set_pixel_high,
+    .draw = shifter_draw_high,
+    .bitplanes = 1,
     .screen_cycles = 224*501,
     .hblsize = 224,
     .hblpre = 30,
@@ -76,16 +76,14 @@ static struct resolution_data res_data[] = {
     .vblsize = 501,
     .vblpre = 50,
     .vblscr = 400,
-    .voff_shift = 2,
-    .border = ~0
+    .voff_shift = 1,
+    .border = shifter_border_high
   },
   {
     // Whoops, bad resolution
     0
   }
 };
-
-#define SCR_BYTES_PER_LINE 160
 
 #define BORDERTOP 28
 #define BORDERBOTTOM 38
@@ -97,18 +95,17 @@ static long linenum = 0;
 static long linecnt;
 static long vsynccnt = 0; /* 160256 cycles in one screen */
 static long hsynccnt; /* Offset for first hbl interrupt */
-static long lastrasterpos = 0;
 static long lastcpucnt;
+static int rasterpos; /* Position on the screen. */
+static int plane = 0;
+static int border_r=0, border_g=0, border_b=0;
+static int brighter = 0x1f;
 
-static long palette_r[16*2]; /* x2 for slightly different border col */
-static long palette_g[16*2]; /* x2 for slightly different border col */
-static long palette_b[16*2]; /* x2 for slightly different border col */
+static long palette_r[16];
+static long palette_g[16];
+static long palette_b[16];
 
 static WORD stpal[16];
-static LONG curaddr; /* Current address used for display */
-static LONG scraddr; /* Address for next VBL */
-static LONG scrptr;  /* Actual screen pointer, read only from emulator */
-static BYTE syncreg; /* 50/60Hz + Internal/External Sync flags */
 static BYTE resolution; /* Low, medium or high resolution. */
 static struct resolution_data res;
 
@@ -116,7 +113,6 @@ static int vblpre = 0;
 static int vblscr = 0;
 static int hblpre = 0;
 static int hblscr = 0;
-static int scr_bytes_per_line = SCR_BYTES_PER_LINE;
 static int framecnt;
 static int64_t last_framecnt_usec;
 static int usecs_per_framecnt_interval = 1;
@@ -137,333 +133,32 @@ static void set_palette(int pnum, int value, int part)
   case 1: /* Low byte, only Red */
     c = (value&0x7)<<5;
     palette_r[pnum] = c;
-    palette_r[pnum+16] = c|0x1f; /* Brighter for border */
     break;
   case 2: /* High byte, only Green and Blue */
     c = (value&0x7)<<5;
     palette_b[pnum] = c;
-    palette_b[pnum+16] = c|0x1f; /* Brighter for border */
     c = (value&0x70)<<1;
     palette_g[pnum] = c;
-    palette_g[pnum+16] = c|0x1f; /* Brighter for border */
     break;
   default: /* Currently unused */
     break;
   }
 }
 
-static void set_pixel_low(int rasterpos, int pnum)
-{
-  if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
-    rgbimage[rasterpos*6+0] = palette_r[pnum];
-    rgbimage[rasterpos*6+1] = palette_g[pnum];
-    rgbimage[rasterpos*6+2] = palette_b[pnum];
-    rgbimage[rasterpos*6+3] = palette_r[pnum];
-    rgbimage[rasterpos*6+4] = palette_g[pnum];
-    rgbimage[rasterpos*6+5] = palette_b[pnum];
-  } else {
-    rgbimage[rasterpos*6+2] = palette_r[pnum];
-    rgbimage[rasterpos*6+1] = palette_g[pnum];
-    rgbimage[rasterpos*6+0] = palette_b[pnum];
-    rgbimage[rasterpos*6+5] = palette_r[pnum];
-    rgbimage[rasterpos*6+4] = palette_g[pnum];
-    rgbimage[rasterpos*6+3] = palette_b[pnum];
-  }
-}
-
-static void set_pixel_medium(int rasterpos, int pnum)
-{
-  int c1,c2;
-
-  c1 = (pnum>>16);
-  c2 = pnum&0xffff;
-
-  if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
-    rgbimage[rasterpos*6+0] = palette_r[c1];
-    rgbimage[rasterpos*6+1] = palette_g[c1];
-    rgbimage[rasterpos*6+2] = palette_b[c1];
-    rgbimage[rasterpos*6+3] = palette_r[c2];
-    rgbimage[rasterpos*6+4] = palette_g[c2];
-    rgbimage[rasterpos*6+5] = palette_b[c2];
-  } else {
-    rgbimage[rasterpos*6+2] = palette_r[c1];
-    rgbimage[rasterpos*6+1] = palette_g[c1];
-    rgbimage[rasterpos*6+0] = palette_b[c1];
-    rgbimage[rasterpos*6+5] = palette_r[c2];
-    rgbimage[rasterpos*6+4] = palette_g[c2];
-    rgbimage[rasterpos*6+3] = palette_b[c2];
-  }
-}
-
-static void set_pixel_high(int rasterpos, int pnum)
-{
-  int c1,c2,c3,c4;
-
-  c1 = (pnum>>24)&1;
-  c2 = (pnum>>16)&1;
-  c3 = (pnum>>8)&1;
-  c4 = pnum&1;
-
-  if(SDL_BYTEORDER == SDL_BIG_ENDIAN || debugger) {
-    rgbimage[rasterpos*12+0] = (c1 ? 0 : 0xff);
-    rgbimage[rasterpos*12+1] = (c1 ? 0 : 0xff);
-    rgbimage[rasterpos*12+2] = (c1 ? 0 : 0xff);
-    rgbimage[rasterpos*12+3] = (c2 ? 0 : 0xff);
-    rgbimage[rasterpos*12+4] = (c2 ? 0 : 0xff);
-    rgbimage[rasterpos*12+5] = (c2 ? 0 : 0xff);
-    rgbimage[rasterpos*12+6] = (c3 ? 0 : 0xff);
-    rgbimage[rasterpos*12+7] = (c3 ? 0 : 0xff);
-    rgbimage[rasterpos*12+8] = (c3 ? 0 : 0xff);
-    rgbimage[rasterpos*12+9] = (c4 ? 0 : 0xff);
-    rgbimage[rasterpos*12+10] = (c4 ? 0 : 0xff);
-    rgbimage[rasterpos*12+11] = (c4 ? 0 : 0xff);
-  } else {
-    rgbimage[rasterpos*12+2] = (c1 ? 0 : 0xff);
-    rgbimage[rasterpos*12+1] = (c1 ? 0 : 0xff);
-    rgbimage[rasterpos*12+0] = (c1 ? 0 : 0xff);
-    rgbimage[rasterpos*12+5] = (c2 ? 0 : 0xff);
-    rgbimage[rasterpos*12+4] = (c2 ? 0 : 0xff);
-    rgbimage[rasterpos*12+3] = (c2 ? 0 : 0xff);
-    rgbimage[rasterpos*12+8] = (c3 ? 0 : 0xff);
-    rgbimage[rasterpos*12+7] = (c3 ? 0 : 0xff);
-    rgbimage[rasterpos*12+6] = (c3 ? 0 : 0xff);
-    rgbimage[rasterpos*12+11] = (c4 ? 0 : 0xff);
-    rgbimage[rasterpos*12+10] = (c4 ? 0 : 0xff);
-    rgbimage[rasterpos*12+9] = (c4 ? 0 : 0xff);
-  }
-}
-
-static int get_pixel_low(int videooffset, int pxlnum)
-{
-  int c;
-  static int lastpos = 0;
-  static WORD d[4];
-
-  if((curaddr+videooffset*2) != lastpos) {
-    d[3] = ram_read_word(curaddr+videooffset*2+0);
-    d[2] = ram_read_word(curaddr+videooffset*2+2);
-    d[1] = ram_read_word(curaddr+videooffset*2+4);
-    d[0] = ram_read_word(curaddr+videooffset*2+6);
-    lastpos = curaddr+videooffset*2;
-  }
-  
-  c = ((((d[0]>>(15-pxlnum))&1)<<3)|
-       (((d[1]>>(15-pxlnum))&1)<<2)|
-       (((d[2]>>(15-pxlnum))&1)<<1)|
-       (((d[3]>>(15-pxlnum))&1)));
-  return c;
-}
-
-static int get_pixel_medium(int videooffset, int pxlnum)
-{
-  int c,c1,c2;
-  static int lastpos = 0;
-  static WORD d[4];
-
-  if((curaddr+videooffset) != lastpos) {
-    d[3] = ram_read_word(curaddr+videooffset*2+0);
-    d[2] = ram_read_word(curaddr+videooffset*2+2);
-    d[1] = ram_read_word(curaddr+videooffset*2+4);
-    d[0] = ram_read_word(curaddr+videooffset*2+6);
-    lastpos = curaddr+videooffset;
-  }
-
-  if(pxlnum < 8) {
-    c1 = ((((d[2]>>(15-(pxlnum*2)))&1)<<1)|
-	  (((d[3]>>(15-(pxlnum*2)))&1)));
-    c2 = ((((d[2]>>(15-(pxlnum*2+1)))&1)<<1)|
-	  (((d[3]>>(15-(pxlnum*2+1)))&1)));
-  } else {
-    pxlnum -= 8;
-    c1 = ((((d[0]>>(15-(pxlnum*2)))&1)<<1)|
-	  (((d[1]>>(15-(pxlnum*2)))&1)));
-    c2 = ((((d[0]>>(15-(pxlnum*2+1)))&1)<<1)|
-	  (((d[1]>>(15-(pxlnum*2+1)))&1)));
-  }
-
-  c = (c1<<16)|c2;
-
-  return c;
-}
-
-static int get_pixel_high(int videooffset, int pxlnum)
-{
-  int c,c1,c2,c3,c4;
-  static int lastpos = 0;
-  static WORD d[4];
-
-  if((curaddr+videooffset) != lastpos) {
-    d[3] = ram_read_word(curaddr+videooffset*2+0);
-    d[2] = ram_read_word(curaddr+videooffset*2+2);
-    d[1] = ram_read_word(curaddr+videooffset*2+4);
-    d[0] = ram_read_word(curaddr+videooffset*2+6);
-    lastpos = curaddr+videooffset;
-  }
-
-  if(pxlnum < 4) {
-    c1 = (d[3]>>(15-(pxlnum*4)))&1;
-    c2 = (d[3]>>(15-(pxlnum*4+1)))&1;
-    c3 = (d[3]>>(15-(pxlnum*4+2)))&1;
-    c4 = (d[3]>>(15-(pxlnum*4+3)))&1;
-  } else if(pxlnum < 8) {
-    pxlnum -= 4;
-    c1 = (d[2]>>(15-(pxlnum*4)))&1;
-    c2 = (d[2]>>(15-(pxlnum*4+1)))&1;
-    c3 = (d[2]>>(15-(pxlnum*4+2)))&1;
-    c4 = (d[2]>>(15-(pxlnum*4+3)))&1;
-  } else if(pxlnum < 12) {
-    pxlnum -= 8;
-    c1 = (d[1]>>(15-(pxlnum*4)))&1;
-    c2 = (d[1]>>(15-(pxlnum*4+1)))&1;
-    c3 = (d[1]>>(15-(pxlnum*4+2)))&1;
-    c4 = (d[1]>>(15-(pxlnum*4+3)))&1;
-  } else {
-    pxlnum -= 12;
-    c1 = (d[0]>>(15-(pxlnum*4)))&1;
-    c2 = (d[0]>>(15-(pxlnum*4+1)))&1;
-    c3 = (d[0]>>(15-(pxlnum*4+2)))&1;
-    c4 = (d[0]>>(15-(pxlnum*4+3)))&1;
-  }
-
-  c = (c1<<24)|(c2<<16)|(c3<<8)|c4;
-
-  return c;
-}
-
-int shifter_on_display(int rasterpos)
-{
-  int line,linepos;
-
-  line = res.line_from_rasterpos[rasterpos];
-  linepos = res.linepos_from_rasterpos[rasterpos];
-  
-  if((line < vblpre) || (line >= (vblpre+vblscr)) ||
-     (linepos < hblpre) || (linepos >= (hblpre+hblscr))) {
-    return 0;
-  }
-  return 1;
-}
-
-static long get_videooffset(int rasterpos)
-{
-  int line,linepos,voff;
-  line = res.line_from_rasterpos[rasterpos];
-  linepos = res.linepos_from_rasterpos[rasterpos];
-
-  voff = (line-vblpre)*scr_bytes_per_line;
-  voff >>= res.voff_shift;
-  voff += ((linepos-hblpre)/16)*4; /* Mainly stolen from hatari */
-
-  return voff;
-}
-
-static void shifter_precalc_res_data(int resolution)
-{
-  struct resolution_data *calcres;
-  int rpos;
-
-  calcres = &res_data[resolution&3];
-  for(rpos=0;rpos<calcres->screen_cycles;rpos++) {
-    calcres->line_from_rasterpos[rpos] = rpos/calcres->hblsize;
-    calcres->linepos_from_rasterpos[rpos] = rpos%calcres->hblsize;
-  }
-}
-
-static void gen_scrptr(int rasterpos)
-{
-  int line,linepos,voff;
-
-  line = res.line_from_rasterpos[rasterpos];
-  linepos = res.linepos_from_rasterpos[rasterpos];
-
-  if(shifter_on_display(rasterpos)) {
-    voff = (line-vblpre)*scr_bytes_per_line;
-    voff += ((linepos-hblpre+15)>>1)&(~1); /* Mainly stolen from hatari */
-    scrptr = curaddr + voff;
-  } else {
-    if(line < vblpre) {
-      scrptr = curaddr;
-    } else if(line >= (vblpre+vblscr)) {
-      scrptr = curaddr + scr_bytes_per_line*vblscr;
-    } else {
-      if(linepos < hblpre) {
-	scrptr = curaddr + (line-vblpre)*scr_bytes_per_line;
-      } else if(linepos >= (hblpre+hblscr)) {
-	scrptr = curaddr + (line-vblpre+1)*scr_bytes_per_line;
-      }
-    }
-  }
-}
-
-static void shifter_gen_pixel(int rasterpos)
-{
-  int linepos;
-
-  linepos = res.linepos_from_rasterpos[rasterpos];
-
-  if(shifter_on_display(rasterpos)) {
-    res.set_pixel(rasterpos,
-		  res.get_pixel(get_videooffset(rasterpos),
-				(linepos-hblpre)&15));
-  } else {
-    res.set_pixel(rasterpos, res.border); /* Background in border */
-  }
-}
-
-static void shifter_gen_picture(int rasterpos)
-{
-  int i;
-
-  if((rasterpos - lastrasterpos) < 0) return;
-
-  if(!screen_check_disable()) {
-    for(i=lastrasterpos; i<=rasterpos; i++) {
-      shifter_gen_pixel(i);
-    }
-  } else {
-    i = rasterpos - lastrasterpos;
-  }
-  lastrasterpos = i;
-}
-
-void shifter_force_gen_picture()
-{
-  shifter_gen_picture(res.screen_cycles-vsynccnt);
-}
-
-void shifter_build_image(int debug)
-{
-  
-}
-
 static void shifter_set_resolution(BYTE data)
 {
+  DEBUG("Resolution %d", data);
+  rasterpos = 0;
+  plane = 0;
   resolution = data;
-
   res = res_data[data&3];
-
-  if(ppmoutput || crop_screen)
-    res.border = 0;
+  res.border();
+  glue_set_resolution(data & 3);
 }
 
 static BYTE shifter_read_byte(LONG addr)
 {
   switch(addr) {
-  case 0xff8201:
-    return (scraddr&0xff0000)>>16;
-  case 0xff8203:
-    return (scraddr&0xff00)>>8;
-  case 0xff8205:
-    gen_scrptr(res.screen_cycles-vsynccnt);
-    return (scrptr&0xff0000)>>16;
-  case 0xff8207:
-    gen_scrptr(res.screen_cycles-vsynccnt);
-    return (scrptr&0xff00)>>8;
-  case 0xff8209:
-    gen_scrptr(res.screen_cycles-vsynccnt);
-    return scrptr&0xff;
-  case 0xff820a:
-    return syncreg;
   case 0xff8260:
     return resolution;
   default:
@@ -487,27 +182,9 @@ static WORD shifter_read_word(LONG addr)
 static void shifter_write_byte(LONG addr, BYTE data)
 {
   WORD tmp;
-
   switch(addr) {
-  case 0xff8201:
-    scraddr = (scraddr&0xff00)|(data<<16);
-    return;
-  case 0xff8203:
-    scraddr = (scraddr&0xff0000)|(data<<8);
-    return;
-  case 0xff820a:
-    if((res.screen_cycles-vsynccnt) < (res.hblsize*res.vblpre)) {
-      vblpre = res.vblpre-BORDERTOP;
-      vblscr = res.vblscr+BORDERTOP;
-    } else if((res.screen_cycles-vsynccnt) > ((res.hblsize*(vblpre+vblscr))-res.hblpost)) {
-      if(vblscr != res.vblscr) {
-	vblscr = BORDERTOP;
-      }
-      vblscr = res.vblscr+BORDERBOTTOM;
-    }
-    syncreg = data;
-    return;
   case 0xff8260:
+    DEBUG("Resolution: %02x", data);
     shifter_set_resolution(data);
     return;
   default:
@@ -522,17 +199,14 @@ static void shifter_write_byte(LONG addr, BYTE data)
         stpal[(addr-0xff8240)>>1] = (tmp&0xff)|(data<<8);
 	set_palette((addr-0xff8240)>>1, data, 1);
       }
-      return;
-    } else {
-      return;
+      res.border();
     }
+    return;
   }
 }
 
 static void shifter_write_word(LONG addr, WORD data)
 {
-  if((addr >= 0xff8240) && (addr <= 0xff825f))
-    shifter_gen_picture(res.screen_cycles-vsynccnt);
   shifter_write_byte(addr, (data&0xff00)>>8);
   shifter_write_byte(addr+1, (data&0xff));
 }
@@ -544,17 +218,12 @@ static int shifter_state_collect(struct mmu_state *state)
   /* Size:
    * 
    * stpal[16]   == 16*2
-   * curaddr     == 4
-   * scraddr     == 4
-   * scrptr      == 4
    * linenum     == 4
    * linecnt     == 4
    * vsynccnt    == 4
    * hsynccnt    == 4
-   * lastrasterpos == 4
    * lastcpucnt  == 4
    * resolution  == 1
-   * syncreg     == 1
    */
 
   state->size = 70;
@@ -565,17 +234,12 @@ static int shifter_state_collect(struct mmu_state *state)
   for(r=0;r<16;r++) {
     state_write_mem_word(&state->data[r*2], stpal[r]);
   }
-  state_write_mem_long(&state->data[16*2], curaddr);
-  state_write_mem_long(&state->data[16*2+4*1], scraddr);
-  state_write_mem_long(&state->data[16*2+4*2], scrptr);
   state_write_mem_long(&state->data[16*2+4*3], linenum);
   state_write_mem_long(&state->data[16*2+4*4], linecnt);
   state_write_mem_long(&state->data[16*2+4*5], vsynccnt);
   state_write_mem_long(&state->data[16*2+4*6], hsynccnt);
-  state_write_mem_long(&state->data[16*2+4*7], lastrasterpos);
   state_write_mem_long(&state->data[16*2+4*8], lastcpucnt);
   state_write_mem_byte(&state->data[16*2+4*9], resolution);
-  state_write_mem_byte(&state->data[16*2+4*9+1], syncreg);
   
   return STATE_VALID;
 }
@@ -588,17 +252,12 @@ static void shifter_state_restore(struct mmu_state *state)
     set_palette(r, stpal[r]>>8, 1);
     set_palette(r, stpal[r], 2);
   }
-  curaddr = state_read_mem_long(&state->data[16*2]);
-  scraddr = state_read_mem_long(&state->data[16*2+4*1]);
-  scrptr = state_read_mem_long(&state->data[16*2+4*2]);
   linenum = state_read_mem_long(&state->data[16*2+4*3]);
   linecnt = state_read_mem_long(&state->data[16*2+4*4]);
   vsynccnt = state_read_mem_long(&state->data[16*2+4*5]);
   hsynccnt = state_read_mem_long(&state->data[16*2+4*6]);
-  lastrasterpos = state_read_mem_long(&state->data[16*2+4*7]);
   lastcpucnt = state_read_mem_long(&state->data[16*2+4*8]);
   resolution = state_read_mem_byte(&state->data[16*2+4*9]);
-  syncreg = state_read_mem_byte(&state->data[16*2+4*9+1]);
 }
 
 void shifter_build_ppm()
@@ -641,10 +300,9 @@ void shifter_init()
   shifter->state_restore = shifter_state_restore;
   shifter->diagnostics = shifter_diagnostics;
 
-  shifter_precalc_res_data(0);
-  shifter_precalc_res_data(1);
-  shifter_precalc_res_data(2);
   shifter_set_resolution(0);
+  if(ppmoutput || crop_screen)
+    brighter = 0;
 
   linecnt = res.hblsize+432; /* Cycle count per line, for timer-b event */
   hsynccnt = res.hblsize+16; /* Offset for first hbl interrupt */
@@ -684,12 +342,9 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(vsynccnt < 0) {
     vblpre = res.vblpre;
     vblscr = res.vblscr;
-    shifter_gen_picture(res.screen_cycles);
-    scrptr = curaddr = scraddr;
     vsynccnt += res.screen_cycles;
     linenum = 0;
     hsynccnt += res.hblsize;
-    lastrasterpos = 0; /* Restart image building from position 0 */
     if(ppmoutput) {
       shifter_build_ppm();
     }
@@ -717,7 +372,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
   if(hsynccnt < 0) {
     hblpre = res.hblpre;
     hblscr = res.hblscr;
-    shifter_gen_picture(res.screen_cycles-vsynccnt);
     hsynccnt += res.hblsize;
     hbl_triggered = 1;
     cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
@@ -766,3 +420,94 @@ float shifter_fps()
   }
 }
 
+static int shift_out(WORD *data)
+{
+  int i, c = 0;
+  for(i = 0; i < res.bitplanes; i++) {
+    c <<= 1;
+    if(data[i] & 0x8000)
+      c += 1;
+    data[i] <<= 1;
+  }
+  return c;
+}
+
+static void shifter_draw_low(WORD *data)
+{
+  int i, c;
+
+  for (i = 0; i < 16; i++) {
+    c = shift_out(data);
+    rgbimage[rasterpos++] = palette_r[c];
+    rgbimage[rasterpos++] = palette_g[c];
+    rgbimage[rasterpos++] = palette_b[c];
+    rgbimage[rasterpos++] = palette_r[c];
+    rgbimage[rasterpos++] = palette_g[c];
+    rgbimage[rasterpos++] = palette_b[c];
+  }
+}
+
+static void shifter_draw_medium(WORD *data)
+{
+  int i, c;
+
+  for (i = 0; i < 16; i++) {
+    c = shift_out(data);
+    rgbimage[rasterpos++] = palette_r[c];
+    rgbimage[rasterpos++] = palette_g[c];
+    rgbimage[rasterpos++] = palette_b[c];
+  }
+}
+
+static void shifter_draw_high(WORD *data)
+{
+  int i, c;
+
+  for (i = 0; i < 16; i++) {
+    c = (shift_out(data) ? border_r : ~border_r);
+    rgbimage[rasterpos++] = c;
+    rgbimage[rasterpos++] = c;
+    rgbimage[rasterpos++] = c;
+  }
+}
+
+void shifter_load(WORD data)
+{
+  static WORD reg[4];
+  TRACE("Load %04x", data);
+
+  reg[res.bitplanes-1-plane] = data;
+  plane++;
+  if(plane == res.bitplanes) {
+    plane = 0;
+    res.draw(reg);
+  }
+}
+
+static void shifter_border_low(void)
+{
+  border_r = palette_r[0]|brighter;
+  border_g = palette_g[0]|brighter;
+  border_b = palette_b[0]|brighter;
+}
+
+static void shifter_border_high(void)
+{
+  border_r = border_g = border_b = ((stpal[0] & 1) ? 0 : 0xff);
+}
+
+void shifter_border(void)
+{
+  int i;
+
+  TRACE("Border");
+
+  for(i = 0; i < (8 << res.voff_shift); i++) {
+    rgbimage[rasterpos++] = border_r;
+    rgbimage[rasterpos++] = border_g;
+    rgbimage[rasterpos++] = border_b;
+  }
+
+  if(rasterpos >= (6*res.screen_cycles << res.voff_shift))
+    rasterpos = 0;
+}

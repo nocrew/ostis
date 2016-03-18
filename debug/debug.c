@@ -131,7 +131,6 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
 	win_set_message("Trace");
       }
       win_move_window_to_pc();
-      shifter_force_gen_picture();
     }
     break;
   case SDLK_a:
@@ -148,7 +147,6 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
 	win_set_message("Watchpoint");
       }
       win_move_window_to_pc();
-      shifter_force_gen_picture();
     }
     break;
   case SDLK_r:
@@ -226,7 +224,6 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   default:
     break;
   }
-  shifter_build_image(0);
   screen_swap(DEBUG_INDICATE_RASTERPOS);
   display_swap_screen();
   return 0;

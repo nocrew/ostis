@@ -8,6 +8,7 @@
 #include "mfp.h"
 #include "expr.h"
 #include "shifter.h"
+#include "glue.h"
 #include "mmu.h"
 #include "ikbd.h"
 #include "instr.h"
@@ -346,6 +347,7 @@ void cpu_do_cycle(LONG cnt)
   }
   cpu->cycle += cnt;
   shifter_do_interrupts(cpu, CPU_NO_INTS);
+  glue_advance(cnt);
 }
 
 void cpu_check_for_pending_interrupts()

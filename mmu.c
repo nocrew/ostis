@@ -16,6 +16,7 @@
 #include "dma.h"
 #include "fdc.h"
 #include "mmu.h"
+#include "glue.h"
 #include "ram.h"
 #include "state.h"
 #include "diag.h"
@@ -237,6 +238,7 @@ static void mmu_write_byte(LONG addr, BYTE data)
   case 0xff820a:
     syncreg = data;
     DEBUG("Sync register: %02x", data);
+    glue_set_sync(data & 2);
     return;
   }
 }

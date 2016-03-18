@@ -15,30 +15,44 @@ static int h, v;
 static int end;
 static int line;
 static int counter;
-static int freq = 1;
+static int res = 0;
+static int freq = 2;
 
 HANDLE_DIAGNOSTICS(glue)
 
-void glue_set_resolution(int resolution)
+static void set_mode(void)
 {
-  DEBUG("Resolution %d", resolution);
-  if(resolution == 2) {
+  if(res == 2) {
     mode_fn = mode_71;
     counter = 0;
     line = 0;
     h = 0;
     v = 0;
-  }
-  else if(freq == 0)
+  } else if(freq == 0)
     mode_fn = mode_60;
   else
     mode_fn = mode_50;
+}
+
+void glue_set_resolution(int resolution)
+{
+  DEBUG("Resolution %d", resolution);
+  res = resolution;
+  set_mode();
+}
+
+void glue_set_sync(int sync)
+{
+  DEBUG("S%d @ %03d;%03d", sync, line, counter);
+  freq = sync;
+  set_mode();
 }
 
 static void vsync(void)
 {
   DEBUG("Vsync");
   line = 0;
+  v = 0;
   mmu_vsync();
   screen_vsync();
 }
@@ -51,16 +65,19 @@ static void mode_50(void)
   case  56: h = 1; break;
   case 376: h = 0; break;
   //   450: blank on
+  case 502:
+    switch(line) {
+    case  63: v = 1; break;
+    case 263: v = 0; break;
+    }
+    break;
   default:
-    if (counter >= end) {
+    if (counter == end) {
       TRACE("PAL horizontal retrace");
       counter = 0;
       line++;
-      switch(line) {
-      case  63: v = 1; break;
-      case 263: v = 0; break;
-      case 313: vsync(); break;
-      }
+      if(line == 313)
+	vsync();
     }
     break;
   }
@@ -74,16 +91,19 @@ void mode_60(void)
   case  54: end = 508; break;
   case 372: h = 0; break;
   //   450: blank on
+  case 502:
+    switch(line) {
+    case  34: v = 1; break;
+    case 234: v = 0; break;
+    }
+    break;
   default:
-    if(counter >= end) {
+    if(counter == end) {
       TRACE("NTSC horizontal retrace");
       counter = 0;
       line++;
-      switch(line) {
-      case  34: v = 1; break;
-      case 234: v = 0; break;
-      case 263: vsync(); break;
-      }
+      if(line == 263)
+	vsync();
     }
     break;
   }
@@ -125,6 +145,7 @@ void glue_advance(LONG cycles)
   for(i = 0; i < cycles; i++) {
     glue_machine();
     counter++;
+    ASSERT(counter <= 512);
   }
 }
 

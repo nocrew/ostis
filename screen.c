@@ -41,8 +41,7 @@ HANDLE_DIAGNOSTICS(screen)
 void screen_make_texture(const char *scale)
 {
   static const char *old_scale = "";
-  int pixelformat = SDL_PIXELFORMAT_BGR24;
-  if(debugger) pixelformat = SDL_PIXELFORMAT_RGB24;
+  int pixelformat = SDL_PIXELFORMAT_RGB24;
 
   if (monitor_sm124)
     mon = monitors[1];

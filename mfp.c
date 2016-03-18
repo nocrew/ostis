@@ -132,14 +132,6 @@ static WORD mfp_read_word(LONG addr)
   return (mfp_read_byte(addr)<<8)|mfp_read_byte(addr+1);
 }
 
-static LONG mfp_read_long(LONG addr)
-{
-  return ((mfp_read_byte(addr)<<24)|
-       (mfp_read_byte(addr+1)<<16)|
-       (mfp_read_byte(addr+2)<<8)|
-       (mfp_read_byte(addr+3)));
-}
-
 static void mfp_write_byte(LONG addr, BYTE data)
 {
   int r;
@@ -195,14 +187,6 @@ static void mfp_write_word(LONG addr, WORD data)
 {
   mfp_write_byte(addr, (data&0xff00)>>8);
   mfp_write_byte(addr+1, (data&0xff));
-}
-
-static void mfp_write_long(LONG addr, LONG data)
-{
-  mfp_write_byte(addr, (data&0xff000000)>>24);
-  mfp_write_byte(addr+1, (data&0xff0000)>>16);
-  mfp_write_byte(addr+2, (data&0xff00)>>8);
-  mfp_write_byte(addr+3, (data&0xff));
 }
 
 static int mfp_state_collect(struct mmu_state *state)
@@ -263,10 +247,8 @@ void mfp_init()
   mfp->size = MFPSIZE;
   mfp->read_byte = mfp_read_byte;
   mfp->read_word = mfp_read_word;
-  mfp->read_long = mfp_read_long;
   mfp->write_byte = mfp_write_byte;
   mfp->write_word = mfp_write_word;
-  mfp->write_long = mfp_write_long;
   mfp->state_collect = mfp_state_collect;
   mfp->state_restore = mfp_state_restore;
   mfp->diagnostics = mfp_diagnostics;

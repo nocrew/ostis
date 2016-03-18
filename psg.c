@@ -199,14 +199,6 @@ static WORD psg_read_word(LONG addr)
   return (psg_read_byte(addr)<<8)|psg_read_byte(addr+1);
 }
 
-static LONG psg_read_long(LONG addr)
-{
-  return ((psg_read_byte(addr)<<24)|
-	  (psg_read_byte(addr+1)<<16)|
-	  (psg_read_byte(addr+2)<<8)|
-	  (psg_read_byte(addr+3)));
-}
-
 static void psg_write_byte(LONG addr, BYTE data)
 {
   if(addr&1) return;
@@ -230,14 +222,6 @@ static void psg_write_word(LONG addr, WORD data)
   psg_write_byte(addr+1, (data&0xff));
 }
 
-static void psg_write_long(LONG addr, LONG data)
-{
-  psg_write_byte(addr, (data&0xff000000)>>24);
-  psg_write_byte(addr+1, (data&0xff0000)>>16);
-  psg_write_byte(addr+2, (data&0xff00)>>8);
-  psg_write_byte(addr+3, (data&0xff));
-}
-
 static int psg_state_collect(struct mmu_state *state)
 {
   state->size = 0;
@@ -258,10 +242,8 @@ void psg_init()
   psg->size = PSGSIZE;
   psg->read_byte = psg_read_byte;
   psg->read_word = psg_read_word;
-  psg->read_long = psg_read_long;
   psg->write_byte = psg_write_byte;
   psg->write_word = psg_write_word;
-  psg->write_long = psg_write_long;
   psg->state_collect = psg_state_collect;
   psg->state_restore = psg_state_restore;
   psg->diagnostics = psg_diagnostics;

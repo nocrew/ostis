@@ -98,12 +98,6 @@ static WORD mmu_read_word_bus_error(LONG addr)
   return 0;
 }
 
-static LONG mmu_read_long_bus_error(LONG addr)
-{
-  mmu_send_bus_error(CPU_BUSERR_READ, addr);
-  return 0;
-}
-
 static void mmu_write_byte_bus_error(LONG addr, BYTE data)
 {
   mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
@@ -114,29 +108,13 @@ static void mmu_write_word_bus_error(LONG addr, WORD data)
   mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
 }
 
-static void mmu_write_long_bus_error(LONG addr, LONG data)
-{
-  mmu_send_bus_error(CPU_BUSERR_WRITE, addr);
-}
-
 static WORD mmu_read_word_address_error(LONG addr)
 {
   mmu_send_address_error(CPU_ADDRERR_READ, addr);
   return 0;
 }
 
-static LONG mmu_read_long_address_error(LONG addr)
-{
-  mmu_send_address_error(CPU_ADDRERR_READ, addr);
-  return 0;
-}
-
 static void mmu_write_word_address_error(LONG addr, WORD data)
-{
-  mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
-}
-
-static void mmu_write_long_address_error(LONG addr, LONG data)
 {
   mmu_send_address_error(CPU_ADDRERR_WRITE, addr);
 }
@@ -149,10 +127,8 @@ static struct mmu *mmu_bus_error_module()
 
   bus_error->read_byte = mmu_read_byte_bus_error;
   bus_error->read_word = mmu_read_word_bus_error;
-  bus_error->read_long = mmu_read_long_bus_error;
   bus_error->write_byte = mmu_write_byte_bus_error;
   bus_error->write_word = mmu_write_word_bus_error;
-  bus_error->write_long = mmu_write_long_bus_error;
 
   return bus_error;
 }
@@ -164,10 +140,8 @@ static struct mmu *mmu_clone_module(struct mmu *module)
 
   clone->read_byte = module->read_byte;
   clone->read_word =  module->read_word;
-  clone->read_long =  module->read_long;
   clone->write_byte = module->write_byte;
   clone->write_word = module->write_word;
-  clone->write_long = module->write_long;
 
   return clone;
 }
@@ -177,9 +151,7 @@ static struct mmu *mmu_clone_module_for_address_error(struct mmu *module)
   struct mmu *address_error_clone;
   address_error_clone= mmu_clone_module(module);
   address_error_clone->read_word = mmu_read_word_address_error;
-  address_error_clone->read_long = mmu_read_long_address_error;
   address_error_clone->write_word = mmu_write_word_address_error;
-  address_error_clone->write_long = mmu_write_long_address_error;
 
   return address_error_clone;
 }
@@ -205,17 +177,11 @@ static void mmu_populate_functions(struct mmu *module)
   if(!module->read_word) {
     module->read_word = mmu_read_word_bus_error;
   }
-  if(!module->read_long) {
-    module->read_long = mmu_read_long_bus_error;
-  }
   if(!module->write_byte) {
     module->write_byte = mmu_write_byte_bus_error;
   }
   if(!module->write_word) {
     module->write_word = mmu_write_word_bus_error;
-  }
-  if(!module->write_long) {
-    module->write_long = mmu_write_long_bus_error;
   }
 }
 
@@ -304,7 +270,7 @@ WORD bus_read_word(LONG addr)
 
 LONG bus_read_long(LONG addr)
 {
-  return MEM_READ(long, addr);
+  return (bus_read_word(addr)<<16) + bus_read_word(addr+2);
 }
 
 void bus_write_byte(LONG addr, BYTE data)
@@ -319,7 +285,8 @@ void bus_write_word(LONG addr, WORD data)
 
 void bus_write_long(LONG addr, LONG data)
 {
-  MEM_WRITE(long, addr, data);
+  bus_write_word(addr, data >> 16);
+  bus_write_word(addr+2, data & 0xffff);
 }
 
 
@@ -437,4 +404,3 @@ void mmu_do_interrupts(struct cpu *cpu)
   fdc_do_interrupts(cpu);
   ikbd_do_interrupt(cpu);
 }
-

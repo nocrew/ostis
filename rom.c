@@ -42,14 +42,6 @@ static WORD rom_read_word(LONG addr)
   return (rom_read_byte(addr)<<8)|rom_read_byte(addr+1);
 }
 
-static LONG rom_read_long(LONG addr)
-{
-  return ((rom_read_byte(addr)<<24)|
-       (rom_read_byte(addr+1)<<16)|
-       (rom_read_byte(addr+2)<<8)|
-       (rom_read_byte(addr+3)));
-}
-
 static int rom_state_collect(struct mmu_state *state)
 {
   if(!strcmp("ROM0", state->id)) {
@@ -116,7 +108,6 @@ void rom_init()
   rom->size = ROMSIZE;
   rom->read_byte = rom_read_byte;
   rom->read_word = rom_read_word;
-  rom->read_long = rom_read_long;
   rom->state_collect = rom_state_collect;
   rom->state_restore = rom_state_restore;
   rom->diagnostics = rom_diagnostics;
@@ -140,7 +131,6 @@ void rom_init()
   rom2->size = ROMSIZE2;
   rom2->read_byte = rom_read_byte;
   rom2->read_word = rom_read_word;
-  rom2->read_long = rom_read_long;
   rom2->state_collect = rom_state_collect;
   rom2->state_restore = rom_state_restore;
   rom2->diagnostics = rom_diagnostics;

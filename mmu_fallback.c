@@ -17,22 +17,12 @@ static WORD mmu_fallback_read_word(LONG addr)
   return 0xffff;
 }
 
-static LONG mmu_fallback_read_long(LONG addr)
-{
-  return 0xffffffff;
-}
-
 static void mmu_fallback_write_byte(LONG addr, BYTE data)
 {
   /* Do nothing here */
 }
 
 static void mmu_fallback_write_word(LONG addr, WORD data)
-{
-  /* Do nothing here */
-}
-
-static void mmu_fallback_write_long(LONG addr, LONG data)
 {
   /* Do nothing here */
 }
@@ -56,10 +46,8 @@ static void mmu_fallback_register(char *name, LONG addr, int size)
   mmu_fallback->size = size;
   mmu_fallback->read_byte = mmu_fallback_read_byte;
   mmu_fallback->read_word = mmu_fallback_read_word;
-  mmu_fallback->read_long = mmu_fallback_read_long;
   mmu_fallback->write_byte = mmu_fallback_write_byte;
   mmu_fallback->write_word = mmu_fallback_write_word;
-  mmu_fallback->write_long = mmu_fallback_write_long;
   mmu_fallback->state_collect = mmu_fallback_state_collect;
   mmu_fallback->state_restore = mmu_fallback_state_restore;
   mmu_fallback->diagnostics = mmu_fallback_diagnostics;

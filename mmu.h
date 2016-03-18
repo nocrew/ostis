@@ -20,10 +20,8 @@ struct mmu {
   int verbosity;
   BYTE (*read_byte)(LONG);
   WORD (*read_word)(LONG);
-  LONG (*read_long)(LONG);
   void (*write_byte)(LONG, BYTE);
   void (*write_word)(LONG, WORD);
-  void (*write_long)(LONG, LONG);
   int (*state_collect)(struct mmu_state *);
   void (*state_restore)(struct mmu_state *);
   void (*diagnostics)();

@@ -228,12 +228,15 @@ static void mmu_write_byte(LONG addr, BYTE data)
   switch(addr) {
   case 0xff8201:
     scraddr = (scraddr&0xff00)|(data<<16);
+    DEBUG("Screen address: %06x", scraddr);
     return;
   case 0xff8203:
     scraddr = (scraddr&0xff0000)|(data<<8);
+    DEBUG("Screen address: %06x", scraddr);
     return;
   case 0xff820a:
     syncreg = data;
+    DEBUG("Sync register: %02x", data);
     return;
   }
 }

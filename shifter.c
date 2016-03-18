@@ -184,6 +184,7 @@ static void shifter_write_byte(LONG addr, BYTE data)
   WORD tmp;
   switch(addr) {
   case 0xff8260:
+    DEBUG("Resolution: %02x", data);
     shifter_set_resolution(data);
     return;
   default:

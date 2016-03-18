@@ -131,7 +131,7 @@ void floppy_msa_init(struct floppy *fl)
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(floppy_msa, "FMSA");
   
-  fl->image_data = malloc(sizeof(struct floppy_msa));
+  fl->image_data = xmalloc(sizeof(struct floppy_msa));
 
   fp = fopen(fl->filename, "rb");
   if(!fp) return;

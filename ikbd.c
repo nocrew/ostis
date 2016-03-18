@@ -278,7 +278,7 @@ static int ikbd_state_collect(struct mmu_state *state)
    */
 
   state->size = 20+IKBDFIFO+sizeof ikbd_cmdbuf+sizeof(void (*)(void));
-  state->data = (char *)malloc(state->size);
+  state->data = malloc(state->size);
   if(state->data == NULL)
     return STATE_INVALID;
   state_write_mem_long(&state->data[0], ikbd_fifocnt);

@@ -5,6 +5,7 @@
 
 void glue_init(void);
 void glue_set_resolution(int);
+void glue_set_sync(int);
 void glue_advance(LONG);
 
 #endif

@@ -35,6 +35,14 @@ void glue_set_resolution(int resolution)
     mode_fn = mode_50;
 }
 
+static void vsync(void)
+{
+  DEBUG("Vsync");
+  line = 0;
+  mmu_vsync();
+  screen_vsync();
+}
+
 static void mode_50(void)
 {
   switch(counter) {
@@ -51,7 +59,7 @@ static void mode_50(void)
       switch(line) {
       case  63: v = 1; break;
       case 263: v = 0; break;
-      case 313: line = 0; mmu_vsync(); break;
+      case 313: vsync(); break;
       }
     }
     break;
@@ -74,7 +82,7 @@ void mode_60(void)
       switch(line) {
       case  34: v = 1; break;
       case 234: v = 0; break;
-      case 263: line = 0; mmu_vsync(); break;
+      case 263: vsync(); break;
       }
     }
     break;
@@ -95,7 +103,7 @@ void mode_71(void)
       switch(line) {
       case  50: v = 1; break;
       case 450: v = 0; break;
-      case 501: line = 0; mmu_vsync(); break;
+      case 501: vsync(); break;
       }
     }
   }

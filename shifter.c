@@ -507,7 +507,11 @@ void shifter_border(void)
     rgbimage[rasterpos++] = border_g;
     rgbimage[rasterpos++] = border_b;
   }
+}
 
-  if(rasterpos >= (6*res.screen_cycles << res.voff_shift))
-    rasterpos = 0;
+// There's no VSYNC signal to the shifter, but we'll handle the
+// screen signal here.
+void screen_vsync(void)
+{
+  rasterpos = 0;
 }

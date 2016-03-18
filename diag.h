@@ -29,6 +29,12 @@ extern void print_diagnostic(int, struct mmu *, const char *, ...);
 // Feel free to call this just about every cycle.
 #define TRACE(FORMAT, ...)  print_diagnostic(6, mmu_device, FORMAT, ##__VA_ARGS__)
 
+#define ASSERT(CONDITION)				\
+  do {							\
+    if(!(CONDITION))					\
+      FATAL("Assertion failed: %s", #CONDITION);	\
+  } while(0)
+
 #define HANDLE_DIAGNOSTICS(device)				\
 static struct mmu *mmu_device = NULL;				\
 static void device ## _diagnostics(struct mmu *device, int n)	\

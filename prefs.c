@@ -6,7 +6,7 @@ struct prefs prefs;
 
 void prefs_default()
 {
-  prefs.tosimage = "tos.img";
+  prefs.tosimage = xstrdup("tos.img");
   prefs.stateimage = NULL;
   prefs.diskimage = NULL;
   prefs.diskimage2 = NULL;

@@ -1,6 +1,46 @@
 /*
  * Glue		Connects to
- *		practically everything
+ *
+ * [CONTROL]
+ *  CLK		8 MHz
+ *  RESET	RESET
+ *  2MHZ	2 Mhz
+ *  500KHZ	500 kHz
+ * [BUS]
+ *  D0-D1	BUS:D0-D1
+ *  FC0-FC1
+ *  AS
+ *  UDS
+ *  LDS
+ *  DTACK
+ *  BERR
+ *  BR
+ *  BGI
+ *  BGO
+ *  BGACK
+ * [INTERRUPT]
+ *  IACK	MFP:IACK
+ *  IPL1	CPU:IPL1
+ *  IPL2	CPU:IPL2
+ *  MFPINT	MFP:IRQ
+ * [CHIP SELECT]
+ *  6850CS	2x ACIA:CS0
+ *  MFPCS	MFP:CS
+ *  SNDCS	PSG:BC1, PSG:BDIR
+ *  ROM0-5	ROM
+ * [VIDEO]
+ *  DE		MMU:DE, SHIFTER:DE, MFP:TBI
+ *  VSYNC	MMU:VSYNC, SCREEN:VSYNC
+ *  HSYNC	SCREEN:HSYNC
+ *  BLANK	SHIFTER:RGB
+ * [?]
+ *  RAM		MMU:RAM
+ *  DEV		MMU:DEV
+ *  DMA		MMU:DMA
+ *  VMA		CPU:VMA
+ *  VPA		CPU:VPA
+ *  FCS		?
+ *  RDY		?
  */
 
 #include "mmu.h"

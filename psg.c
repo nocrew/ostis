@@ -6,8 +6,8 @@
  * RESET	RESET
  * A8		+5V
  * A9		GND
- * BDIR		?
- * BC1		?
+ * BDIR		SNDCS nor RW
+ * BC1		SNDCS nor A1
  * BC2		+5V
  * IOA0		FDC:SIDE SELECT
  * IOA1		FDC:DRIVE 0 SELECT

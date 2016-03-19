@@ -1,7 +1,44 @@
 /*
  * Custom MMU	Connected to
- * pin 51	GLUE:VSYNC
- * ?		SHIFTER:LOAD
+ *
+ * [CONTROL]
+ *  VCCA	+5V
+ *  VCCB	+5V
+ *  GNDA	GND
+ *  GNDB	GND
+ *  4Hz		4 MHz
+ *  8Hz		8 MHz
+ *  16Hz	16 MHz
+ * [VIDEO]
+ *  VSYNC	GLUE:VSYNC
+ *  DCYC	SHIFTER:LOAD
+ *  CMPCS	SHIFTER:CS
+ *  DE		SHIFTER:DE, GLUE:DE, MFP:TBI
+ * [?]
+ *  RAM		GLUE:RAM
+ *  DEV		GLUE:DEV
+ *  DMA		GLUE:DMA
+ * [BUS]
+ *  A1-A21	BUS:A1-A21
+ *  D0-D7	BUS:D0-D7
+ *  AS		BUS:AS
+ *  LDS		BUS:LDS
+ *  UDS		BUS:UDS
+ *  DTACK	BUS:DTACK
+ *  R/W		BUS:R/W
+ * [RAM]
+ *  MAD0-9	RAM:A<various>
+ *  WE		RAM:WE
+ *  RASO	RAM:RAS
+ *  RASI	-
+ *  CASOH	RAM:CAS
+ *  CASOL	RAM:CAS
+ *  CASIH	-
+ *  CASIL	-
+ * [BRIDGE]
+ *  RDAT	BRIDGE:OC
+ *  LATCH	BRIDGE:GEN
+ *  WDAT	BRIDGE:1G-2G
  */
 
 #include <stdio.h>

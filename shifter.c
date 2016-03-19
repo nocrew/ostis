@@ -1,3 +1,20 @@
+/*
+ * SHIFTER	Connected to
+ *
+ * LOAD		MMU:DCYC
+ * CS		MMU:CMPCS
+ * R/W		BUS:R/W
+ * R1-R5	BUS:A1-A5
+ * DE		MMU:DE, GLUE:DE, MFP:TBI
+ * D0-D15	RAM
+ * GND		GND
+ * XTL0		32 MHz
+ * XTL1		GND
+ * RGB		SCREEN:RGB
+ * MONO		SCREEN:MONO
+ * 16 MHz	?
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

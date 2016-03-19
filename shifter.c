@@ -135,7 +135,6 @@ static int64_t last_framecnt_usec;
 static int usecs_per_framecnt_interval = 1;
 
 static int ppm_fd;
-static unsigned char *rgbimage;
 
 static int vbl_triggered = 0;
 static int hbl_triggered = 0;
@@ -169,6 +168,10 @@ static void shifter_set_resolution(BYTE data)
   res = res_data[data&3];
   res.border();
   glue_set_resolution(data & 3);
+
+  // This is just a hack to make things look good.  It's probably not
+  // what the shifter does when switching resolution.
+  plane = 0;
 }
 
 static BYTE shifter_read_byte(LONG addr)
@@ -276,6 +279,7 @@ static void shifter_state_restore(struct mmu_state *state)
 
 void shifter_build_ppm()
 {
+#if 0
   int x,y,c;
   char header[80];
   unsigned char frame[384*288*3];
@@ -296,6 +300,7 @@ void shifter_build_ppm()
     WARNING(write);
   if (write(ppm_fd, frame, 384*288*3) != 384*288*3)
     WARNING(write);
+#endif
 }
 
 void shifter_init()
@@ -323,7 +328,6 @@ void shifter_init()
 
   mmu_register(shifter);
 
-  rgbimage = screen_pixels();
   if(ppmoutput) {
     ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
   }
@@ -434,12 +438,8 @@ static void shifter_draw_low(WORD *data)
 
   for (i = 0; i < 16; i++) {
     c = shift_out(data);
-    rgbimage[rasterpos++] = palette_r[c];
-    rgbimage[rasterpos++] = palette_g[c];
-    rgbimage[rasterpos++] = palette_b[c];
-    rgbimage[rasterpos++] = palette_r[c];
-    rgbimage[rasterpos++] = palette_g[c];
-    rgbimage[rasterpos++] = palette_b[c];
+    screen_draw(palette_r[c], palette_g[c], palette_b[c]);
+    screen_draw(palette_r[c], palette_g[c], palette_b[c]);
   }
 }
 
@@ -449,9 +449,7 @@ static void shifter_draw_medium(WORD *data)
 
   for (i = 0; i < 16; i++) {
     c = shift_out(data);
-    rgbimage[rasterpos++] = palette_r[c];
-    rgbimage[rasterpos++] = palette_g[c];
-    rgbimage[rasterpos++] = palette_b[c];
+    screen_draw(palette_r[c], palette_g[c], palette_b[c]);
   }
 }
 
@@ -461,9 +459,7 @@ static void shifter_draw_high(WORD *data)
 
   for (i = 0; i < 16; i++) {
     c = (shift_out(data) ? border_r : ~border_r);
-    rgbimage[rasterpos++] = c;
-    rgbimage[rasterpos++] = c;
-    rgbimage[rasterpos++] = c;
+    screen_draw(c, c, c);
   }
 }
 
@@ -499,18 +495,8 @@ void shifter_border(void)
   TRACE("Border");
 
   for(i = 0; i < (8 << res.voff_shift); i++) {
-    rgbimage[rasterpos++] = border_r;
-    rgbimage[rasterpos++] = border_g;
-    rgbimage[rasterpos++] = border_b;
+    screen_draw(border_r, border_g, border_b);
   }
 
   ASSERT(rasterpos <= (6*res.screen_cycles << res.voff_shift));
-}
-
-// There's no VSYNC signal to the shifter, but we'll handle the
-// screen signal here.
-void screen_vsync(void)
-{
-  rasterpos = 0;
-  plane = 0;
 }

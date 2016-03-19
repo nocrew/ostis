@@ -115,6 +115,7 @@ static void mode_50(void)
   default:
     if (counter == counter_end) {
       TRACE("PAL horizontal retrace");
+      screen_hsync();
       counter = 0;
       line++;
       if(line == line_end)
@@ -145,6 +146,7 @@ void mode_60(void)
   default:
     if(counter == counter_end) {
       TRACE("NTSC horizontal retrace");
+      screen_hsync();
       counter = 0;
       line++;
       if(line == line_end)
@@ -174,6 +176,7 @@ void mode_71(void)
   default:
     if(counter == counter_end) {
       TRACE("Monochrome horizontal retrace");
+      screen_hsync();
       counter = 0;
       line++;
       if(line == line_end)

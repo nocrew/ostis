@@ -26,6 +26,5 @@ int shifter_framecnt(int);
 float shifter_fps();
 void shifter_load(WORD);
 void shifter_border(void);
-void screen_vsync(void);
 
 #endif

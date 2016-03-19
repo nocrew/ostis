@@ -24,6 +24,9 @@ static SDL_Texture *rasterpos_indicator[2];
 static int rasterpos_indicator_cnt = 0;
 static int screen_grabbed = 0;
 static int screen_fullscreen = 0;
+static char *rasterpos;
+static char *next_line;
+static char *rgbimage;
 
 struct monitor monitors[] = {
   { 1024, 626, 1024, 313, 64, 33, 768, 560 },
@@ -148,8 +151,11 @@ void screen_init()
     FATAL("Did not get a video mode");
   }
 
+  rgbimage = screen->pixels;
   rasterpos_indicator[0] = screen_generate_rasterpos_indicator(0xffffff);
   rasterpos_indicator[1] = screen_generate_rasterpos_indicator(0xff0000);
+
+  screen_vsync();
 }
 
 void screen_copyimage(unsigned char *src)
@@ -205,11 +211,6 @@ int screen_check_disable()
   return disable;
 }
 
-void *screen_pixels()
-{
-  return screen->pixels;
-}
-
 static void set_screen_grabbed(int grabbed)
 {
   int w, h;
@@ -237,4 +238,24 @@ void screen_toggle_fullscreen()
   screen_fullscreen = !screen_fullscreen;
   SDL_SetWindowFullscreen(window, screen_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
   set_screen_grabbed(screen_fullscreen);
+}
+
+void screen_draw(int r, int g, int b)
+{
+  *rasterpos++ = r;
+  *rasterpos++ = g;
+  *rasterpos++ = b;
+}
+
+void screen_vsync(void)
+{
+  TRACE("Vsync");
+  rasterpos = rgbimage;
+  next_line = rgbimage + screen->pitch;
+}
+
+void screen_hsync(void)
+{
+  rasterpos = next_line;
+  next_line += screen->pitch;
 }

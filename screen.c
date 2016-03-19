@@ -174,7 +174,7 @@ void screen_init()
   screen_vsync();
 }
 
-float shifter_fps()
+float screen_fps()
 {
   if(usecs_per_framecnt_interval) {
     return 1000000*64.0/usecs_per_framecnt_interval;
@@ -223,6 +223,11 @@ void screen_clear()
 {
 }
 
+int screen_get_vsync()
+{
+  return (rasterpos - rgbimage) / 6;
+}
+
 void screen_swap(int indicate_rasterpos)
 {
   SDL_Rect dst,src;
@@ -243,7 +248,7 @@ void screen_swap(int indicate_rasterpos)
       SDL_RenderCopy(renderer, texture, NULL, NULL);
     }
     if(indicate_rasterpos) {
-      int rasterpos = shifter_get_vsync();
+      int rasterpos = screen_get_vsync();
       dst.x = 2*(rasterpos%512)-8;
       dst.y = 2*(rasterpos/512);
       dst.w = 8;

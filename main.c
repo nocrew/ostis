@@ -218,12 +218,12 @@ int main(int argc, char *argv[])
   mfp_init();
   screen_disable(0);
   glue_init();
-  screen_init();
   shifter_init();
   if(debugger) {
     debug_init();
     cpu_halt_for_debug();
   }
+  screen_init();
   
   floppy_init(prefs.diskimage, prefs.diskimage2);
 

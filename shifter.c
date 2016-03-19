@@ -26,16 +26,6 @@
 #define SHIFTERSIZE 64
 #define SHIFTERBASE 0xff8240
 
-#define HBLSIZE 512
-#define HBLPRE 64
-#define HBLSCR 320
-#define HBLPOST 88
-
-#define VBLSIZE 313
-#define VBLPRE 64
-#define VBLSCR 200
-#define VBLPOST 40
-
 static void shifter_draw_low(WORD *);
 static void shifter_draw_medium(WORD *);
 static void shifter_draw_high(WORD *);
@@ -47,45 +37,21 @@ static struct resolution_data res_data[] = {
     // Low resolution
     .draw = shifter_draw_low,
     .bitplanes = 4,
-    .screen_cycles = HBLSIZE*VBLSIZE,
-    .hblsize = HBLSIZE,
-    .hblpre = HBLPRE,
-    .hblscr = HBLSCR,
-    .hblpost = HBLPOST,
-    .vblsize = VBLSIZE,
-    .vblpre = VBLPRE,
-    .vblscr = VBLSCR,
-    .voff_shift = 0,
+    .border_pixels = 8,
     .border = shifter_border_low
   },
   {
     // Medium resolution
     .draw = shifter_draw_medium,
     .bitplanes = 2,
-    .screen_cycles = HBLSIZE*VBLSIZE,
-    .hblsize = HBLSIZE,
-    .hblpre = HBLPRE,
-    .hblscr = HBLSCR,
-    .hblpost = HBLPOST,
-    .vblsize = VBLSIZE,
-    .vblpre = VBLPRE,
-    .vblscr = VBLSCR,
-    .voff_shift = 0,
+    .border_pixels = 8,
     .border = shifter_border_low
   },
   {
     // High resolution
     .draw = shifter_draw_high,
     .bitplanes = 1,
-    .screen_cycles = 224*501,
-    .hblsize = 224,
-    .hblpre = 30,
-    .hblscr = 160,
-    .hblpost = 30,
-    .vblsize = 501,
-    .vblpre = 50,
-    .vblscr = 400,
-    .voff_shift = 1,
+    .border_pixels = 16,
     .border = shifter_border_high
   },
   {
@@ -94,18 +60,6 @@ static struct resolution_data res_data[] = {
   }
 };
 
-#define BORDERTOP 28
-#define BORDERBOTTOM 38
-#define BORDERLEFT 32
-#define BORDERRIGHT 32
-
-
-static long linenum = 0;
-static long linecnt;
-static long vsynccnt = 0; /* 160256 cycles in one screen */
-static long hsynccnt; /* Offset for first hbl interrupt */
-static long lastcpucnt;
-static int rasterpos; /* Position on the screen. */
 static int plane = 0;
 static int border_r=0, border_g=0, border_b=0;
 static int brighter = 0x1f;
@@ -117,11 +71,6 @@ static long palette_b[16];
 static WORD stpal[16];
 static BYTE resolution; /* Low, medium or high resolution. */
 static struct resolution_data res;
-
-static int vblpre = 0;
-static int vblscr = 0;
-static int hblpre = 0;
-static int hblscr = 0;
 
 HANDLE_DIAGNOSTICS(shifter)
 
@@ -219,11 +168,6 @@ static int shifter_state_collect(struct mmu_state *state)
   /* Size:
    * 
    * stpal[16]   == 16*2
-   * linenum     == 4
-   * linecnt     == 4
-   * vsynccnt    == 4
-   * hsynccnt    == 4
-   * lastcpucnt  == 4
    * resolution  == 1
    */
 
@@ -235,11 +179,6 @@ static int shifter_state_collect(struct mmu_state *state)
   for(r=0;r<16;r++) {
     state_write_mem_word(&state->data[r*2], stpal[r]);
   }
-  state_write_mem_long(&state->data[16*2+4*3], linenum);
-  state_write_mem_long(&state->data[16*2+4*4], linecnt);
-  state_write_mem_long(&state->data[16*2+4*5], vsynccnt);
-  state_write_mem_long(&state->data[16*2+4*6], hsynccnt);
-  state_write_mem_long(&state->data[16*2+4*8], lastcpucnt);
   state_write_mem_byte(&state->data[16*2+4*9], resolution);
   
   return STATE_VALID;
@@ -253,11 +192,6 @@ static void shifter_state_restore(struct mmu_state *state)
     set_palette(r, stpal[r]>>8, 1);
     set_palette(r, stpal[r], 2);
   }
-  linenum = state_read_mem_long(&state->data[16*2+4*3]);
-  linecnt = state_read_mem_long(&state->data[16*2+4*4]);
-  vsynccnt = state_read_mem_long(&state->data[16*2+4*5]);
-  hsynccnt = state_read_mem_long(&state->data[16*2+4*6]);
-  lastcpucnt = state_read_mem_long(&state->data[16*2+4*8]);
   resolution = state_read_mem_byte(&state->data[16*2+4*9]);
 }
 
@@ -281,47 +215,7 @@ void shifter_init()
   if(ppmoutput || crop_screen)
     brighter = 0;
 
-  linecnt = res.hblsize+432; /* Cycle count per line, for timer-b event */
-  hsynccnt = res.hblsize+16; /* Offset for first hbl interrupt */
-
   mmu_register(shifter);
-}
-
-void shifter_do_interrupts(struct cpu *cpu, int noint)
-{
-  long tmpcpu;
-
-  tmpcpu = cpu->cycle - lastcpucnt;
-  if(tmpcpu < 0) tmpcpu += MAX_CYCLE;
-
-  vsynccnt -= tmpcpu;
-  hsynccnt -= tmpcpu;
-  linecnt -= tmpcpu;
-  
-  /* VBL Interrupt */
-  if(vsynccnt < 0) {
-    vblpre = res.vblpre;
-    vblscr = res.vblscr;
-    vsynccnt += res.screen_cycles;
-    linenum = 0;
-    hsynccnt += res.hblsize;
-
-  }
-
-  /* HBL Interrupt */
-  if(hsynccnt < 0) {
-    hblpre = res.hblpre;
-    hblscr = res.hblscr;
-    hsynccnt += res.hblsize;
-    cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
-  }
-
-  lastcpucnt = cpu->cycle;
-}
-
-int shifter_get_vsync()
-{
-  return res.screen_cycles-vsynccnt;
 }
 
 static int shift_out(WORD *data)
@@ -398,9 +292,7 @@ void shifter_border(void)
 
   TRACE("Border");
 
-  for(i = 0; i < (8 << res.voff_shift); i++) {
+  for(i = 0; i < res.border_pixels; i++) {
     screen_draw(border_r, border_g, border_b);
   }
-
-  ASSERT(rasterpos <= (6*res.screen_cycles << res.voff_shift));
 }

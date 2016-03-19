@@ -348,7 +348,6 @@ void cpu_do_cycle(LONG cnt)
     cnt = (cnt&0xfffffffc)+4;
   }
   cpu->cycle += cnt;
-  shifter_do_interrupts(cpu, CPU_NO_INTS);
   glue_advance(cnt);
 }
 
@@ -365,7 +364,6 @@ void cpu_ipl2(void)
 void cpu_check_for_pending_interrupts()
 {
   mmu_do_interrupts(cpu);
-  shifter_do_interrupts(cpu, CPU_DO_INTS);
 
   if(cpu->ipl1 && (IPL < 2)) {
     cpu->ipl1 = 0;

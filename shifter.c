@@ -5,7 +5,7 @@
  * CS		MMU:CMPCS
  * R/W		BUS:R/W
  * R1-R5	BUS:A1-A5
- * DE		MMU:DE, GLUE:DE, ?
+ * DE		MMU:DE, GLUE:DE, MFP:TBI
  * D0-D15	RAM
  * GND		GND
  * XTL0		32 MHz

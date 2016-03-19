@@ -17,7 +17,7 @@
  *  IRQ		GLUE:MFPINT
  *  IEO		-
  *  IEI		GND
- *  IACK	IACK
+ *  IACK	GLUE:IACK
  * [TIMERS]
  *  XTAL1	2.4576Hz
  *  XTAL2	2.4576Hz

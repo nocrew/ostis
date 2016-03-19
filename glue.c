@@ -75,21 +75,21 @@ static void set_mode(void)
 
 void glue_set_resolution(int resolution)
 {
-  DEBUG("R%d @ %03d;%03d", resolution, line, counter);
+  TRACE("R%d @ %03d;%03d", resolution, line, counter);
   res = resolution;
   set_mode();
 }
 
 void glue_set_sync(int sync)
 {
-  DEBUG("S%d @ %03d;%03d", sync, line, counter);
+  TRACE("S%d @ %03d;%03d", sync, line, counter);
   freq = sync;
   set_mode();
 }
 
 static void vsync(void)
 {
-  DEBUG("Vsync");
+  TRACE("Vsync");
   line = 0;
   v = 0;
   mmu_vsync();
@@ -115,7 +115,7 @@ static void mode_50(void)
     break;
   default:
     if (counter == counter_end) {
-      TRACE("PAL horizontal retrace");
+      CLOCK("PAL horizontal retrace");
       screen_hsync();
       counter = 0;
       line++;
@@ -146,7 +146,7 @@ void mode_60(void)
     break;
   default:
     if(counter == counter_end) {
-      TRACE("NTSC horizontal retrace");
+      CLOCK("NTSC horizontal retrace");
       screen_hsync();
       counter = 0;
       line++;
@@ -175,7 +175,7 @@ void mode_71(void)
     break;
   default:
     if(counter == counter_end) {
-      TRACE("Monochrome horizontal retrace");
+      CLOCK("Monochrome horizontal retrace");
       screen_hsync();
       counter = 0;
       line++;

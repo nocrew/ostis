@@ -355,13 +355,16 @@ void cpu_do_cycle(LONG cnt)
   if(cnt&3) {
     cnt = (cnt&0xfffffffc)+4;
   }
-  cpu->cycle += cnt;
 
+  cpu->clock = cpu->cycle;
   for(i = 0; i < cnt; i++) {
     glue_clock();
     mmu_clock();
     shifter_clock();
+    cpu->clock++;
   }
+
+  cpu->cycle += cnt;
 }
 
 void cpu_ipl1(void)

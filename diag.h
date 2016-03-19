@@ -26,8 +26,10 @@ extern void print_diagnostic(int, struct mmu *, const char *, ...);
 #define INFO(FORMAT, ...)   print_diagnostic(4, mmu_device, FORMAT, ##__VA_ARGS__)
 // Step-by-step description of internal mechanisms.
 #define DEBUG(FORMAT, ...)  print_diagnostic(5, mmu_device, FORMAT, ##__VA_ARGS__)
-// Feel free to call this just about every cycle.
+// Feel free to call this just about CPU instruction.
 #define TRACE(FORMAT, ...)  print_diagnostic(6, mmu_device, FORMAT, ##__VA_ARGS__)
+// Feel free to call this just about every clock cycle.
+#define CLOCK(FORMAT, ...)  print_diagnostic(7, mmu_device, FORMAT, ##__VA_ARGS__)
 
 #define ASSERT(CONDITION)				\
   do {							\

@@ -165,8 +165,6 @@ static void set_palette(int pnum, int value, int part)
 static void shifter_set_resolution(BYTE data)
 {
   DEBUG("Resolution %d", data);
-  rasterpos = 0;
-  plane = 0;
   resolution = data;
   res = res_data[data&3];
   res.border();
@@ -201,7 +199,6 @@ static void shifter_write_byte(LONG addr, BYTE data)
   WORD tmp;
   switch(addr) {
   case 0xff8260:
-    DEBUG("Resolution: %02x", data);
     shifter_set_resolution(data);
     return;
   default:
@@ -495,7 +492,7 @@ void shifter_load(WORD data)
 
   reg[res.bitplanes-1-plane] = data;
   plane++;
-  if(plane == res.bitplanes) {
+  if(plane >= res.bitplanes) {
     plane = 0;
     res.draw(reg);
   }
@@ -524,6 +521,8 @@ void shifter_border(void)
     rgbimage[rasterpos++] = border_g;
     rgbimage[rasterpos++] = border_b;
   }
+
+  ASSERT(rasterpos <= (6*res.screen_cycles << res.voff_shift));
 }
 
 // There's no VSYNC signal to the shifter, but we'll handle the
@@ -531,4 +530,5 @@ void shifter_border(void)
 void screen_vsync(void)
 {
   rasterpos = 0;
+  plane = 0;
 }

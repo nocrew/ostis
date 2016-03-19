@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <fcntl.h>
 
 #include "screen.h"
 #include "shifter.h"
@@ -27,6 +31,12 @@ static int screen_fullscreen = 0;
 static char *rasterpos;
 static char *next_line;
 static char *rgbimage;
+
+static int ppm_fd;
+static int framecnt;
+static int64_t last_framecnt_usec;
+static int usecs_per_framecnt_interval = 1;
+int64_t last_vsync_ticks = 0;
 
 struct monitor monitors[] = {
   { 1024, 626, 1024, 313, 64, 33, 768, 560 },
@@ -151,11 +161,58 @@ void screen_init()
     FATAL("Did not get a video mode");
   }
 
+  if(ppmoutput) {
+    ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
+  }
+
   rgbimage = screen->pixels;
   rasterpos_indicator[0] = screen_generate_rasterpos_indicator(0xffffff);
   rasterpos_indicator[1] = screen_generate_rasterpos_indicator(0xff0000);
 
+  framecnt = 0;
+
   screen_vsync();
+}
+
+float shifter_fps()
+{
+  if(usecs_per_framecnt_interval) {
+    return 1000000*64.0/usecs_per_framecnt_interval;
+  } else {
+    return 0;
+  }
+}
+
+int screen_framecnt(int c)
+{
+  if(c == -1) {
+    framecnt = 0;
+  }
+  return framecnt;
+}
+
+static void screen_build_ppm()
+{
+  int x,y,c;
+  char header[80];
+  unsigned char frame[384*288*3];
+
+  c = 0;
+
+  for(y=0;y<288;y++) {
+    for(x=0;x<384;x++) {
+      frame[c*3+0] = rgbimage[((y+12)*512+x+32)*6+2];
+      frame[c*3+1] = rgbimage[((y+12)*512+x+32)*6+1];
+      frame[c*3+2] = rgbimage[((y+12)*512+x+32)*6+0];
+      c++;
+    }
+  }
+
+  sprintf(header, "P6\n%d %d\n255\n", 384, 288);
+  if(write(ppm_fd, header, strlen(header)) != strlen(header))
+    WARNING(write);
+  if (write(ppm_fd, frame, 384*288*3) != 384*288*3)
+    WARNING(write);
 }
 
 void screen_copyimage(unsigned char *src)
@@ -247,9 +304,41 @@ void screen_draw(int r, int g, int b)
   *rasterpos++ = b;
 }
 
+static int64_t usec_count() {
+  static struct timeval tv;
+
+  gettimeofday(&tv,NULL);
+  return tv.tv_sec * 1000000 + tv.tv_usec;
+}
+
 void screen_vsync(void)
 {
+  int64_t current_ticks = 0;
+  int64_t remaining = 0;
+
   TRACE("Vsync");
+
+  if(ppmoutput) {
+    screen_build_ppm();
+  }
+  if(vsync_delay) {
+    current_ticks = usec_count();
+    remaining = current_ticks - last_vsync_ticks;
+    while(remaining < 20000) {
+      current_ticks = usec_count();
+      remaining = current_ticks - last_vsync_ticks;
+    }
+    last_vsync_ticks = current_ticks;
+  }
+  screen_swap(SCREEN_NORMAL);
+
+  framecnt++;
+  if((framecnt&0x3f) == 0) {
+    current_ticks = usec_count();
+    usecs_per_framecnt_interval = current_ticks - last_framecnt_usec;
+    last_framecnt_usec = current_ticks;
+  }
+
   rasterpos = rgbimage;
   next_line = rgbimage + screen->pitch;
 }

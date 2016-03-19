@@ -16,6 +16,7 @@ void screen_toggle_fullscreen();
 void screen_draw(int, int, int);
 void screen_vsync(void);
 void screen_hsync(void);
+int shifter_framecnt(int);
 
 extern int screen_window_id;
 

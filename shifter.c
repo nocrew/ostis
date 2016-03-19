@@ -391,24 +391,6 @@ void shifter_do_interrupts(struct cpu *cpu, int noint)
     cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* This _should_ work, but probably won't */
   }
 
-  if(!noint && (IPL < 4) && vbl_triggered) {
-    vbl_triggered = 0;
-    cpu_set_interrupt(IPL_VBL, IPL_NO_AUTOVECTOR); /* Set VBL interrupt as pending */
-  }
-
-  if(!noint && (IPL < 2) && hbl_triggered) {
-    hbl_triggered = 0;
-    cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR); /* Set HBL interrupt as pending */
-  }
-  
-  /* Line Interrupt */
-  if(linecnt < 0) {
-    linecnt += res.hblsize;
-    if((linenum >= vblpre) && (linenum < (vblpre+vblscr)))
-      mfp_do_timerb_event(cpu);
-    linenum++;
-  }
-
   lastcpucnt = cpu->cycle;
 }
 

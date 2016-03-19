@@ -44,6 +44,7 @@
  */
 
 #include "mmu.h"
+#include "mfp.h"
 #include "glue.h"
 #include "diag.h"
 
@@ -73,7 +74,7 @@ static void set_mode(void)
 
 void glue_set_resolution(int resolution)
 {
-  DEBUG("Resolution %d", resolution);
+  DEBUG("R%d @ %03d;%03d", resolution, line, counter);
   res = resolution;
   set_mode();
 }
@@ -99,8 +100,10 @@ static void mode_50(void)
   switch(counter) {
   //    30: blank off
   case  54: counter_end = 512; break;
-  case  56: h = 1; break;
+  case  56: h = 1; cpu_ipl1(); break;
+  case 256: if(line == 312) cpu_ipl2(); break;
   case 376: h = 0; break;
+  case 400: if(v) mfp_do_timerb_event(cpu); break;
   //   450: blank on
   case 502:
     switch(line) {
@@ -127,7 +130,10 @@ void mode_60(void)
   //    30: blank off
   case  52: h = 1; break;
   case  54: counter_end = 508; break;
+  case  56: cpu_ipl1(); break;
+  case 256: if(line == 263) cpu_ipl2(); break;
   case 372: h = 0; break;
+  case 400: if(v) mfp_do_timerb_event(cpu); break;
   //   450: blank on
   case 502:
     switch(line) {
@@ -153,7 +159,10 @@ void mode_71(void)
   switch(counter) {
   case   4: h = 1; break;
   case  54: counter_end = 224; break;
+  case  56: cpu_ipl1(); break;
+  case  80: if(line == 500) cpu_ipl2(); break;
   case 164: h = 0; break;
+  case 174: if(v) mfp_do_timerb_event(cpu); break;
   //   184: blank on
   case 220:
     switch(line) {

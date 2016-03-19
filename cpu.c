@@ -191,6 +191,8 @@ static void cpu_do_reset(void)
   cpu->ssp = cpu->a[7] = bus_read_long(0);
   cpu->prefetched_instr = 0;
   cpu->has_prefetched = 0;
+  cpu->ipl1 = 0;
+  cpu->ipl2 = 0;
 
   for(i=0;i<256;i++) {
     exception_pending[i] = 0;
@@ -350,10 +352,29 @@ void cpu_do_cycle(LONG cnt)
   glue_advance(cnt);
 }
 
+void cpu_ipl1(void)
+{
+  cpu->ipl1 = 1;
+}
+
+void cpu_ipl2(void)
+{
+  cpu->ipl2 = 1;
+}
+
 void cpu_check_for_pending_interrupts()
 {
   mmu_do_interrupts(cpu);
   shifter_do_interrupts(cpu, CPU_DO_INTS);
+
+  if(cpu->ipl1 && (IPL < 2)) {
+    cpu->ipl1 = 0;
+    cpu_set_interrupt(IPL_HBL, IPL_NO_AUTOVECTOR);
+  }
+  if(cpu->ipl2 && (IPL < 4)) {
+    cpu->ipl2 = 0;
+    cpu_set_interrupt(IPL_VBL, IPL_NO_AUTOVECTOR);
+  }
 }
 
 void cpu_add_extra_cycles(int cycle_count)

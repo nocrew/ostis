@@ -73,7 +73,7 @@ static int event_key(SDL_KeyboardEvent key, int state)
       mfp_print_status();
       printf("- - - - - - - - - - - - - - - - - - - - - -\n");
       ikbd_print_status();
-      printf("DEBUG: Speed: %g FPS\n", shifter_fps());
+      printf("DEBUG: Speed: %g FPS\n", screen_fps());
       printf("-------------------------------------------\n");
     }
   } else if(k.sym == SDLK_F13) {

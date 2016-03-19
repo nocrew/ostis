@@ -44,6 +44,7 @@
  */
 
 #include "mmu.h"
+#include "mfp.h"
 #include "glue.h"
 #include "diag.h"
 
@@ -52,7 +53,8 @@ static modefn_t mode_50, mode_60, mode_71;
 static modefn_t *mode_fn;
 
 static int h, v;
-static int end;
+static int counter_end;
+static int line_end;
 static int line;
 static int counter;
 static int res = 0;
@@ -62,13 +64,9 @@ HANDLE_DIAGNOSTICS(glue)
 
 static void set_mode(void)
 {
-  if(res == 2) {
+  if(res == 2)
     mode_fn = mode_71;
-    counter = 0;
-    line = 0;
-    h = 0;
-    v = 0;
-  } else if(freq == 0)
+  else if(freq == 0)
     mode_fn = mode_60;
   else
     mode_fn = mode_50;
@@ -76,7 +74,7 @@ static void set_mode(void)
 
 void glue_set_resolution(int resolution)
 {
-  DEBUG("Resolution %d", resolution);
+  DEBUG("R%d @ %03d;%03d", resolution, line, counter);
   res = resolution;
   set_mode();
 }
@@ -101,22 +99,26 @@ static void mode_50(void)
 {
   switch(counter) {
   //    30: blank off
-  case  54: end = 512;
-  case  56: h = 1; break;
+  case  54: counter_end = 512; break;
+  case  56: h = 1; cpu_ipl1(); break;
+  case 256: if(line == 312) cpu_ipl2(); break;
   case 376: h = 0; break;
+  case 400: if(v) mfp_do_timerb_event(cpu); break;
   //   450: blank on
   case 502:
     switch(line) {
+    case   0: line_end = 313; break;
     case  63: v = 1; break;
     case 263: v = 0; break;
     }
     break;
   default:
-    if (counter == end) {
+    if (counter == counter_end) {
       TRACE("PAL horizontal retrace");
+      screen_hsync();
       counter = 0;
       line++;
-      if(line == 313)
+      if(line == line_end)
 	vsync();
     }
     break;
@@ -128,21 +130,26 @@ void mode_60(void)
   switch(counter) {
   //    30: blank off
   case  52: h = 1; break;
-  case  54: end = 508; break;
+  case  54: counter_end = 508; break;
+  case  56: cpu_ipl1(); break;
+  case 256: if(line == 263) cpu_ipl2(); break;
   case 372: h = 0; break;
+  case 400: if(v) mfp_do_timerb_event(cpu); break;
   //   450: blank on
   case 502:
     switch(line) {
+    case   0: line_end = 263; break;
     case  34: v = 1; break;
     case 234: v = 0; break;
     }
     break;
   default:
-    if(counter == end) {
+    if(counter == counter_end) {
       TRACE("NTSC horizontal retrace");
+      screen_hsync();
       counter = 0;
       line++;
-      if(line == 263)
+      if(line == line_end)
 	vsync();
     }
     break;
@@ -153,19 +160,29 @@ void mode_71(void)
 {
   switch(counter) {
   case   4: h = 1; break;
+  case  54: counter_end = 224; break;
+  case  56: cpu_ipl1(); break;
+  case  80: if(line == 500) cpu_ipl2(); break;
   case 164: h = 0; break;
+  case 174: if(v) mfp_do_timerb_event(cpu); break;
   //   184: blank on
+  case 220:
+    switch(line) {
+    case   0: line_end = 501; break;
+    case  50: v = 1; break;
+    case 450: v = 0; break;
+    }
+    break;
   default:
-    if(counter >= 224) {
+    if(counter == counter_end) {
       TRACE("Monochrome horizontal retrace");
+      screen_hsync();
       counter = 0;
       line++;
-      switch(line) {
-      case  50: v = 1; break;
-      case 450: v = 0; break;
-      case 501: vsync(); break;
-      }
+      if(line == line_end)
+	vsync();
     }
+    break;
   }
 }
 
@@ -186,6 +203,7 @@ void glue_advance(LONG cycles)
     glue_machine();
     counter++;
     ASSERT(counter <= 512);
+    ASSERT(line <= line_end);
   }
 }
 
@@ -194,8 +212,9 @@ void glue_reset()
   glue_set_resolution(0);
   h = v = 0;
   line = 0;
+  line_end = 1000;
   counter = 0;
-  end = 1000;
+  counter_end = 1000;
 }
 
 void glue_init()

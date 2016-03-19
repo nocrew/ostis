@@ -88,7 +88,7 @@ void layout_draw_info(int lnum, int wnum)
 	  CHKV?'V':' ',
 	  CHKC?'C':' ');
   draw_string(8, 9+8*(font+1)*lcnt, font, text);
-  sprintf(text, "Raster beam: %d", shifter_get_vsync());
+  sprintf(text, "Raster beam: %d", screen_get_vsync());
   draw_string(400, 9+8*(font+1)*lcnt, font, text);
   lcnt++;
   cprint = cprint_instr(cpu->pc);

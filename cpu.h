@@ -20,6 +20,7 @@ struct cpu {
   int debug_halted;
   int prefetched_instr;
   int has_prefetched;
+  int ipl1, ipl2;
 };
 
 struct cpu_state {
@@ -142,6 +143,8 @@ int cpu_unset_breakpoint(LONG);
 int cpu_run(int);
 void cpu_reset(void);
 void cpu_add_extra_cycles(int);
+void cpu_ipl1(void);
+void cpu_ipl2(void);
 
 void cprint_set_label(LONG, char *);
 char *cprint_find_label(LONG);

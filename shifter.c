@@ -68,6 +68,7 @@ static WORD IR[4];
 static WORD RR[4];
 int clock = 0;
 int loaded = 0;
+int blank = 0;
 
 static long palette_r[16];
 static long palette_g[16];
@@ -223,6 +224,14 @@ void shifter_init()
   mmu_register(shifter);
 }
 
+static void shifter_draw(int r, int g, int b)
+{
+  if(blank)
+    screen_draw(0, 0, 0);
+  else
+    screen_draw(r, g, b);
+}
+
 static int shift_out(void)
 {
   int i, c = 0, x = 1;
@@ -238,8 +247,8 @@ static int shift_out(void)
 static void shifter_draw_low(void)
 {
   int c = shift_out();
-  screen_draw(palette_r[c], palette_g[c], palette_b[c]);
-  screen_draw(palette_r[c], palette_g[c], palette_b[c]);
+  shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
+  shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
   loaded--;
 }
 
@@ -248,7 +257,7 @@ static void shifter_draw_medium(void)
   int i;
   for (i = 0; i < 2; i++) {
     int c = shift_out();
-    screen_draw(palette_r[c], palette_g[c], palette_b[c]);
+    shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
     loaded--;
   }
 }
@@ -271,7 +280,7 @@ void shifter_clock(void)
     res.draw();
   } else {
     for(i = 0; i < res.border_pixels; i++) {
-      screen_draw(border_r, border_g, border_b);
+      shifter_draw(border_r, border_g, border_b);
     }
   }
 
@@ -311,4 +320,9 @@ static void shifter_border_high(void)
 void shifter_de(int x)
 {
   // No use so far.
+}
+
+void shifter_blank(int x)
+{
+  blank = x;
 }

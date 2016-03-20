@@ -104,7 +104,7 @@ static void mode_50(void)
   case  56: h = 1; cpu_ipl1(); break;
   case 256: if(line == 312) cpu_ipl2(); break;
   case 376: h = 0; break;
-  case 400: if(v) mfp_do_timerb_event(cpu); break;
+  case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 376
   case 450: shifter_blank(1);
   case 502:
     switch(line) {
@@ -135,7 +135,7 @@ void mode_60(void)
   case  56: cpu_ipl1(); break;
   case 256: if(line == 263) cpu_ipl2(); break;
   case 372: h = 0; break;
-  case 400: if(v) mfp_do_timerb_event(cpu); break;
+  case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 372
   case 450: shifter_blank(1);
   case 502:
     switch(line) {
@@ -164,8 +164,7 @@ void mode_71(void)
   case  54: counter_end = 224; break;
   case  56: cpu_ipl1(); break;
   case  80: if(line == 500) cpu_ipl2(); break;
-  case 164: h = 0; break;
-  case 174: if(v) mfp_do_timerb_event(cpu); break;
+  case 164: h = 0; if(v) mfp_do_timerb_event(cpu); break;
   //   184: blank on
   case 220:
     switch(line) {

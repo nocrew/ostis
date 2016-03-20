@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "font.h"
@@ -125,6 +126,7 @@ void display_swap_screen()
 void display_setup()
 {
   Uint32 rmask, gmask, bmask, amask;
+  SDL_Surface *icon;
   
   SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, SDL_SCALING_LINEAR);
   debug_window = SDL_CreateWindow("Debugger screen", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -159,6 +161,9 @@ void display_setup()
   debug_window_id = SDL_GetWindowID(debug_window);
   printf("DEBUG: debug_window_id == %d\n", debug_window_id);
 
+  icon = IMG_Load("logo-monst.png");
+  SDL_SetWindowIcon(debug_window, icon);
+  
   display_swap_screen();
   SDL_ShowWindow(debug_window);
   

@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS_BASE=`sdl2-config --cflags` -I. -I.. -Wall -Werror -Wno-unused-function
+CFLAGS_BASE=`sdl2-config --cflags` `pkg-config SDL2_image --cflags` -I. -I.. -Wall -Werror -Wno-unused-function
 LDFLAGS_BASE=
 
 CFLAGS=$(CFLAGS_EXTRA) $(CFLAGS_BASE)
@@ -35,7 +35,7 @@ LIBTESTS=tests/libtests.a
 DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
 DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS)
 
-LIB=$(LIBCPU) $(LIBDEBUG) `sdl2-config --libs`
+LIB=$(LIBCPU) $(LIBDEBUG) `sdl2-config --libs` `pkg-config SDL2_image --libs` 
 
 all:	default
 

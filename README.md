@@ -2,9 +2,9 @@
 
 ### Building
 
-To build, the SDL2 library must be installed.  Also, you need tools
-compatible with Lex and Yacc.  E.g. `apt-get install libsdl2-dev
-flex bison`.
+To build, the SDL2 library and the SDL2 image library must be installed.  Also,
+you need tools compatible with Lex and Yacc.  E.g. `apt-get install libsdl2-dev
+libsdl2-image-dev flex bison`.
 
 There are a few different build options (always do `make clean` first):
 

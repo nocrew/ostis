@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <SDL.h>
+#include <SDL_image.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -117,6 +118,7 @@ void screen_init()
 {
   /* should be rewritten with proper error checking */
   Uint32 rmask, gmask, bmask, amask;
+  SDL_Surface *icon;
   
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(screen, "SCRN");
 
@@ -161,6 +163,9 @@ void screen_init()
     FATAL("Did not get a video mode");
   }
 
+  icon = IMG_Load("logo-main.png");
+  SDL_SetWindowIcon(window, icon);
+  
   if(ppmoutput) {
     ppm_fd = open("ostis.ppm", O_WRONLY|O_CREAT|O_TRUNC, 0644);
   }

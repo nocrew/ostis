@@ -7,6 +7,7 @@
  *  2MHZ	2 Mhz
  *  500KHZ	500 kHz
  * [BUS]
+ *  A2-A23	BUS:A1-A23
  *  D0-D1	BUS:D0-D1
  *  FC0-FC1
  *  AS

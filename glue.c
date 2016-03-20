@@ -186,25 +186,16 @@ void mode_71(void)
   }
 }
 
-static void glue_machine(void)
+void glue_clock(void)
 {
-  if(counter & 1)
-    return;
-  mode_fn();
-  if(counter & 3)
-    return;
-  mmu_de(h && v);
-}
-
-void glue_advance(LONG cycles)
-{
-  int i;
-  for(i = 0; i < cycles; i++) {
-    glue_machine();
-    counter++;
-    ASSERT(counter <= 512);
-    ASSERT(line <= line_end);
+  if((counter & 1) == 0) {
+    mode_fn();
+    if((counter & 3) == 0)
+      mmu_de(h && v);
   }
+  counter++;
+  ASSERT(counter <= 512);
+  ASSERT(line <= line_end);
 }
 
 void glue_reset()

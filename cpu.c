@@ -344,11 +344,15 @@ void cpu_reset(void)
 
 void cpu_do_cycle(LONG cnt)
 {
+  int i;
+
   if(cnt&3) {
     cnt = (cnt&0xfffffffc)+4;
   }
   cpu->cycle += cnt;
-  glue_advance(cnt);
+
+  for(i = 0; i < cnt; i++)
+    glue_clock();
 }
 
 void cpu_ipl1(void)

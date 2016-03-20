@@ -14,6 +14,7 @@ void display_put_char(int, int, int, unsigned char);
 void display_put_pixel_screen(int, int, long);
 void display_render_screen();
 void display_swap_screen();
+void debug_raise_window();
 SDL_Surface *display_get_screen();
 extern int debug_window_id;
 extern int debug_update_win;

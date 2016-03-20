@@ -169,3 +169,8 @@ SDL_Surface *display_get_screen()
 {
   return debug_screen;
 }
+
+void debug_raise_window()
+{
+  SDL_RaiseWindow(debug_window);
+}

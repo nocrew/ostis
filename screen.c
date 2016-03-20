@@ -172,6 +172,10 @@ void screen_init()
   framecnt = 0;
 
   screen_vsync();
+
+  if(debugger) {
+    debug_raise_window();
+  }
 }
 
 float screen_fps()

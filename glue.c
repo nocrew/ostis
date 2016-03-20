@@ -190,8 +190,10 @@ void glue_clock(void)
 {
   if((counter & 1) == 0) {
     mode_fn();
-    if((counter & 3) == 0)
+    if((counter & 3) == 0) {
       mmu_de(h && v);
+      shifter_de(h && v);
+    }
   }
   counter++;
   ASSERT(counter <= 512);

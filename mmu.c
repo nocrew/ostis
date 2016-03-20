@@ -521,8 +521,6 @@ void mmu_de(int enable)
     TRACE("Display enable");
     shifter_load(ram_read_word(scrptr));
     scrptr += 2;
-  } else {
-    shifter_border();
   }
 }
 

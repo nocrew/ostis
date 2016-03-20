@@ -351,8 +351,10 @@ void cpu_do_cycle(LONG cnt)
   }
   cpu->cycle += cnt;
 
-  for(i = 0; i < cnt; i++)
+  for(i = 0; i < cnt; i++) {
     glue_clock();
+    shifter_clock();
+  }
 }
 
 void cpu_ipl1(void)

@@ -7,6 +7,7 @@
  *  2MHZ	2 Mhz
  *  500KHZ	500 kHz
  * [BUS]
+ *  A2-A23	BUS:A1-A23
  *  D0-D1	BUS:D0-D1
  *  FC0-FC1
  *  AS
@@ -98,13 +99,13 @@ static void vsync(void)
 static void mode_50(void)
 {
   switch(counter) {
-  //    30: blank off
+  case  30: shifter_blank(0);
   case  54: counter_end = 512; break;
   case  56: h = 1; cpu_ipl1(); break;
   case 256: if(line == 312) cpu_ipl2(); break;
   case 376: h = 0; break;
-  case 400: if(v) mfp_do_timerb_event(cpu); break;
-  //   450: blank on
+  case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 376
+  case 450: shifter_blank(1);
   case 502:
     switch(line) {
     case   0: line_end = 313; break;
@@ -128,14 +129,14 @@ static void mode_50(void)
 void mode_60(void)
 {
   switch(counter) {
-  //    30: blank off
+  case  30: shifter_blank(0);
   case  52: h = 1; break;
   case  54: counter_end = 508; break;
   case  56: cpu_ipl1(); break;
   case 256: if(line == 263) cpu_ipl2(); break;
   case 372: h = 0; break;
-  case 400: if(v) mfp_do_timerb_event(cpu); break;
-  //   450: blank on
+  case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 372
+  case 450: shifter_blank(1);
   case 502:
     switch(line) {
     case   0: line_end = 263; break;
@@ -163,8 +164,7 @@ void mode_71(void)
   case  54: counter_end = 224; break;
   case  56: cpu_ipl1(); break;
   case  80: if(line == 500) cpu_ipl2(); break;
-  case 164: h = 0; break;
-  case 174: if(v) mfp_do_timerb_event(cpu); break;
+  case 164: h = 0; if(v) mfp_do_timerb_event(cpu); break;
   //   184: blank on
   case 220:
     switch(line) {

@@ -29,30 +29,27 @@
 static void shifter_draw_low(void);
 static void shifter_draw_medium(void);
 static void shifter_draw_high(void);
-static void shifter_border_low(void);
-static void shifter_border_high(void);
+
+struct resolution_data {
+  void (*draw)(void);
+  int bitplanes;
+};
 
 static struct resolution_data res_data[] = {
   {
     // Low resolution
     .draw = shifter_draw_low,
     .bitplanes = 4,
-    .border_pixels = 2,
-    .border = shifter_border_low
   },
   {
     // Medium resolution
     .draw = shifter_draw_medium,
     .bitplanes = 2,
-    .border_pixels = 2,
-    .border = shifter_border_low
   },
   {
     // High resolution
     .draw = shifter_draw_high,
     .bitplanes = 1,
-    .border_pixels = 4,
-    .border = shifter_border_high
   },
   {
     // Whoops, bad resolution
@@ -61,17 +58,18 @@ static struct resolution_data res_data[] = {
 };
 
 static int plane = 0;
-static int border_r=0, border_g=0, border_b=0;
-static int brighter = 0x1f;
 
 static WORD IR[4];
 static WORD RR[4];
 int clock = 0;
-int loaded = 0;
+int reload = 0;
+int blank = 0;
+int de = 0;
 
 static long palette_r[16];
 static long palette_g[16];
 static long palette_b[16];
+static long palette_m[2];
 
 static WORD stpal[16];
 static BYTE resolution; /* Low, medium or high resolution. */
@@ -104,12 +102,11 @@ static void shifter_set_resolution(BYTE data)
   DEBUG("Resolution %d", data);
   resolution = data;
   res = res_data[data&3];
-  res.border();
   glue_set_resolution(data & 3);
 
   // This is just a hack to make things look good.  It's probably not
   // what the shifter does when switching resolution.
-  plane = 0;
+  reload = 16;
 }
 
 static BYTE shifter_read_byte(LONG addr)
@@ -154,7 +151,8 @@ static void shifter_write_byte(LONG addr, BYTE data)
         stpal[(addr-0xff8240)>>1] = (tmp&0xff)|(data<<8);
 	set_palette((addr-0xff8240)>>1, data, 1);
       }
-      res.border();
+      palette_m[0] = (stpal[0] & 1) ? 0xff : 0;
+      palette_m[1] = ~palette_m[0];
     }
     return;
   }
@@ -217,10 +215,16 @@ void shifter_init()
   shifter->diagnostics = shifter_diagnostics;
 
   shifter_set_resolution(0);
-  if(ppmoutput || crop_screen)
-    brighter = 0;
 
   mmu_register(shifter);
+}
+
+static void shifter_draw(int r, int g, int b)
+{
+  if(blank)
+    screen_draw(0, 0, 0);
+  else
+    screen_draw(r, g, b);
 }
 
 static int shift_out(void)
@@ -238,9 +242,9 @@ static int shift_out(void)
 static void shifter_draw_low(void)
 {
   int c = shift_out();
-  screen_draw(palette_r[c], palette_g[c], palette_b[c]);
-  screen_draw(palette_r[c], palette_g[c], palette_b[c]);
-  loaded--;
+  shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
+  shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
+  reload--;
 }
 
 static void shifter_draw_medium(void)
@@ -248,8 +252,8 @@ static void shifter_draw_medium(void)
   int i;
   for (i = 0; i < 2; i++) {
     int c = shift_out();
-    screen_draw(palette_r[c], palette_g[c], palette_b[c]);
-    loaded--;
+    shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
+    reload--;
   }
 }
 
@@ -258,27 +262,29 @@ static void shifter_draw_high(void)
   int i;
   for (i = 0; i < 4; i++) {
     int c = shift_out();
-    screen_draw(palette_r[c], palette_g[c], palette_b[c]);
-    loaded--;
+    screen_draw(palette_m[c], palette_m[c], palette_m[c]);
+    reload--;
   }
 }
 
 void shifter_clock(void)
 {
-  int i;
+  res.draw();
 
-  if(loaded) {
-    res.draw();
-  } else {
-    for(i = 0; i < res.border_pixels; i++) {
-      screen_draw(border_r, border_g, border_b);
+  if(reload == 0) {
+    if(res.bitplanes == 2) {
+      RR[0] = RR[2];
+      RR[1] = RR[3];
+      RR[2] = 0;
+      RR[3] = 0;
+    } else if(res.bitplanes == 1) {
+      RR[0] = RR[1];
+      RR[1] = RR[2];
+      RR[2] = RR[3];
+      RR[3] = (palette_m[0] ? 0xffff : 0);
     }
-  }
-
-  if((clock & 3) == 0 && plane >= res.bitplanes) {
-    plane = 0;
-    memcpy(RR, IR, sizeof RR);
-    loaded = 16;
+    reload = 16;
+    TRACE("Reload: %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
   }
 
   clock++;
@@ -288,27 +294,19 @@ void shifter_load(WORD data)
 {
   TRACE("Load %04x", data);
   IR[plane++] = data;
-}
-
-static void shifter_border_low(void)
-{
-  border_r = palette_r[0]|brighter;
-  border_g = palette_g[0]|brighter;
-  border_b = palette_b[0]|brighter;
-}
-
-static void shifter_border_high(void)
-{
-  border_r = border_g = border_b = ((stpal[0] & 1) ? 0 : 0xff);
-  palette_r[0] = ~border_r;
-  palette_g[0] = ~border_g;
-  palette_b[0] = ~border_b;
-  palette_r[1] = border_r;
-  palette_g[1] = border_g;
-  palette_b[1] = border_b;
+  if(plane == 4) {
+    if(de)
+      memcpy(RR, IR, sizeof RR);
+    plane = 0;
+  }
 }
 
 void shifter_de(int x)
 {
-  // No use so far.
+  de = x;
+}
+
+void shifter_blank(int x)
+{
+  blank = x;
 }

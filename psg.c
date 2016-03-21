@@ -463,8 +463,17 @@ static void psg_do_interrupts(struct cpu *cpu)
 static void psg_audio_callback(void *userdata, Uint8 *stream, int len)
 {
   Uint8 *psgbuftmp = (Uint8 *)&psg_audio_buffer[0];
-  memcpy(stream, psgbuftmp, len);
-  memcpy(psgbuftmp, psgbuftmp + len, len);
+  int tmplen;
+
+  if(psg_audio_buffer_cnt * 2 < len) {
+    tmplen = psg_audio_buffer_cnt * 2;
+  } else {
+    tmplen = len;
+  }
+
+  memcpy(stream, psgbuftmp, tmplen);
+  memset(stream+tmplen, 0, len-tmplen);
+  memcpy(psgbuftmp, psgbuftmp + tmplen, tmplen);
   psg_audio_buffer_cnt = 0;
 }
 

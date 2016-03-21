@@ -43,6 +43,14 @@
  *  I5		FDC:INTR, HDC:INT
  *  I6		RS232:CI
  *  I7		MONITOR:MONO
+ *
+ * Note: 8000000/2457600 = 625/192.
+ * To get 2.4576 Mhz from 8 Mhz, delay 3 cycles 143 times, and 4 cycles 49 times.
+ * To compute the next delay, keep a running sum like this:
+ * if (sum < 0)
+ *   sum += 143; // 4 cycles
+ * else
+ *   sum -= 49;  // 3 cycles
  */
 
 #include <stdio.h>

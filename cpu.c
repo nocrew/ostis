@@ -359,6 +359,7 @@ void cpu_do_cycle(LONG cnt)
 
   for(i = 0; i < cnt; i++) {
     glue_clock();
+    mmu_clock();
     shifter_clock();
   }
 }

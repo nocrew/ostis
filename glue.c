@@ -206,7 +206,7 @@ void glue_reset()
   h = v = 0;
   line = 0;
   line_end = 1000;
-  counter = 0;
+  counter = 0; // Here be wakestate.
   counter_end = 1000;
 }
 

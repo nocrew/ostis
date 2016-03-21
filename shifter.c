@@ -104,9 +104,13 @@ static void shifter_set_resolution(BYTE data)
   res = res_data[data&3];
   glue_set_resolution(data & 3);
 
-  // This is just a hack to make things look good.  It's probably not
-  // what the shifter does when switching resolution.
-  reload = 16;
+  // This is a very ugly hack to make medium and high resolution work.
+  // It's absolutely not what a real shifter does when switching
+  // resolution.  Also, I have only a vague idea why this works.
+  if(data == 1)
+    reload = 20;
+  else if(data == 2)
+    reload = 24;
 }
 
 static BYTE shifter_read_byte(LONG addr)

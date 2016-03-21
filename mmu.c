@@ -515,17 +515,35 @@ void mmu_do_interrupts(struct cpu *cpu)
   ikbd_do_interrupt(cpu);
 }
 
+static int de = 0;
+static int clock = 0;
+static int load = -1;
+
 void mmu_de(int enable)
 {
-  if(enable) {
-    TRACE("Display enable");
-    shifter_load(ram_read_word(scrptr));
-    scrptr += 2;
-  }
+  if(enable)
+    TRACE("DE @ %d", clock);
+  de = enable;
+  if(de && load < 0)
+    // 3-6 cycle delay from DE to LOAD, depends on the phase of the GLUE clock.
+    load = 6;
 }
 
 void mmu_vsync(void)
 {
   DEBUG("Vsync");
   scrptr = scraddr;
+}
+
+void mmu_clock(void)
+{
+  // MMU can only access RAM at cycle 2 within a bus cycle.
+  if((clock & 3) == 2 && (load & -4) == 0) {
+    TRACE("LOAD @ %d", clock);
+    shifter_load(ram_read_word(scrptr));
+    scrptr += 2;
+    load = de ? 4 : -1;
+  }
+  clock++;
+  load--;
 }

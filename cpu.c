@@ -297,6 +297,7 @@ int cpu_step_instr(int trace)
 
 int cpu_run(int cpu_run_state)
 {
+  static int counter = 1;
   int stop,ret;
   int tmp_run_state = CPU_RUN;
 
@@ -320,9 +321,14 @@ int cpu_run(int cpu_run_state)
     } else {
       ret = CPU_OK;
     }
-    if(event_main() == EVENT_DEBUG) {
-      stop = CPU_BREAKPOINT;
-      break;
+    if(--counter == 0) {
+      // Quick-and-somewhat-dirty solution to slow SDL polling.
+      if(event_main() == EVENT_DEBUG) {
+	stop = CPU_BREAKPOINT;
+	break;
+      }
+      // This seems to be a good compromise between responsiveness and performance.
+      counter = 1000;
     }
     if(ret != CPU_OK) {
       stop = ret;

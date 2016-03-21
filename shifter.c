@@ -64,6 +64,7 @@ static WORD RR[4];
 int clock = 0;
 int reload = 0;
 int blank = 0;
+int de_deactivate_at = 0;
 int de = 0;
 
 static long palette_r[16];
@@ -291,6 +292,9 @@ void shifter_clock(void)
     TRACE("Reload: %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
   }
 
+  if(de_deactivate_at == clock) {
+    de = 0;
+  }
   clock++;
 }
 
@@ -307,7 +311,11 @@ void shifter_load(WORD data)
 
 void shifter_de(int x)
 {
-  de = x;
+  /* Two cycle delay from DE to handling it */
+  if(!x)
+    de_deactivate_at = clock + 2;
+  else
+    de = x;
 }
 
 void shifter_blank(int x)

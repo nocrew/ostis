@@ -303,8 +303,10 @@ void shifter_load(WORD data)
   CLOCK("Load IR%d: %04x", plane, data);
   IR[plane++] = data;
   if(plane == 4) {
-    if(de)
+    if(de) {
       memcpy(RR, IR, sizeof RR);
+      reload = 16;
+    }
     plane = 0;
   }
 }

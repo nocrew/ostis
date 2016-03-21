@@ -13,6 +13,7 @@ struct cpu {
   LONG pc;
   WORD sr;
   uint64_t cycle;
+  unsigned int clock; // For now, just to display cycle in CLOCK().
   LONG icycle;
   int cyclecomp;
   int stopped;

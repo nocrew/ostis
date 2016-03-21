@@ -274,7 +274,7 @@ static void mmu_write_byte(LONG addr, BYTE data)
     return;
   case 0xff820a:
     syncreg = data;
-    DEBUG("Sync register: %02x", data);
+    TRACE("Sync register: %02x", data);
     glue_set_sync(data & 2);
     return;
   }
@@ -522,7 +522,7 @@ static int load = -1;
 void mmu_de(int enable)
 {
   if(enable)
-    TRACE("DE @ %d", clock);
+    CLOCK("DE");
   de = enable;
   if(de && load < 0)
     // 3-6 cycle delay from DE to LOAD, depends on the phase of the GLUE clock.
@@ -531,7 +531,7 @@ void mmu_de(int enable)
 
 void mmu_vsync(void)
 {
-  DEBUG("Vsync");
+  TRACE("Vsync");
   scrptr = scraddr;
 }
 
@@ -539,7 +539,7 @@ void mmu_clock(void)
 {
   // MMU can only access RAM at cycle 2 within a bus cycle.
   if((clock & 3) == 2 && (load & -4) == 0) {
-    TRACE("LOAD @ %d", clock);
+    CLOCK("LOAD");
     shifter_load(ram_read_word(scrptr));
     scrptr += 2;
     load = de ? 4 : -1;

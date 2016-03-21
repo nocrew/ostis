@@ -100,7 +100,7 @@ static void set_palette(int pnum, int value, int part)
 
 static void shifter_set_resolution(BYTE data)
 {
-  DEBUG("Resolution %d", data);
+  TRACE("Resolution %d", data);
   resolution = data;
   res = res_data[data&3];
   glue_set_resolution(data & 3);
@@ -289,7 +289,7 @@ void shifter_clock(void)
       RR[3] = (palette_m[0] ? 0xffff : 0);
     }
     reload = 16;
-    TRACE("Reload: %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+    CLOCK("Reload: %04x %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
   }
 
   if(de_deactivate_at == clock) {
@@ -300,7 +300,7 @@ void shifter_clock(void)
 
 void shifter_load(WORD data)
 {
-  TRACE("Load %04x", data);
+  CLOCK("Load IR%d: %04x", plane, data);
   IR[plane++] = data;
   if(plane == 4) {
     if(de)

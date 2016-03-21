@@ -13,7 +13,8 @@ static const char *level_name[] = {
   "WARNING",
   "INFO",
   "DEBUG",
-  "TRACE"
+  "TRACE",
+  "CLOCK"
 };
 
 struct diag_module {
@@ -123,6 +124,8 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
   fprintf(stderr, "%s", level_name[level]);
   if(level == 6) {
     fprintf(stderr, " [$%06x]", cpu->pc);
+  } else if(level == 7) {
+    fprintf(stderr, " [%010ul]", cpu->clock);
   }
   fprintf(stderr, ": ");
   if(device)

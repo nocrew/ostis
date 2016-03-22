@@ -41,8 +41,8 @@ all:	default
 
 -include $(EMU_SRC:.c=.d)
 
-%.o:	%.c
-	$(CC) $(CFLAGS) -MMD -c $< -o $@
+%.o:	%.c Makefile cpu/cpu.mk debug/debug.mk
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 default:
 	$(MAKE) ostis CFLAGS_EXTRA="-O3"

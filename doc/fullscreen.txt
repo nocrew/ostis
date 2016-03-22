@@ -1,0 +1,21 @@
+Troed:
+
+While researching for my optimized fullscreen scanline the big
+difference between the naïve version;
+
+0: HI
+8: 50Hz
+16: LO
+376: 60Hz
+
+... and the version that is (with wakestate-dependent modification) in Closure:
+
+0: HI
+8: MED
+16: LO
+24: 50Hz
+376: 60Hz
+
+... is that the naïve version (while GLUE statemachine compliant)
+displays "bands" (every other 16 pixels black) in some wakestates or
+"sub-wakestates"

@@ -72,9 +72,10 @@ static uint8_t bus_error_odd_addr_id;
 static LONG scraddr = 0;
 static LONG scrptr = 0;
 static BYTE syncreg;
+static int send_error = 1;
 
-#define MEM_READ(size, addr) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->read_##size(addr&0xffffff)
-#define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[addr&0xffffff]]->write_##size(addr&0xffffff, data)
+#define MEM_READ(size, addr) mmu_module_by_id[mmu_module_at_addr[(addr)&0xffffff]]->read_##size((addr)&0xffffff)
+#define MEM_WRITE(size, addr, data) mmu_module_by_id[mmu_module_at_addr[(addr)&0xffffff]]->write_##size((addr)&0xffffff, data)
 
 HANDLE_DIAGNOSTICS(mmu)
 
@@ -93,9 +94,12 @@ static struct mmu *find_module_by_id(char *id)
   return NULL;
 }
 
-void mmu_send_bus_error(int reading, LONG addr)
+static void mmu_send_bus_error(int reading, LONG addr)
 {
   int flags = 0;
+
+  if(!send_error)
+    return;
 
   if(reading) {
     flags |= CPU_BUSERR_READ;
@@ -115,9 +119,12 @@ void mmu_send_bus_error(int reading, LONG addr)
   cpu_set_bus_error(flags, addr);
 }
 
-void mmu_send_address_error(int reading, LONG addr)
+static void mmu_send_address_error(int reading, LONG addr)
 {
   int flags = 0;
+
+  if(!send_error)
+    return;
 
   if(reading) {
     flags |= CPU_ADDRERR_READ;
@@ -380,7 +387,11 @@ WORD bus_read_word(LONG addr)
 
 LONG bus_read_long(LONG addr)
 {
-  return (bus_read_word(addr)<<16) + bus_read_word(addr+2);
+  LONG data = MEM_READ(word, addr)<<16;
+  send_error = 0;
+  data += MEM_READ(word, addr+2);
+  send_error = 1;
+  return data;
 }
 
 void bus_write_byte(LONG addr, BYTE data)
@@ -395,8 +406,10 @@ void bus_write_word(LONG addr, WORD data)
 
 void bus_write_long(LONG addr, LONG data)
 {
-  bus_write_word(addr, data >> 16);
-  bus_write_word(addr+2, data & 0xffff);
+  MEM_WRITE(word, addr, data >> 16);
+  send_error = 0;
+  MEM_WRITE(word, addr + 2, data);
+  send_error = 1;
 }
 
 

@@ -99,13 +99,13 @@ static void vsync(void)
 static void mode_50(void)
 {
   switch(counter) {
-  case  30: shifter_blank(0);
+  case  30: shifter_blank(0); break;
   case  54: counter_end = 512; break;
   case  56: h = 1; cpu_ipl1(); break;
   case 256: if(line == 312) cpu_ipl2(); break;
   case 376: h = 0; break;
   case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 376
-  case 450: shifter_blank(1);
+  case 450: shifter_blank(1); break;
   case 502:
     switch(line) {
     case   0: line_end = 313; break;
@@ -129,14 +129,14 @@ static void mode_50(void)
 void mode_60(void)
 {
   switch(counter) {
-  case  30: shifter_blank(0);
+  case  30: shifter_blank(0); break;
   case  52: h = 1; break;
   case  54: counter_end = 508; break;
   case  56: cpu_ipl1(); break;
   case 256: if(line == 263) cpu_ipl2(); break;
   case 372: h = 0; break;
   case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 372
-  case 450: shifter_blank(1);
+  case 450: shifter_blank(1); break;
   case 502:
     switch(line) {
     case   0: line_end = 263; break;

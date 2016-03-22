@@ -35,7 +35,6 @@
 int debugger = 0;
 int ppmoutput = 0;
 int psgoutput = 0;
-int vsync_delay = 0;
 int play_audio = 0;
 int audio_device = 0;
 int monitor_sm124 = 0;
@@ -144,7 +143,7 @@ int main(int argc, char *argv[])
       verbosity = MAX(1, verbosity-1);
       break;
     case 'V':
-      vsync_delay = 1;
+      screen_set_delay(20000);
       break;
     case 'A':
       play_audio = 1;

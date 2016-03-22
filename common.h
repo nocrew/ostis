@@ -41,7 +41,6 @@ typedef int32_t SLONG;
 extern int debugger;
 extern int ppmoutput;
 extern int psgoutput;
-extern int vsync_delay;
 extern int play_audio;
 extern int audio_device;
 extern int monitor_sm124;

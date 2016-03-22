@@ -41,13 +41,30 @@ Long options:
 `--loglevels LEVEL_LIST` - Set loglevels for individual modules (se below)
 
 Special keys:  
-`F11`           - save emulator state to file  
-`F12`           - print diagnosics  
-`F13`           - temporarily save state  
-`F14`           - restore temporary state  
-`PrintScr`      - toggle insane amount of debug output (live disassemble)  
-`Pause`         - toggle window grab (also hides native mouse cursor)  
-`Ctrl-Pause`    - toggle fullscreen
+`F11`                - save emulator state to file  
+`F12`                - print diagnosics  
+`F13`                - temporarily save state  
+`F14`                - restore temporary state  
+`PrintScr`           - toggle insane amount of debug output (live disassemble)  
+`Pause`              - toggle window grab (also hides native mouse cursor)  
+`Ctrl-Pause`         - toggle fullscreen  
+`Ctrl-Shift-Gui-Fxx` - Set update speed (Se below).
+
+Update speed:  
+```
+F1    No delay
+F2    10ms per frame
+F3    20ms
+F4    30ms
+F5    40ms
+F6    50ms
+F7    75ms
+F8   100ms
+F9   150ms
+F10  200ms
+F11  500ms
+F12 1000ms
+```
 
 MonST keys:  
 `Esc` - set window address to pc  

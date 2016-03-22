@@ -32,6 +32,7 @@ static int screen_fullscreen = 0;
 static char *rasterpos;
 static char *next_line;
 static char *rgbimage;
+static int screen_delay_value = 0;
 
 static int ppm_fd;
 static int framecnt;
@@ -335,10 +336,10 @@ void screen_vsync(void)
   if(ppmoutput) {
     screen_build_ppm();
   }
-  if(vsync_delay) {
+  if(screen_delay_value) {
     current_ticks = usec_count();
     remaining = current_ticks - last_vsync_ticks;
-    while(remaining < 20000) {
+    while(remaining < screen_delay_value) {
       current_ticks = usec_count();
       remaining = current_ticks - last_vsync_ticks;
     }
@@ -361,4 +362,10 @@ void screen_hsync(void)
 {
   rasterpos = next_line;
   next_line += screen->pitch;
+}
+
+void screen_set_delay(int delay_value)
+{
+  INFO("Set update speed to %d ms", delay_value/1000);
+  screen_delay_value = delay_value;
 }

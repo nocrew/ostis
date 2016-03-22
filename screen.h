@@ -19,6 +19,7 @@ void screen_hsync(void);
 int screen_framecnt(int);
 float screen_fps();
 int screen_get_vsync(void);
+void screen_set_delay(int);
 
 extern int screen_window_id;
 

@@ -19,6 +19,35 @@ static int event_key(SDL_KeyboardEvent key, int state)
 
   k = key.keysym;
 
+  if((k.mod & KMOD_CTRL) && (k.mod & KMOD_LGUI) && (k.mod & KMOD_SHIFT)) {
+    if(k.sym == SDLK_F1) {
+      screen_set_delay(0);
+    } else if(k.sym == SDLK_F2) {
+      screen_set_delay(10000);
+    } else if(k.sym == SDLK_F3) {
+      screen_set_delay(20000);
+    } else if(k.sym == SDLK_F4) {
+      screen_set_delay(30000);
+    } else if(k.sym == SDLK_F5) {
+      screen_set_delay(40000);
+    } else if(k.sym == SDLK_F6) {
+      screen_set_delay(50000);
+    } else if(k.sym == SDLK_F7) {
+      screen_set_delay(75000);
+    } else if(k.sym == SDLK_F8) {
+      screen_set_delay(100000);
+    } else if(k.sym == SDLK_F9) {
+      screen_set_delay(150000);
+    } else if(k.sym == SDLK_F10) {
+      screen_set_delay(200000);
+    } else if(k.sym == SDLK_F11) {
+      screen_set_delay(500000);
+    } else if(k.sym == SDLK_F12) {
+      screen_set_delay(1000000);
+    }
+    return EVENT_NONE;
+  }
+  
   if((k.sym == ' ') || (k.sym == 27) ||
      ((k.sym >= '0') && (k.sym <= '9')) ||
      ((k.sym >= 'a') && (k.sym <= 'z')) ||

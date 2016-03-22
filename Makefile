@@ -8,7 +8,11 @@ export CFLAGS
 export LDFLAGS
 
 YACC=yacc -d
-LEX=lex
+ifeq ($(shell uname -o),Cygwin)
+	LEX=flex
+else
+	LEX=lex
+endif
 AR=ar
 RANLIB=ranlib
 

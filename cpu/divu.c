@@ -14,7 +14,11 @@ static void divu(struct cpu *cpu, WORD op)
   s = ea_read_word(cpu, op&0x3f, 0);
   reg = (op&0xe00)>>9;
   d = cpu->d[reg];
-  if(!s) cpu_set_exception(5);
+  if(!s) {
+    cpu_set_exception(5);
+    CLRC;
+    return;
+  }
   r = d/s;
   m = d%s;
   cpu_set_flags_divu(cpu, r&0x80000000, r, r&0xffff0000);

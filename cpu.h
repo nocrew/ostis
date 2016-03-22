@@ -17,7 +17,6 @@ struct cpu {
   LONG icycle;
   int cyclecomp;
   int stopped;
-  int tracedelay;
   int debug_halted;
   int prefetched_instr;
   int has_prefetched;

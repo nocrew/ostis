@@ -224,7 +224,6 @@ int cpu_step_instr(int trace)
 
     cpu->cyclecomp = 0;
     cpu->icycle = 0;
-    cpu->tracedelay = 0;
 
     if(cprint_all) {
       struct cprint *cprint;

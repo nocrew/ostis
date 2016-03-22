@@ -14,7 +14,6 @@ static void eori_to_sr(struct cpu *cpu, WORD op)
     d = bus_read_word(cpu->pc);
     cpu->pc += 2;
     cpu_set_sr(cpu->sr^d);
-    cpu->tracedelay = 1;
   } else {
     cpu_set_exception(8); /* Privilege violation */
   }

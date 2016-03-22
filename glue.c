@@ -59,7 +59,7 @@ static int line_end;
 static int line;
 static int counter;
 static int res = 0;
-static int freq = 2;
+static int freq = 0;
 
 HANDLE_DIAGNOSTICS(glue)
 

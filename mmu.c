@@ -325,6 +325,8 @@ void mmu_init()
   mmu->write_word = mmu_write_word;
   mmu->diagnostics = mmu_diagnostics;
   mmu_register(mmu);
+
+  glue_set_sync(0); // 60Hz is the default at power-up.
 }
 
 

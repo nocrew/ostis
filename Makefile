@@ -41,7 +41,7 @@ all:	default
 
 -include $(EMU_SRC:.c=.d)
 
-%.o:	%.c
+%.o:	%.c Makefile cpu/cpu.mk debug/debug.mk
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 default:

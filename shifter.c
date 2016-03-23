@@ -57,15 +57,13 @@ static struct resolution_data res_data[] = {
   }
 };
 
-static int plane = 0;
-
 static WORD IR[4];
 static WORD RR[4];
-int clock = 0;
-int reload = 0;
-int blank = 0;
-int de_deactivate_at = 0;
-int de = 0;
+static int ir_data = -1;
+static unsigned ir_clock = 0;
+static unsigned rr_clock = 0;
+static int blank = 0;
+static char de_history[16]; // Better go with power of two.
 
 static long palette_r[16];
 static long palette_g[16];
@@ -214,6 +212,8 @@ void shifter_init()
   shifter_set_resolution(0);
 
   mmu_register(shifter);
+
+  memset(de_history, 0, sizeof de_history);
 }
 
 static void shifter_draw(int r, int g, int b)
@@ -241,7 +241,6 @@ static void shifter_draw_low(void)
   int c = shift_out();
   shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
   shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
-  reload--;
 }
 
 static void shifter_draw_medium(void)
@@ -250,7 +249,6 @@ static void shifter_draw_medium(void)
   for (i = 0; i < 2; i++) {
     int c = shift_out();
     shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
-    reload--;
   }
 }
 
@@ -260,56 +258,73 @@ static void shifter_draw_high(void)
   for (i = 0; i < 4; i++) {
     int c = shift_out();
     screen_draw(palette_m[c], palette_m[c], palette_m[c]);
-    reload--;
   }
 }
 
+static void load_ir(void)
+{
+  if (ir_data >= 0) {
+    CLOCK("Load IR%d: %04x", (ir_clock >> 2) & 3, ir_data);
+    IR[(ir_clock >> 2) & 3] = ir_data;
+    ir_data = -1;
+  }
+}
+
+static void load_rr(void)
+{
+  memcpy(RR, IR, sizeof RR);
+  CLOCK("Load RR: %04x %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+}
+
+void shift_rr(void)
+{
+  if(res.bitplanes == 2 && (rr_clock & 15) == 4) {
+    RR[0] = RR[2];
+    RR[1] = RR[3];
+    RR[2] = 0;
+    RR[3] = 0;
+    CLOCK("Shift RR: %04x %04x <- %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+  } else if(res.bitplanes == 1) {
+    RR[0] = RR[1];
+    RR[1] = RR[2];
+    RR[2] = RR[3];
+    RR[3] = (palette_m[0] ? 0xffff : 0);
+    CLOCK("Shift RR: %04x <- %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+  }
+}
+
+#define CASE(N, X) case N: X; break
+
 void shifter_clock(void)
 {
+  if((rr_clock & 3) == 0) {
+    shift_rr();
+  }
+
+  switch(ir_clock & 15) {
+    CASE( 3, load_ir());
+    CASE( 7, load_ir());
+    CASE(11, load_ir());
+    CASE(15, load_ir(); load_rr());
+  }
+
   res.draw();
 
-  if(reload == 0) {
-    if(res.bitplanes == 2) {
-      RR[0] = RR[2];
-      RR[1] = RR[3];
-      RR[2] = 0;
-      RR[3] = 0;
-    } else if(res.bitplanes == 1) {
-      RR[0] = RR[1];
-      RR[1] = RR[2];
-      RR[2] = RR[3];
-      RR[3] = (palette_m[0] ? 0xffff : 0);
-    }
-    reload = 16;
-    CLOCK("Reload: %04x %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+  if(de_history[(rr_clock - 5) % sizeof de_history]) {
+    ir_clock++;
   }
-
-  if(de_deactivate_at == clock) {
-    de = 0;
-  }
-  clock++;
+  rr_clock++;
 }
 
 void shifter_load(WORD data)
 {
-  CLOCK("Load IR%d: %04x", plane, data);
-  IR[plane++] = data;
-  if(plane == 4) {
-    if(de) {
-      memcpy(RR, IR, sizeof RR);
-      reload = 16;
-    }
-    plane = 0;
-  }
+  CLOCK("LOAD: %04x", data);
+  ir_data = data;
 }
 
 void shifter_de(int x)
 {
-  /* Two cycle delay from DE to handling it */
-  if(!x)
-    de_deactivate_at = clock + 2;
-  else
-    de = x;
+  de_history[rr_clock % sizeof de_history] = x;
 }
 
 void shifter_blank(int x)

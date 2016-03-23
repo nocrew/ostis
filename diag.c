@@ -125,7 +125,7 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
   if(level == 6) {
     fprintf(stderr, " [$%06x]", cpu->pc);
   } else if(level == 7) {
-    fprintf(stderr, " [%010ul]", cpu->clock);
+    fprintf(stderr, " [%010u]", cpu->clock);
   }
   fprintf(stderr, ": ");
   if(device)

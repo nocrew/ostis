@@ -18,7 +18,8 @@ struct cpu {
   int cyclecomp;
   int stopped;
   int debug_halted;
-  int prefetched_instr;
+  WORD current_instr;
+  WORD prefetched_instr;
   int has_prefetched;
   int ipl1, ipl2;
 };
@@ -119,6 +120,7 @@ extern int cprint_all;
 #define CPU_WATCH_LE 5
 
 void cpu_init();
+void cpu_init_clocked();
 void cpu_halt_for_debug();
 void cpu_enter_debugger();
 void cpu_prefetch();
@@ -141,6 +143,8 @@ void cpu_set_breakpoint(LONG, int);
 void cpu_print_breakpoints();
 int cpu_unset_breakpoint(LONG);
 int cpu_run(int);
+void cpu_clock(void);
+void cpu_do_clocked_cycle(LONG);
 void cpu_reset(void);
 void cpu_add_extra_cycles(int);
 void cpu_ipl1(void);

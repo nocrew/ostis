@@ -40,6 +40,7 @@ int audio_device = 0;
 int monitor_sm124 = 0;
 int crop_screen = 0;
 int verbosity = 3;
+int clocked_cpu = 0;
 
 #if TEST_BUILD
 int test_mode = 0;
@@ -83,7 +84,7 @@ int main(int argc, char *argv[])
 #endif
       {0,                       0,                 0, 0 }
     };
-    c = getopt_long(argc, argv, "a:b:c:t:s:hdpyVAMvq", long_options, &option_index);
+    c = getopt_long(argc, argv, "a:b:c:t:s:hdpyVAMvqC", long_options, &option_index);
     if(c == -1) break;
 
     switch(c) {
@@ -127,6 +128,9 @@ int main(int argc, char *argv[])
       test_mode = 1;
       break;
 #endif
+    case 'C':
+      clocked_cpu = 1;
+      break;
     case 'd':
       debugger = 1;
       break;
@@ -198,7 +202,11 @@ int main(int argc, char *argv[])
   /* Actual hardware */
   ram_init();
   rom_init();
-  cpu_init();
+  if(clocked_cpu) {
+    cpu_init_clocked();
+  } else {
+    cpu_init();
+  }
   if(prefs.cartimage) {
     cartridge_init(prefs.cartimage);
   } else {
@@ -237,7 +245,14 @@ int main(int argc, char *argv[])
   reset.sa_sigaction = reset_action;
   sigaction(SIGHUP, &reset, NULL);
 
-  while(cpu_run(CPU_RUN));
+  if(clocked_cpu) {
+    while(1) {
+      cpu_clock();
+    }
+  } else {
+    while(cpu_run(CPU_RUN));
+  }
+  
   return 0;
 }
 

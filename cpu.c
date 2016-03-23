@@ -12,6 +12,7 @@
 #include "mmu.h"
 #include "ikbd.h"
 #include "instr.h"
+#include "instr_clocked.h"
 #include "state.h"
 #if TEST_BUILD
 #include "tests/test_main.h"
@@ -50,6 +51,7 @@ int cprint_all = 0;
 
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
+static instr_t *instr_clocked[65536];
 
 void cpu_halt_for_debug() {
   cpu->debug_halted = 1;
@@ -493,6 +495,8 @@ void cpu_init()
     instr_print[i] = default_instr_print;
   }
 
+  event_init();
+  
   reset_init((void *)instr, (void *)instr_print);
   cmpi_init((void *)instr, (void *)instr_print);
   bcc_init((void *)instr, (void *)instr_print);
@@ -950,5 +954,367 @@ void cpu_state_restore(struct cpu_state *state)
   //  for(r=0;r<8;r++) {
   //    interrupt_pending[r] = state_read_mem_long(&state->data[STATE_INTPEND+r*4]);
   //  }
+}
+
+
+/* Clocked CPU functions */
+
+/* There are overlaps right now, to keep the old code somewhat untouched. */
+static void cpu_fetch_instr()
+{
+  cpu->current_instr = fetch_instr(cpu);
+  cpu->icycle = 0;
+}
+
+/* Separate cycle for movem for the moment. This will go away. */
+void cpu_do_clocked_cycle(LONG cnt)
+{
+#if 0
+  int i;
+
+  if(cnt&3) {
+    cnt = (cnt&0xfffffffc)+4;
+  }
+
+  cpu->clock = cpu->cycle;
+  for(i = 0; i < cnt; i++) {
+    glue_clock();
+    mmu_clock();
+    shifter_clock();
+    cpu->clock++;
+  }
+#endif
+  
+  cpu->icycle += cnt;
+}
+
+/* The cycle delay for exceptions work slightly different to the old code,
+ * so there are overlapping functions for these as well
+ */
+
+static void cpu_trigger_exception_full_stacked(int vnum)
+{
+  WORD oldsr;
+
+  cpu_clear_prefetch();
+  oldsr = cpu->sr;
+  cpu_exception_reset_sr();
+  cpu->a[7] -= 4;
+  bus_write_long(cpu->a[7], cpu->pc);
+  cpu->a[7] -= 2;
+  bus_write_word(cpu->a[7], oldsr);
+  cpu->a[7] -= 2;
+  bus_write_word(cpu->a[7], bus_read_word(cpu->pc));
+  cpu->a[7] -= 4;
+  bus_write_long(cpu->a[7], bus_error_address);
+  cpu->a[7] -= 2;
+  bus_write_word(cpu->a[7], bus_error_flags);
+  cpu->pc = bus_read_long(4*vnum);
+  cpu_clr_exception(vnum);
+  cpu->icycle += 50;
+}
+
+static void cpu_trigger_exception_general(int vnum)
+{
+  WORD oldsr;
+
+  cpu_clear_prefetch();
+  oldsr = cpu->sr;
+  cpu_exception_reset_sr();
+  cpu->a[7] -= 4;
+  bus_write_long(cpu->a[7], cpu->pc);
+  cpu->a[7] -= 2;
+  bus_write_word(cpu->a[7], oldsr);
+  cpu_exception_reset_sr();
+  cpu->pc = bus_read_long(4*vnum);
+  cpu_clr_exception(vnum);
+  cpu->icycle += 34;
+}
+
+static void cpu_trigger_exception_interrupt(int vnum)
+{
+  WORD oldsr;
+
+  oldsr = cpu->sr;
+  int inum = vnum-IPL_EXCEPTION_VECTOR_OFFSET;
+  if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
+    return;
+  }
+  cpu_clear_prefetch();
+  cpu_exception_reset_sr();
+  if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
+    cpu->a[7] -= 4;
+    bus_write_long(cpu->a[7], cpu->pc);
+    cpu->a[7] -= 2;
+    bus_write_word(cpu->a[7], oldsr);
+    cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
+    cpu->pc = bus_read_long(4*vnum);
+    cpu_clr_exception(vnum);
+    cpu->icycle += 48;
+  } else {
+    cpu->a[7] -= 4;
+    bus_write_long(cpu->a[7], cpu->pc);
+    cpu->a[7] -= 2;
+    bus_write_word(cpu->a[7], oldsr);
+    cpu_exception_reset_sr();
+    cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
+    cpu->pc = bus_read_long(4*interrupt_autovector[inum]);
+    interrupt_autovector[inum] = -1;
+    cpu_clr_exception(vnum);
+    cpu->icycle += 24;
+  }
+}
+
+static void cpu_trigger_exception(int vnum)
+{
+  cpu->stopped = 0;
+
+  if(vnum == 2 || vnum == 3) {
+    cpu_exception_full_stacked(vnum);
+  } else if(vnum == 4) {
+    cpu_exception_general(4);
+  } else if(vnum >= 25 && vnum <= 31) {
+    cpu_exception_interrupt(vnum);
+  } else {
+    cpu_exception_general(vnum);
+  }
+}
+
+static void cpu_trigger_exceptions()
+{
+  int vnum;
+  
+  cpu_check_for_pending_interrupts();
+
+  /* If we get Bus Error, just ignore everything else. Same for Address Error */
+  if(exception_pending[VEC_BUSERR]) {
+    cpu_trigger_exception(VEC_BUSERR);
+  } else if(exception_pending[VEC_ADDRERR]) {
+    cpu_trigger_exception(VEC_ADDRERR);
+  } else {
+    /* We check for trace, interrupt, illegal and priv in that order,
+       then any other exception,  but we trigger them in reverse order 
+       because the last one runs first */
+
+    /* Check TRAP */
+    for(vnum=32;vnum<48;vnum++) {
+      if(exception_pending[vnum]) { cpu_trigger_exception(vnum); }
+    }
+    
+    if(exception_pending[VEC_ZERODIV]) { cpu_trigger_exception(VEC_ZERODIV); }
+    if(exception_pending[VEC_CHK]) { cpu_trigger_exception(VEC_CHK); }
+    if(exception_pending[VEC_TRAPV]) { cpu_trigger_exception(VEC_TRAPV); }
+    if(exception_pending[VEC_LINEA]) { cpu_trigger_exception(VEC_LINEA); }
+    if(exception_pending[VEC_LINEF]) { cpu_trigger_exception(VEC_LINEF); }
+    if(exception_pending[VEC_PRIV]) { cpu_trigger_exception(VEC_PRIV); }
+    if(exception_pending[VEC_ILLEGAL]) { cpu_trigger_exception(VEC_ILLEGAL); }    
+    /* Check interrupts, in reverse order, to prevent lower IPLs to trigger */
+    for(vnum=31;vnum>=25;vnum--) {
+      if(exception_pending[vnum]) { cpu_trigger_exception(vnum); }
+    }
+    if(exception_pending[VEC_TRACE]) { cpu_do_exception(VEC_TRACE); }
+  }
+}
+
+static void cpu_step_cycle()
+{
+  /* If icycle is positive, the previous instruction has not yet
+   * used up all the cycles it's supposed to use, so decrement
+   * the counter and exit
+   */
+  if(cpu->icycle > 0) {
+    cpu->icycle--;
+    return;
+  }
+
+  /* A new instruction will only start on multiple of 4 cycles, so if
+   * that is not the cas, exit and let it increment up to the proper point
+   */
+  if((cpu->cycle&3) != 0) {
+    return;
+  }
+
+  /* Check if an exception is in the way, and set things up to run that instead
+   * of the next instruction.
+   */
+  cpu_trigger_exceptions();
+
+  /* If the cpu is still stopped (STOP instruction) after having checked for
+   * exceptions, there obviously were none to trigger, so there is no instruction
+   * to run
+   */
+  if(cpu->stopped) {
+    return;
+  }
+  
+  cpu_fetch_instr();
+
+  /* Since the cpu struct includes the current instruction opcode now, passing 
+   * it separately is somewhat unnecessary, and can be removed once the instructions
+   * have been rewritten to be clocked
+   */
+  instr_clocked[cpu->current_instr](cpu, cpu->current_instr);
+
+  /* This is a bit of hack until MOVEM is fixed. At the moment it reports 0 cycles
+   * which would be bad to decrement.
+   * The decrementation of 1 is necessary for the countdown to finished on 0 at the
+   * right time
+   */
+  if(cpu->icycle > 0) {
+    cpu->icycle--;
+  }
+}
+
+/* cpu_clock() will be replacing cpu_step_cycle() when the 
+ * master clock handling moves away from the cpu
+ */
+void cpu_clock()
+{
+  glue_clock();
+  mmu_clock();
+  shifter_clock();
+  cpu_step_cycle();
+  cpu->cycle++;
+  
+  /* SDL polling done every 8192 cycles or so */
+  if((cpu->cycle&0x1fff) == 0) {
+    event_main();
+  }
+}
+
+void cpu_init_clocked()
+{
+  int i;
+
+  cpu = xmalloc(sizeof(struct cpu));
+  if(!cpu) {
+    exit(-2);
+  }
+
+  cpu_do_reset();
+  cpu->debug_halted = 0;
+  cpu->cycle = 0;
+  cpu->icycle = 0;
+  cpu->stopped = 0;
+
+  for(i=0;i<65536;i++) {
+    instr_clocked[i] = default_instr;
+    instr_print[i] = default_instr_print;
+  }
+
+  event_init();
+  
+  reset_init((void *)instr_clocked, (void *)instr_print);
+  cmpi_init((void *)instr_clocked, (void *)instr_print);
+  bcc_init((void *)instr_clocked, (void *)instr_print);
+
+  sub_init((void *)instr_clocked, (void *)instr_print);
+  suba_init((void *)instr_clocked, (void *)instr_print);
+  subq_init((void *)instr_clocked, (void *)instr_print);
+  subi_init((void *)instr_clocked, (void *)instr_print);
+  subx_init((void *)instr_clocked, (void *)instr_print);
+  sbcd_init((void *)instr_clocked, (void *)instr_print);
+
+  lea_init((void *)instr_clocked, (void *)instr_print);
+  pea_init((void *)instr_clocked, (void *)instr_print);
+
+  jmp_init((void *)instr_clocked, (void *)instr_print);
+  jsr_init((void *)instr_clocked, (void *)instr_print);
+
+  bclr_init((void *)instr_clocked, (void *)instr_print);
+  bset_init((void *)instr_clocked, (void *)instr_print);
+  btst_init((void *)instr_clocked, (void *)instr_print);
+  bchg_init((void *)instr_clocked, (void *)instr_print);
+
+  scc_init((void *)instr_clocked, (void *)instr_print);
+  dbcc_init((void *)instr_clocked, (void *)instr_print);
+
+  clr_init((void *)instr_clocked, (void *)instr_print);
+  cmpa_init((void *)instr_clocked, (void *)instr_print);
+
+  asl_init((void *)instr_clocked, (void *)instr_print);
+  asr_init((void *)instr_clocked, (void *)instr_print);
+  lsr_init((void *)instr_clocked, (void *)instr_print);
+  lsl_init((void *)instr_clocked, (void *)instr_print);
+  ror_init((void *)instr_clocked, (void *)instr_print);
+  rol_init((void *)instr_clocked, (void *)instr_print);
+  roxl_init((void *)instr_clocked, (void *)instr_print);
+  roxr_init((void *)instr_clocked, (void *)instr_print);
+
+  add_init((void *)instr_clocked, (void *)instr_print);
+  adda_init((void *)instr_clocked, (void *)instr_print);
+  addq_init((void *)instr_clocked, (void *)instr_print);
+  addi_init((void *)instr_clocked, (void *)instr_print);
+  addx_init((void *)instr_clocked, (void *)instr_print);
+  abcd_init((void *)instr_clocked, (void *)instr_print);
+
+  move_init((void *)instr_clocked, (void *)instr_print);
+  movea_init((void *)instr_clocked, (void *)instr_print); /* overlaps move_init */
+  move_to_sr_init((void *)instr_clocked, (void *)instr_print);
+  move_from_sr_init((void *)instr_clocked, (void *)instr_print);
+  move_to_ccr_init((void *)instr_clocked, (void *)instr_print);
+  moveq_init((void *)instr_clocked, (void *)instr_print);
+  movep_init((void *)instr_clocked, (void *)instr_print); /* overlaps b{clr,set,tst}_init */
+  movem_instr_init((void *)instr_clocked, (void *)instr_print);
+  move_usp_init((void *)instr_clocked, (void *)instr_print);
+  
+  rts_init((void *)instr_clocked, (void *)instr_print);
+  rte_init((void *)instr_clocked, (void *)instr_print);
+  rtr_init((void *)instr_clocked, (void *)instr_print);
+  
+  and_init((void *)instr_clocked, (void *)instr_print);
+  exg_init((void *)instr_clocked, (void *)instr_print); /* overlaps and_init */
+  andi_init((void *)instr_clocked, (void *)instr_print);
+  andi_to_sr_init((void *)instr_clocked, (void *)instr_print); /* overlaps andi_init */
+  andi_to_ccr_init((void *)instr_clocked, (void *)instr_print);
+  
+  or_init((void *)instr_clocked, (void *)instr_print);
+  ori_init((void *)instr_clocked, (void *)instr_print);
+  ori_to_sr_init((void *)instr_clocked, (void *)instr_print); /* overlaps ori_init */
+  ori_to_ccr_init((void *)instr_clocked, (void *)instr_print); /*overlaps ori_init */
+
+  eor_init((void *)instr_clocked, (void *)instr_print);
+  eori_init((void *)instr_clocked, (void *)instr_print);
+  eori_to_sr_init((void *)instr_clocked, (void *)instr_print); /* overlaps eori_init */
+  eori_to_ccr_init((void *)instr_clocked, (void *)instr_print);
+
+  cmp_init((void *)instr_clocked, (void *)instr_print); /* overlaps eor_init */
+  cmpm_init((void *)instr_clocked, (void *)instr_print);
+
+  trap_init((void *)instr_clocked, (void *)instr_print);
+
+  tst_init((void *)instr_clocked, (void *)instr_print);
+  tas_init((void *)instr_clocked, (void *)instr_print);
+
+  mulu_init((void *)instr_clocked, (void *)instr_print);
+  muls_init((void *)instr_clocked, (void *)instr_print);
+  divu_init((void *)instr_clocked, (void *)instr_print);
+  divs_init((void *)instr_clocked, (void *)instr_print);
+
+  link_init((void *)instr_clocked, (void *)instr_print);
+  unlk_init((void *)instr_clocked, (void *)instr_print);
+
+  swap_init((void *)instr_clocked, (void *)instr_print);
+  ext_init((void *)instr_clocked, (void *)instr_print); /* overlaps movem_init */
+
+  nop_init((void *)instr_clocked, (void *)instr_print);
+  linea_init((void *)instr_clocked, (void *)instr_print);
+  linef_init((void *)instr_clocked, (void *)instr_print);
+
+  not_init((void *)instr_clocked, (void *)instr_print);
+  neg_init((void *)instr_clocked, (void *)instr_print);
+  negx_init((void *)instr_clocked, (void *)instr_print);
+
+  stop_init((void *)instr_clocked, (void *)instr_print);
+
+  instr_clocked[0x4afc] = illegal_instr;
+  instr_print[0x4afc] = illegal_instr_print;
+  /* MOVEC, required for EmuTOS to even try to boot */
+  instr_clocked[0x4e7a] = illegal_instr;
+  instr_print[0x4e7a] = illegal_instr_print;
+  instr_clocked[0x4e7b] = illegal_instr;
+  instr_print[0x4e7b] = illegal_instr_print;
+
+  instr_clocked[0x42c0] = illegal_instr;
 }
 

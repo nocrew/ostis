@@ -33,13 +33,14 @@ EMU_TEST_SRC=$(EMU_SRC) $(SRC_TEST)
 EMU_TEST_OBJ=$(EMU_TEST_SRC:.c=.o)
 
 LIBCPU=cpu/libcpu.a
+LIBCPUINSTR=cpuinstr/libcpuinstr.a
 LIBDEBUG=debug/libdebug.a
 LIBTESTS=tests/libtests.a
 
-DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ)
+DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBCPUINSTR)
 DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS)
 
-LIB=$(LIBCPU) $(LIBDEBUG) `sdl2-config --libs` `pkg-config SDL2_image --libs` 
+LIB=$(LIBCPU) $(LIBCPUINSTR) $(LIBDEBUG) `sdl2-config --libs` `pkg-config SDL2_image --libs` 
 
 all:	default
 
@@ -85,6 +86,7 @@ $(PARSERSRC): $(PARSERFILE)
 #	$(LEX) $<
 
 include cpu/cpu.mk
+include cpuinstr/cpuinstr.mk
 include debug/debug.mk
 include tests/tests.mk
 

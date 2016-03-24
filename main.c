@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 #endif
       {0,                       0,                 0, 0 }
     };
-    c = getopt_long(argc, argv, "a:b:c:t:s:hdpyVAMvqC", long_options, &option_index);
+    c = getopt_long(argc, argv, "a:b:c:t:s:hdpyVAMvqK", long_options, &option_index);
     if(c == -1) break;
 
     switch(c) {
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
       test_mode = 1;
       break;
 #endif
-    case 'C':
+    case 'K':
       clocked_cpu = 1;
       break;
     case 'd':

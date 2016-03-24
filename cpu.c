@@ -322,7 +322,7 @@ int cpu_run(int cpu_run_state)
     } else {
       ret = CPU_OK;
     }
-    if(--counter == 0) {
+    if(--counter < 0) {
       // Quick-and-somewhat-dirty solution to slow SDL polling.
       if(event_main() == EVENT_DEBUG) {
 	stop = CPU_BREAKPOINT;
@@ -969,23 +969,14 @@ static void cpu_fetch_instr()
 /* Separate cycle for movem for the moment. This will go away. */
 void cpu_do_clocked_cycle(LONG cnt)
 {
-#if 0
   int i;
 
-  if(cnt&3) {
-    cnt = (cnt&0xfffffffc)+4;
-  }
-
-  cpu->clock = cpu->cycle;
   for(i = 0; i < cnt; i++) {
     glue_clock();
     mmu_clock();
     shifter_clock();
-    cpu->clock++;
+    cpu->cycle++;
   }
-#endif
-  
-  cpu->icycle += cnt;
 }
 
 /* The cycle delay for exceptions work slightly different to the old code,
@@ -1116,7 +1107,7 @@ static void cpu_trigger_exceptions()
   }
 }
 
-static void cpu_step_cycle()
+static int cpu_step_cycle(int cpu_run_state)
 {
   /* If icycle is positive, the previous instruction has not yet
    * used up all the cycles it's supposed to use, so decrement
@@ -1124,14 +1115,14 @@ static void cpu_step_cycle()
    */
   if(cpu->icycle > 0) {
     cpu->icycle--;
-    return;
+    return CPU_OK;
   }
 
   /* A new instruction will only start on multiple of 4 cycles, so if
    * that is not the cas, exit and let it increment up to the proper point
    */
   if((cpu->cycle&3) != 0) {
-    return;
+    return CPU_OK;
   }
 
   /* Check if an exception is in the way, and set things up to run that instead
@@ -1144,11 +1135,23 @@ static void cpu_step_cycle()
    * to run
    */
   if(cpu->stopped) {
-    return;
+    return CPU_OK;
   }
-  
-  cpu_fetch_instr();
 
+  /* INSTR_STATE_NONE means the instruction is not a state machine yet, and icycle is
+   * the only indicator that an instruction has finished */
+  if(cpu->instr_state == INSTR_STATE_NONE && cpu->icycle == 0) {
+    cpu->instr_state = INSTR_STATE_FINISHED;
+    return INSTR_STATE_FINISHED;
+  }
+
+  /* Every instruction is initiated with the state NONE. If the instruction is a
+   * properly clocked one, it will change the state as needed.
+   * This is broken for now.
+   */
+  cpu->instr_state = INSTR_STATE_NONE;
+  cpu_fetch_instr();
+  
   /* Since the cpu struct includes the current instruction opcode now, passing 
    * it separately is somewhat unnecessary, and can be removed once the instructions
    * have been rewritten to be clocked
@@ -1163,23 +1166,120 @@ static void cpu_step_cycle()
   if(cpu->icycle > 0) {
     cpu->icycle--;
   }
+
+  /* When the clocked instruction is set to its finished state, this is returned, and
+   * special End-of-instruction things can be applied
+   */
+  if(cpu->instr_state == INSTR_STATE_FINISHED) {
+    return INSTR_STATE_FINISHED;
+  }
+
+  return CPU_OK;
 }
 
 /* cpu_clock() will be replacing cpu_step_cycle() when the 
  * master clock handling moves away from the cpu
+ *
+ * cpu_run_state is ether CPU_RUN which is the normal way, or
+ * CPU_TRACE which does some extra checks to break out
+ * into the debugger on breakpoints and such
  */
-void cpu_clock()
+static int cpu_clock(int cpu_run_state)
 {
-  glue_clock();
-  mmu_clock();
-  shifter_clock();
-  cpu_step_cycle();
-  cpu->cycle++;
+  int ret;
   
-  /* SDL polling done every 8192 cycles or so */
-  if((cpu->cycle&0x1fff) == 0) {
-    event_main();
+  ret = cpu_step_cycle(cpu_run_state);
+  
+  /* INSTR_STATE_FINISHED should be returned whenever the last step of a cycle
+   * was finishing the run of an instruction.
+   * In this case the cycle counter is not updated. Instead there is one loop
+   * to handle things where the code might return to the debugger */
+  
+  if(ret == INSTR_STATE_FINISHED) {
+    if(cpu_run_state == CPU_TRACE_SINGLE) return CPU_TRACE_SINGLE;
+    if(cpu_dec_breakpoint(cpu->pc, cpu_run_state)) return CPU_BREAKPOINT;
+    if(cpu_dec_watchpoint(cpu_run_state)) return CPU_WATCHPOINT;
+    if(enter_debugger_after_instr) {
+      enter_debugger_after_instr = 0;
+      return CPU_BREAKPOINT;
+    }
+    return CPU_OK;
+  } else {
+    glue_clock();
+    mmu_clock();
+    shifter_clock();
+    cpu->cycle++;
   }
+  
+  return ret;
+}
+
+/* Special function to step one instruction, used for single stepping debugger
+ * This needs to be done in a better way really soon */
+int cpu_step_instr_clocked(int cpu_run_state)
+{
+  int ret = CPU_OK;
+  
+  while(ret == CPU_OK) {
+    ret = cpu_clock(cpu_run_state);
+  }
+  return ret;
+}
+
+/* The clocked equivalent version of cpu_run 
+ * cpu_run_state is ether CPU_RUN which is the normal way, or
+ * CPU_DEBUG_RUN which does some extra checks to break out
+ * into the debugger on breakpoints and such
+ */
+
+int cpu_run_clocked(int cpu_run_state)
+{
+  static int counter = 1;
+  int ret,stop;
+  int tmp_run_state = CPU_RUN;
+
+  /* If we're starting a run from the debugger, we'll pretend we're in
+   * trace state for one step before retriggering breakpoints. This will
+   * prevent the run feature in the debugger from immediately retriggering
+   * the same breakpoint.
+   */
+  if(cpu_run_state == CPU_DEBUG_RUN) {
+    tmp_run_state = CPU_TRACE;
+  }
+
+  stop = 0;
+  event_init();
+
+  while(!stop) {
+    if(!cpu->debug_halted || cpu_run_state == CPU_DEBUG_RUN) {
+      /* This skips the breakpoint on the current line when restarting from
+       * the debugger, so that one doesn't get stuck on the same line all the time */
+      ret = cpu_clock(tmp_run_state);
+      tmp_run_state = CPU_RUN;
+    } else {
+      ret = CPU_OK;
+    }
+
+    /* SDL polling done every 8192 cycles or so */
+    if(--counter < 0) {
+      // Quick-and-somewhat-dirty solution to slow SDL polling.
+      if(event_main() == EVENT_DEBUG) {
+        enter_debugger_after_instr = 1;
+      }
+      // This seems to be a good compromise between responsiveness and performance.
+      counter = 1000;
+    }
+    if(ret != CPU_OK) {
+      stop = ret;
+      break;
+    }
+    if(reset_cpu) {
+      cpu_do_reset();
+    }
+  }
+
+  event_exit();
+  return ret;
 }
 
 void cpu_init_clocked()

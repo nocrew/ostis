@@ -18,6 +18,7 @@ struct cpu {
   int cyclecomp;
   int stopped;
   int debug_halted;
+  int instr_state;
   WORD current_instr;
   WORD prefetched_instr;
   int has_prefetched;
@@ -104,6 +105,7 @@ extern int cprint_all;
 #define CPU_OK 0
 #define CPU_BREAKPOINT 1
 #define CPU_WATCHPOINT 2
+#define CPU_TRACE_SINGLE 3
 
 #define CPU_RUN 0
 #define CPU_TRACE 1
@@ -118,6 +120,9 @@ extern int cprint_all;
 #define CPU_WATCH_GE 3
 #define CPU_WATCH_LT 4
 #define CPU_WATCH_LE 5
+
+#define INSTR_STATE_NONE      -1
+#define INSTR_STATE_FINISHED  -2
 
 void cpu_init();
 void cpu_init_clocked();
@@ -143,7 +148,8 @@ void cpu_set_breakpoint(LONG, int);
 void cpu_print_breakpoints();
 int cpu_unset_breakpoint(LONG);
 int cpu_run(int);
-void cpu_clock(void);
+int cpu_run_clocked(int);
+int cpu_step_instr_clocked(int);
 void cpu_do_clocked_cycle(LONG);
 void cpu_reset(void);
 void cpu_add_extra_cycles(int);

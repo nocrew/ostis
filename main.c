@@ -246,9 +246,7 @@ int main(int argc, char *argv[])
   sigaction(SIGHUP, &reset, NULL);
 
   if(clocked_cpu) {
-    while(1) {
-      cpu_clock();
-    }
+    while(cpu_run_clocked(CPU_RUN));
   } else {
     while(cpu_run(CPU_RUN));
   }

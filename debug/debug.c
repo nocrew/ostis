@@ -17,9 +17,18 @@
 static int keymode = KEY_NORMAL;
 static int debugmode = 0;
 static int viewmode = VIEW_DEBUG;
+static int (*runfn)(int);
+static int (*stepfn)(int);
 
 void debug_init()
 {
+  if(clocked_cpu) {
+    runfn = cpu_run_clocked;
+    stepfn = cpu_step_instr_clocked;
+  } else {
+    runfn = cpu_run;
+    stepfn = cpu_step_instr;
+  }
   display_setup();
   win_setup_default();
   display_swap_screen();
@@ -118,7 +127,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     if(k.mod & KMOD_CTRL) {
       if((win_get_selected() != 2) && (win_get_selected() != 4))
 	win_set_selected(2);
-      ret = cpu_step_instr(CPU_TRACE);
+      ret = stepfn(CPU_TRACE_SINGLE);
       if(debugmode) {
 	cpu_print_status(CPU_USE_CURRENT_PC);
 	mfp_print_status();
@@ -139,7 +148,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       if((win_get_selected() != 2) && (win_get_selected() != 4))
 	win_set_selected(2);
       debug_update_win = 0;
-      ret = cpu_run(CPU_DEBUG_RUN);
+      ret = runfn(CPU_DEBUG_RUN);
       debug_update_win = 1;
       if(ret == CPU_BREAKPOINT) {
 	win_set_message("Breakpoint");
@@ -154,7 +163,7 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
       if((win_get_selected() != 2) && (win_get_selected() != 4))
 	win_set_selected(2);
       debug_update_win = 0;
-      ret = cpu_run(CPU_DEBUG_RUN);
+      ret = runfn(CPU_DEBUG_RUN);
       debug_update_win = 1;
       if(ret == CPU_BREAKPOINT) {
 	win_set_message("Breakpoint");

@@ -261,6 +261,7 @@ static void movem(struct cpu *cpu, WORD op)
   } else {
     movem_w(cpu, op, rmask);
   }
+  cpu->instr_state = INSTR_STATE_FINISHED;
 }
 
 static void rmask_print(struct cprint *cprint, int rmask)

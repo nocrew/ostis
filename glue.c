@@ -96,93 +96,77 @@ static void vsync(void)
   screen_vsync();
 }
 
+static void hsync(const char *message)
+{
+  if(counter == counter_end) {
+    CLOCK(message);
+    screen_hsync();
+    counter = 0;
+    line++;
+    if(line == line_end)
+      vsync();
+  }
+}
+
+#define CASE(N, X) case N: X; break
+
 static void mode_50(void)
 {
   switch(counter) {
-  case  30: shifter_blank(0); break;
-  case  54: counter_end = 512; break;
-  case  56: h = 1; cpu_ipl1(); break;
-  case 256: if(line == 312) cpu_ipl2(); break;
-  case 376: h = 0; break;
-  case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 376
-  case 450: shifter_blank(1); break;
-  case 502:
+  CASE( 30, shifter_blank(0));
+  CASE( 54, counter_end = 512);
+  CASE( 56, h = 1; cpu_ipl1());
+  CASE(256, if(line == 312) cpu_ipl2());
+  CASE(376, h = 0);
+  CASE(400, if(v) mfp_do_timerb_event(cpu)); //Should be 376
+  CASE(450, shifter_blank(1));
+  CASE(502,
     switch(line) {
-    case   0: line_end = 313; break;
-    case  63: v = 1; break;
-    case 263: v = 0; break;
-    }
-    break;
-  default:
-    if (counter == counter_end) {
-      CLOCK("PAL horizontal retrace");
-      screen_hsync();
-      counter = 0;
-      line++;
-      if(line == line_end)
-	vsync();
-    }
-    break;
+    CASE(  0, line_end = 313);
+    CASE( 63, v = 1);
+    CASE(263, v = 0);
+    });
+  default: hsync("PAL horizontal retrace"); break;
   }
 }
 
-void mode_60(void)
+static void mode_60(void)
 {
   switch(counter) {
-  case  30: shifter_blank(0); break;
-  case  52: h = 1; break;
-  case  54: counter_end = 508; break;
-  case  56: cpu_ipl1(); break;
-  case 256: if(line == 263) cpu_ipl2(); break;
-  case 372: h = 0; break;
-  case 400: if(v) mfp_do_timerb_event(cpu); break; //Should be 372
-  case 450: shifter_blank(1); break;
-  case 502:
+  CASE( 30, shifter_blank(0));
+  CASE( 52, h = 1);
+  CASE( 54, counter_end = 508);
+  CASE( 56, cpu_ipl1());
+  CASE(256, if(line == 263) cpu_ipl2());
+  CASE(372, h = 0);
+  CASE(400, if(v) mfp_do_timerb_event(cpu)); //Should be 372
+  CASE(450, shifter_blank(1));
+  CASE(502,
     switch(line) {
-    case   0: line_end = 263; break;
-    case  34: v = 1; break;
-    case 234: v = 0; break;
-    }
-    break;
-  default:
-    if(counter == counter_end) {
-      CLOCK("NTSC horizontal retrace");
-      screen_hsync();
-      counter = 0;
-      line++;
-      if(line == line_end)
-	vsync();
-    }
-    break;
+    CASE(  0, line_end = 263);
+    CASE( 34, v = 1);
+    CASE(234, v = 0);
+    });
+  default: hsync("NTSC horizontal retrace"); break;
   }
 }
 
-void mode_71(void)
+static void mode_71(void)
 {
   switch(counter) {
-  case   4: h = 1; break;
-  case  54: counter_end = 224; break;
-  case  56: cpu_ipl1(); break;
-  case  80: if(line == 500) cpu_ipl2(); break;
-  case 164: h = 0; if(v) mfp_do_timerb_event(cpu); break;
-  //   184: blank on
-  case 220:
+  CASE(  4, h = 1);
+  CASE( 54, counter_end = 224);
+  CASE( 56, cpu_ipl1());
+  CASE( 80, if(line == 500) cpu_ipl2());
+  CASE(164, h = 0; if(v) mfp_do_timerb_event(cpu));
+  //   184, blank on
+  CASE(220,
     switch(line) {
-    case   0: line_end = 501; break;
-    case  50: v = 1; break;
-    case 450: v = 0; break;
-    }
-    break;
-  default:
-    if(counter == counter_end) {
-      CLOCK("Monochrome horizontal retrace");
-      screen_hsync();
-      counter = 0;
-      line++;
-      if(line == line_end)
-	vsync();
-    }
-    break;
+    CASE(  0, line_end = 501);
+    CASE( 50, v = 1);
+    CASE(450, v = 0);
+    });
+  default: hsync("Monochrome horizontal retrace"); break;
   }
 }
 
@@ -190,12 +174,28 @@ void glue_clock(void)
 {
   if((counter & 1) == 0) {
     mode_fn();
-    mmu_de(h && v);
-    shifter_de(h && v);
   }
+  mmu_de(h && v);
+  shifter_de(h && v);
   counter++;
   ASSERT(counter <= 512);
   ASSERT(line <= line_end);
+}
+
+static int wakestate(void)
+{
+  const char *ws = getenv("WS");
+  if(ws == NULL)
+    return 0;
+  else {
+    char *end;
+    long clock = strtol(ws, &end, 10);
+    if(end == ws) {
+      ERROR("Invalid string in WS: %s", ws);
+      return 0;
+    } else
+      return clock;
+  }
 }
 
 void glue_reset()
@@ -204,8 +204,9 @@ void glue_reset()
   h = v = 0;
   line = 0;
   line_end = 1000;
-  counter = 0; // Here be wakestate.
   counter_end = 1000;
+  counter = wakestate();
+  INFO("Wakestate %d", counter);
 }
 
 void glue_init()

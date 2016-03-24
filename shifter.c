@@ -57,15 +57,13 @@ static struct resolution_data res_data[] = {
   }
 };
 
-static int plane = 0;
-
 static WORD IR[4];
 static WORD RR[4];
-int clock = 0;
-int reload = 0;
-int blank = 0;
-int de_deactivate_at = 0;
-int de = 0;
+static int ir_data = -1;
+static unsigned ir_clock = 0;
+static unsigned rr_clock = 0;
+static int blank = 0;
+static char de_history[16]; // Better go with power of two.
 
 static long palette_r[16];
 static long palette_g[16];
@@ -104,14 +102,6 @@ static void shifter_set_resolution(BYTE data)
   resolution = data;
   res = res_data[data&3];
   glue_set_resolution(data & 3);
-
-  // This is a very ugly hack to make medium and high resolution work.
-  // It's absolutely not what a real shifter does when switching
-  // resolution.  Also, I have only a vague idea why this works.
-  if(data == 1)
-    reload = 20;
-  else if(data == 2)
-    reload = 24;
 }
 
 static BYTE shifter_read_byte(LONG addr)
@@ -222,6 +212,8 @@ void shifter_init()
   shifter_set_resolution(0);
 
   mmu_register(shifter);
+
+  memset(de_history, 0, sizeof de_history);
 }
 
 static void shifter_draw(int r, int g, int b)
@@ -249,7 +241,6 @@ static void shifter_draw_low(void)
   int c = shift_out();
   shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
   shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
-  reload--;
 }
 
 static void shifter_draw_medium(void)
@@ -258,7 +249,6 @@ static void shifter_draw_medium(void)
   for (i = 0; i < 2; i++) {
     int c = shift_out();
     shifter_draw(palette_r[c], palette_g[c], palette_b[c]);
-    reload--;
   }
 }
 
@@ -268,56 +258,99 @@ static void shifter_draw_high(void)
   for (i = 0; i < 4; i++) {
     int c = shift_out();
     screen_draw(palette_m[c], palette_m[c], palette_m[c]);
-    reload--;
   }
 }
 
+static void load_ir(void)
+{
+  if (ir_data >= 0) {
+    CLOCK("Load IR%d: %04x", (ir_clock >> 2) & 3, ir_data);
+    IR[(ir_clock >> 2) & 3] = ir_data;
+    ir_data = -1;
+  }
+}
+
+static void load_rr(void)
+{
+  memcpy(RR, IR, sizeof RR);
+  CLOCK("Load RR: %04x %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+}
+
+void shift_rr(void)
+{
+  if(res.bitplanes == 2 && (rr_clock & 15) == 4) {
+    RR[0] = RR[2];
+    RR[1] = RR[3];
+    RR[2] = 0;
+    RR[3] = 0;
+    CLOCK("Shift RR: %04x %04x <- %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+  } else if(res.bitplanes == 1) {
+    RR[0] = RR[1];
+    RR[1] = RR[2];
+    RR[2] = RR[3];
+    RR[3] = (palette_m[0] ? 0xffff : 0);
+    CLOCK("Shift RR: %04x <- %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+  }
+}
+
+#define CASE(N, X) case N: X; break
+
+/* SHFITER STATE MACHINE
+ *
+ * This implementation is split in two parts: one handles the rotating
+ * registers, RR, and the other handles the internal registers, IR.
+ *
+ * The RR part runs continuously.  The registers shift out pixels
+ * every clock cycle.  In high and medium resolution, the higher-
+ * numbered registers are copied to the lower-numbered every 4 or 8
+ * cycles, respectively.
+ *
+ * The IR part only runs when the DE signal from the GLUE is active.
+ * To make this work, there must be a 5-cycle delay from the start of
+ * DE until the IR parts starts running, and a equal delay from the
+ * end of DE until he IR pars pauses.
+ *
+ * The two parts must be synchronised, so that a copy from the IR
+ * registers to the RR registers happen at the right time.
+ */
+
 void shifter_clock(void)
 {
+  // RR part: check every four cycles whether copying needs to happen.
+  if((rr_clock & 3) == 0) {
+    shift_rr();
+  }
+
+  // IR part: check every four cycles whether the MMU has provided any
+  // data and raised LOAD.  Every sixteen cycles, copy all IR registers
+  // to RR.
+  switch(ir_clock & 15) {
+    CASE( 3, load_ir());
+    CASE( 7, load_ir());
+    CASE(11, load_ir());
+    CASE(15, load_ir(); load_rr());
+  }
+
   res.draw();
 
-  if(reload == 0) {
-    if(res.bitplanes == 2) {
-      RR[0] = RR[2];
-      RR[1] = RR[3];
-      RR[2] = 0;
-      RR[3] = 0;
-    } else if(res.bitplanes == 1) {
-      RR[0] = RR[1];
-      RR[1] = RR[2];
-      RR[2] = RR[3];
-      RR[3] = (palette_m[0] ? 0xffff : 0);
-    }
-    reload = 16;
-    CLOCK("Reload: %04x %04x %04x %04x", RR[0], RR[1], RR[2], RR[3]);
+  // Check if the DE was active five cycles back; if so increment the
+  // RR clock counter.
+  if(de_history[(rr_clock - 5) % sizeof de_history]) {
+    ir_clock++;
   }
-
-  if(de_deactivate_at == clock) {
-    de = 0;
-  }
-  clock++;
+  rr_clock++;
 }
 
 void shifter_load(WORD data)
 {
-  CLOCK("Load IR%d: %04x", plane, data);
-  IR[plane++] = data;
-  if(plane == 4) {
-    if(de) {
-      memcpy(RR, IR, sizeof RR);
-      reload = 16;
-    }
-    plane = 0;
-  }
+  CLOCK("LOAD: %04x", data);
+  ir_data = data;
 }
 
 void shifter_de(int x)
 {
-  /* Two cycle delay from DE to handling it */
-  if(!x)
-    de_deactivate_at = clock + 2;
-  else
-    de = x;
+  // Save the state if the DE signal in a circular buffer.
+  de_history[rr_clock % sizeof de_history] = x;
 }
 
 void shifter_blank(int x)

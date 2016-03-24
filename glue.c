@@ -198,14 +198,31 @@ void glue_clock(void)
   ASSERT(line <= line_end);
 }
 
+static int wakestate(void)
+{
+  const char *ws = getenv("WS");
+  if(ws == NULL)
+    return 0;
+  else {
+    char *end;
+    long clock = strtol(ws, &end, 10);
+    if(end == ws) {
+      ERROR("Invalid string in WS: %s", ws);
+      return 0;
+    } else
+      return clock;
+  }
+}
+
 void glue_reset()
 {
   glue_set_resolution(0);
   h = v = 0;
   line = 0;
   line_end = 1000;
-  counter = 0; // Here be wakestate.
   counter_end = 1000;
+  counter = wakestate();
+  INFO("Wakestate %d", counter);
 }
 
 void glue_init()

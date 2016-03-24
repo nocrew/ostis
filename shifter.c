@@ -295,12 +295,35 @@ void shift_rr(void)
 
 #define CASE(N, X) case N: X; break
 
+/* SHFITER STATE MACHINE
+ *
+ * This implementation is split in two parts: one handles the rotating
+ * registers, RR, and the other handles the internal registers, IR.
+ *
+ * The RR part runs continuously.  The registers shift out pixels
+ * every clock cycle.  In high and medium resolution, the higher-
+ * numbered registers are copied to the lower-numbered every 4 or 8
+ * cycles, respectively.
+ *
+ * The IR part only runs when the DE signal from the GLUE is active.
+ * To make this work, there must be a 5-cycle delay from the start of
+ * DE until the IR parts starts running, and a equal delay from the
+ * end of DE until he IR pars pauses.
+ *
+ * The two parts must be synchronised, so that a copy from the IR
+ * registers to the RR registers happen at the right time.
+ */
+
 void shifter_clock(void)
 {
+  // RR part: check every four cycles whether copying needs to happen.
   if((rr_clock & 3) == 0) {
     shift_rr();
   }
 
+  // IR part: check every four cycles whether the MMU has provided any
+  // data and raised LOAD.  Every sixteen cycles, copy all IR registers
+  // to RR.
   switch(ir_clock & 15) {
     CASE( 3, load_ir());
     CASE( 7, load_ir());
@@ -310,6 +333,8 @@ void shifter_clock(void)
 
   res.draw();
 
+  // Check if the DE was active five cycles back; if so increment the
+  // RR clock counter.
   if(de_history[(rr_clock - 5) % sizeof de_history]) {
     ir_clock++;
   }
@@ -324,6 +349,7 @@ void shifter_load(WORD data)
 
 void shifter_de(int x)
 {
+  // Save the state if the DE signal in a circular buffer.
   de_history[rr_clock % sizeof de_history] = x;
 }
 

@@ -42,11 +42,13 @@ DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS)
 
 LIB=$(LIBCPU) $(LIBCPUINSTR) $(LIBDEBUG) `sdl2-config --libs` `pkg-config SDL2_image --libs` 
 
+-include config.mk
+
 all:	default
 
 -include $(EMU_SRC:.c=.d)
 
-%.o:	%.c Makefile cpu/cpu.mk debug/debug.mk
+%.o:	%.c Makefile cpu/cpu.mk debug/debug.mk config.mk
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 default:
@@ -73,22 +75,13 @@ $(PARSERSRC): $(PARSERFILE)
 	$(LEX) $(PARSER).l
 	$(YACC) -b $(PARSER) --name-prefix=$(PARSER) $(PARSER).y
 
-# $(YSRC): $(YACCFILE)
-#	$(YACC) $<
-
-# $(LOBJ): $(LSRC) $(YSRC)
-#	$(CC) $(CFLAGS) -c $<
-
-# $(YOBJ): $(YSRC)
-# 	$(CC) $(CFLAGS) -c $<
-
-# $(LSRC): $(LEXFILE) expr.tab.h
-#	$(LEX) $<
-
 include cpu/cpu.mk
 include cpuinstr/cpuinstr.mk
 include debug/debug.mk
 include tests/tests.mk
 
+TAGS: $(EMU_SRC) $(CPU_SRC) $(DEBUG_SRC)
+	etags $^
+
 clean::
-	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test ostis-prof
+	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test ostis-prof TAGS

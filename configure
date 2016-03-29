@@ -1,0 +1,15 @@
+#!/bin/bash
+
+prefix=/usr/local
+
+while test -n "$1"; do
+    case "$1" in  
+        --prefix) prefix="$2"; shift ;;
+	--prefix=*) prefix=`echo "$1" | awk -F= '{ print $2 }'`
+    esac
+    shift
+done
+
+echo "prefix=\"$prefix\"" > config.mk
+
+exit 0

@@ -355,6 +355,7 @@ static int mfp_get_AER(int bnum)
 
 void mfp_set_GPIP(int bnum)
 {
+  TRACE("Set GPIP %d", bnum);
   /* AER set to interrupt on rising edge */
   if(!mfp_get_GPIP(bnum) && mfp_get_AER(bnum)) {
     switch(bnum) {
@@ -371,6 +372,7 @@ void mfp_set_GPIP(int bnum)
 
 void mfp_clr_GPIP(int bnum)
 {
+  TRACE("Clear GPIP %d", bnum);
   /* AER set to interrupt on falling edge */
   if(mfp_get_GPIP(bnum) && !mfp_get_AER(bnum)) {
     switch(bnum) {
@@ -389,6 +391,7 @@ static void mfp_set_IPR(int inum)
 {
   int t;
 
+  TRACE("Set IPR %d", inum);
   t = IPR|(1<<inum);
   mfpreg[IPRA] = (t>>8);
   mfpreg[IPRB] = (t&0xff);
@@ -398,6 +401,7 @@ static void mfp_clr_IPR(int inum)
 {
   int t;
 
+  TRACE("Clear IPR %d", inum);
   t = IPR&(~(1<<inum));
   mfpreg[IPRA] = (t>>8);
   mfpreg[IPRB] = (t&0xff);

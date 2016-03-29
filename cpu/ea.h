@@ -6,7 +6,11 @@
 #include "mmu.h"
 
 #define MODESWAP(x) (((x&0x38)>>3)|((x&0x7)<<3))
+#if 0
+#define ADD_CYCLE_EA(x) do { if(!rmw) { printf("DEBUG: CPU: [%s:%d] Add %d cycles\n", __FILE__, __LINE__, x); cpu->icycle += x; } } while(0);
+#else
 #define ADD_CYCLE_EA(x) do { if(!rmw) { cpu->icycle += x; } } while(0);
+#endif
 
 #define EA_INVALID_NONE 0x0
 #define EA_INVALID_A    0x1

@@ -35,6 +35,10 @@ static void test_cpu_bkpt(struct cpu *cpu, WORD op)
   if(current_case && current_case->hooks[bkpt]) {
     current_case->hooks[bkpt](cpu);
   }
+  if(clocked_cpu) {
+    cpu->cycle -= 1;
+    cpu->instr_state = INSTR_STATE_NONE;
+  }
 }
 
 static struct cprint *test_cpu_bkpt_print(LONG addr, WORD op)
@@ -168,6 +172,7 @@ struct test_case *test_init(char *case_name)
   test_roxr_init();
   test_lsl_init();
   test_prefetch1_init();
+  test_ccpu_movem_init();
   current_case = find_case(case_name);
 
   return current_case;

@@ -4,6 +4,7 @@
 struct cpu;
 
 #include "common.h"
+#include <SDL.h>
 
 struct cpu {
   LONG a[8];
@@ -23,6 +24,58 @@ struct cpu {
   WORD prefetched_instr;
   int has_prefetched;
   int ipl1, ipl2;
+
+  
+  /* instr_data_* is used to store prefetched information for various instructions 
+   * 
+   * instr_data_fetch:
+   * Array of fetched words, either for instruction itself, or because of EA. 
+   *
+   * instr_data_word_ptr:
+   * An array of pointers to words. This will be pointers to word-sections of the a[] and d[],
+   * to simplify the read/write of words from/to memory. Maxsize of 32 is because MOVEM can have
+   * all 16 registers, giving 32 possible words.
+   *
+   * instr_data_reg_num:
+   * Array of register numbers corresponding to the word pointers in the previous array.
+   * This is used in combination with the pointers by MOVEM to read from memory into registers
+   *
+   * instr_data_word_count:
+   * A value saying how many words are in use in the array above, or for the fetch array
+   *
+   * instr_data_word_pos:
+   * The current word in the array.
+   *
+   * instr_data_ea_reg:
+   * The source/destination register (main register, not offset one)
+   *
+   * instr_data_ea_addr:
+   * The source/destination offset to value in register
+   *
+   * instr_data_size:
+   * 0 == word
+   * 1 == long
+   *
+   * instr_data_step:
+   * For .W writes, -2 or +2 to ea_addr between writes
+   * For .L writes, -6 or +6 to ea_addr after every even write
+   *   and +2 and -2 after every odd write
+   *
+   * instr_data_reg_change:
+   * 0: Do not change register
+   * 1: Add offset to register: (A0)+
+   * 2: Add offset to register and add 2: -(A0)
+   */
+
+  WORD instr_data_fetch[4];
+  WORD *instr_data_word_ptr[32];
+  int instr_data_reg_num[32];
+  int instr_data_word_count;
+  int instr_data_word_pos;
+  int instr_data_ea_reg;
+  LONG instr_data_ea_addr;
+  int instr_data_size;
+  int instr_data_step;
 };
 
 struct cpu_state {
@@ -37,7 +90,11 @@ void cpu_state_restore(struct cpu_state *);
 extern struct cpu *cpu;
 extern int cprint_all;
 
+#if 0
+#define ADD_CYCLE(x) do { printf("DEBUG: CPU: [%s:%d] Add %d cycles\n", __FILE__, __LINE__, x); cpu->icycle += x; } while(0);
+#else
 #define ADD_CYCLE(x) do { cpu->icycle += x; } while(0);
+#endif
 #define MAX_CYCLE 8012800
 
 #define MSKT 0x8000
@@ -123,6 +180,24 @@ extern int cprint_all;
 
 #define INSTR_STATE_NONE      -1
 #define INSTR_STATE_FINISHED  -2
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+#define DREG_HWORD(c, dreg) (((void *)&c->d[dreg]))
+#define DREG_LWORD(c, dreg) (((void *)&c->d[dreg])+2)
+#define AREG_HWORD(c, areg) (((void *)&c->a[areg]))
+#define AREG_LWORD(c, areg) (((void *)&c->a[areg])+2)
+#else
+#define DREG_HWORD(c, dreg) (((void *)&c->d[dreg])+2)
+#define DREG_LWORD(c, dreg) (((void *)&c->d[dreg]))
+#define AREG_HWORD(c, areg) (((void *)&c->a[areg])+2)
+#define AREG_LWORD(c, areg) (((void *)&c->a[areg]))
+#endif
+#define REG_HWORD(c, reg) (reg > 7 ? AREG_HWORD(c, reg-8) : DREG_HWORD(c, reg))
+#define REG_LWORD(c, reg) (reg > 7 ? AREG_LWORD(c, reg-8) : DREG_LWORD(c, reg))
+
+#define EXTEND_BYTE(byte) (((byte)&0x80) ? ((byte)|0xff00) : (byte))
+#define EXTEND_BY2L(byte) (((byte)&0x80) ? ((byte)|0xffffff00) : (byte))
+#define EXTEND_WORD(word) (((word)&0x8000) ? ((word)|0xffff0000) : (word))
 
 void cpu_init();
 void cpu_init_clocked();

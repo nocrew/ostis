@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
 
 void *xmalloc(size_t size)
 {
-  void *result = malloc(size);
+  void *result = calloc(size, 1);
   if(result == NULL) {
     fprintf(stderr, "Unable to allocate %lld bytes", (long long)size);
     exit(1);

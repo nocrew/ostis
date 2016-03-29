@@ -4,264 +4,244 @@
 #include "mmu.h"
 #include "ea.h"
 
-static void movem_w(struct cpu *cpu, WORD op, int rmask)
+#define MOVEM_REGTOMEM(mode) ((mode&0x400) == 0x000)
+#define MOVEM_MEMTOREG(mode) ((mode&0x400) == 0x400)
+
+#define MOVEM_SIZE_W(mode) ((mode&0x40) == 0x00)
+#define MOVEM_SIZE_L(mode) ((mode&0x40) == 0x40)
+
+#define MOVEM_EA_FETCH   1
+#define MOVEM_PARSE      2
+#define MOVEM_WRITE      3
+#define MOVEM_READ       4
+#define MOVEM_EXTRA_READ 5
+
+#define EA_REG_IN_RMASK(rnum, rmask) (rmask&(1<<(rnum+8)))
+
+static WORD fetch_word(struct cpu *cpu)
 {
-  WORD d;
-  LONG a;
-  int i,savecycle,rev,inc,cnt;
+  WORD data;
 
-  savecycle = cpu->icycle;
-  a = ea_get_addr(cpu, op&0x3f);
-  cnt = 0;
-  if(((op&0x38)>>3) == 4) {
-    rev = 1;
-    a -= 2;
-    inc = 1;
-  } else {
-    if(((op&0x38)>>3) == 3) {
-      inc = 1;
-    } else {
-      inc = 0;
-    }
-    rev = 0;
-  }
-  if(inc && op&0x400) {
-    int ea_reg = op&0x7;
-    if(rev) {
-      if(rmask & (1<<(15-(ea_reg+8)))) {
-        inc = 0;
-      }
-    } else {
-      if(rmask & (1<<(ea_reg+8))) {
-        inc = 0;
-      }
-    }
-  }
-  cpu->icycle = savecycle;
-
-  if(op&0x400) {
-    for(i=0;i<8;i++) {
-      if(rmask&(1<<i)) {
-	d = bus_read_word(a+cnt*2);
-	if(d&0x8000) d |= 0xffff0000;
-	cpu->d[i] = d;
-	cnt++;
-	cpu_do_clocked_cycle(cpu->icycle+4);
-	cpu->icycle = 0;
-      }
-    }
-    for(i=0;i<8;i++) {
-      if(rmask&(1<<(i+8))) {
-	d = bus_read_word(a+cnt*2);
-	if(d&0x8000) d |= 0xffff0000;
-	cpu->a[i] = d;
-	cnt++;
-	cpu_do_clocked_cycle(cpu->icycle+4);
-	cpu->icycle = 0;
-      }
-    }
-    if(inc) cpu->a[op&0x7]+=cnt*2;
-  } else {
-    if(rev) {
-      for(i=7;i>=0;i--) {
-	if(rmask&(1<<(15-(i+8)))) {
-	  d = cpu->a[i]&0xffff;
-          cpu_prefetch();
-	  bus_write_word(a-cnt*2, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+4);
-	  cpu->icycle = 0;
-	}
-      }
-      for(i=7;i>=0;i--) {
-	if(rmask&(1<<(15-i))) {
-	  d = cpu->d[i]&0xffff;
-          cpu_prefetch();
-	  bus_write_word(a-cnt*2, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+4);
-	  cpu->icycle = 0;
-	}
-      }
-      if(inc) cpu->a[op&0x7]-=cnt*2;
-    } else {
-      for(i=0;i<8;i++) {
-	if(rmask&(1<<i)) {
-	  d = cpu->d[i]&0xffff;
-          cpu_prefetch();
-	  bus_write_word(a+cnt*2, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+4);
-	  cpu->icycle = 0;
-	}
-      }
-      for(i=0;i<8;i++) {
-	if(rmask&(1<<(i+8))) {
-	  d = cpu->a[i]&0xffff;
-          cpu_prefetch();
-	  bus_write_word(a+cnt*2, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+4);
-	  cpu->icycle = 0;
-	}
-      }
-      if(inc) cpu->a[op&0x7]+=cnt*2;
-    }
-  }
+  data = bus_read_word(cpu->pc);
+  cpu->pc += 2;
+  return data;
 }
 
-static void movem_l(struct cpu *cpu, WORD op, int rmask)
+static void set_state(struct cpu *cpu, int state)
 {
-  LONG d;
-  LONG a;
-  int i,savecycle,rev,inc,cnt;
+  cpu->instr_state = state;
+}
 
-  savecycle = cpu->icycle;
-  a = ea_get_addr(cpu, op&0x3f);
-  cnt = 0;
-  if(((op&0x38)>>3) == 4) {
-    rev = 1;
-    a -= 4;
-    inc = 1;
-  } else {
-    if(((op&0x38)>>3) == 3) {
-      inc = 1;
-    } else {
-      inc = 0;
-    }
-    rev = 0;
+static void parse(struct cpu *cpu, WORD op)
+{
+  int i;
+  int word_count = 0;
+  int step = 2;
+  int reverse = 0;
+  WORD rmask = cpu->instr_data_fetch[0];
+  void *tmp;
+  int rnum;
+
+  cpu->instr_data_size = MOVEM_SIZE_L(op) ? 1 : 0;
+  cpu->instr_data_step = step;
+  cpu->instr_data_ea_reg = EA_MODE_REG(op);
+  cpu->instr_data_word_pos = 0;
+  cpu->instr_data_ea_addr = ea_addr(cpu, cpu->instr_data_size, op, &cpu->instr_data_fetch[1]);
+
+  /* Compensate for having moved PC when reading RMASK */
+  if(EA_MODE_POFF(op) || EA_MODE_PROF(op)) {
+    cpu->instr_data_ea_addr -= 2;
   }
-  if(inc && op&0x400) {
-    int ea_reg = op&0x7;
-    if(rev) {
-      if(rmask & (1<<(15-(ea_reg+8)))) {
-        inc = 0;
-      }
-    } else {
-      if(rmask & (1<<(ea_reg+8))) {
-        inc = 0;
-      }
-    }
-  }
-  cpu->icycle = savecycle;
   
-  if(op&0x400) {
-    for(i=0;i<8;i++) {
-      if(rmask&(1<<i)) {
-	d = bus_read_long(a+cnt*4);
-	cpu->d[i] = d;
-	cnt++;
-	cpu_do_clocked_cycle(cpu->icycle+8);
-	cpu->icycle = 0;
+  if(EA_MODE_ADEC(op)) {
+    reverse = 1;
+    //    cpu->instr_data_ea_addr += 2;
+    cpu->instr_data_step = -cpu->instr_data_step;
+  }
+  
+  for(i=0;i<16;i++) {
+    if(reverse) {
+      if(rmask & (1<<(15-i))) {
+        if(cpu->instr_data_size) {
+          cpu->instr_data_reg_num[word_count] = i;
+          cpu->instr_data_word_ptr[word_count++] = REG_HWORD(cpu, i);
+        }
+        cpu->instr_data_reg_num[word_count] = i;
+        cpu->instr_data_word_ptr[word_count++] = REG_LWORD(cpu, i);
       }
-    }
-    for(i=0;i<8;i++) {
-      if(rmask&(1<<(i+8))) {
-	d = bus_read_long(a+cnt*4);
-	cpu->a[i] = d;
-	cnt++;
-	cpu_do_clocked_cycle(cpu->icycle+8);
-	cpu->icycle = 0;
-      }
-    }
-    if(inc) cpu->a[op&0x7]+=cnt*4;
-  } else {
-    if(rev) {
-      for(i=7;i>=0;i--) {
-	if(rmask&(1<<(15-(i+8)))) {
-	  d = cpu->a[i];
-          cpu_prefetch();
-	  bus_write_long(a-cnt*4, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+8);
-	  cpu->icycle = 0;
-	}
-      }
-      for(i=7;i>=0;i--) {
-	if(rmask&(1<<(15-i))) {
-	  d = cpu->d[i];
-          cpu_prefetch();
-	  bus_write_long(a-cnt*4, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+8);
-	  cpu->icycle = 0;
-	}
-      }
-      if(inc) cpu->a[op&0x7]-=cnt*4;
     } else {
-      for(i=0;i<8;i++) {
-	if(rmask&(1<<i)) {
-	  d = cpu->d[i];
-          cpu_prefetch();
-	  bus_write_long(a+cnt*4, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+8);
-	  cpu->icycle = 0;
-	}
+      if(rmask & (1<<i)) {
+        if(cpu->instr_data_size) {
+          cpu->instr_data_reg_num[word_count] = i;
+          cpu->instr_data_word_ptr[word_count++] = REG_HWORD(cpu, i);
+        }
+        cpu->instr_data_reg_num[word_count] = i;
+        cpu->instr_data_word_ptr[word_count++] = REG_LWORD(cpu, i);
       }
-      for(i=0;i<8;i++) {
-	if(rmask&(1<<(i+8))) {
-	  d = cpu->a[i];
-          cpu_prefetch();
-	  bus_write_long(a+cnt*4, d);
-	  cnt++;
-	  cpu_do_clocked_cycle(cpu->icycle+8);
-	  cpu->icycle = 0;
-	}
-      }
-      if(inc) cpu->a[op&0x7]+=cnt*4;
     }
+  }
+
+  /* Reverse order of word ptr array */
+  if(reverse) {
+    for(i=0;i<word_count/2;i++) {
+      tmp = cpu->instr_data_word_ptr[i];
+      cpu->instr_data_word_ptr[i] = cpu->instr_data_word_ptr[word_count-i-1];
+      cpu->instr_data_word_ptr[word_count-i-1] = tmp;
+      rnum = cpu->instr_data_reg_num[i];
+      cpu->instr_data_reg_num[i] = cpu->instr_data_reg_num[word_count-i-1];
+      cpu->instr_data_reg_num[word_count-i-1] = rnum;
+    }
+  }
+  
+  cpu->instr_data_word_count = word_count;
+}
+
+static void write_word(struct cpu *cpu)
+{
+  LONG addr;
+  WORD data;
+
+  /* Predec */
+  if(cpu->instr_data_step < 0) {
+    cpu->instr_data_ea_addr += cpu->instr_data_step;
+  }
+  
+  addr = cpu->instr_data_ea_addr;
+  data = *((WORD *)cpu->instr_data_word_ptr[cpu->instr_data_word_pos]);
+
+  bus_write_word(addr, data);
+
+  /* Postinc */
+  if(cpu->instr_data_step > 0) {
+    cpu->instr_data_ea_addr += cpu->instr_data_step;
+  }
+
+  cpu->instr_data_word_pos++;
+}
+
+static void read_word(struct cpu *cpu)
+{
+  LONG addr;
+  WORD data;
+  int rnum;
+
+  addr = cpu->instr_data_ea_addr;
+  data = bus_read_word(addr);
+  rnum = cpu->instr_data_reg_num[cpu->instr_data_word_pos];
+
+  *((WORD *)cpu->instr_data_word_ptr[cpu->instr_data_word_pos]) = data;
+  if(!cpu->instr_data_size) {
+    if(rnum > 7) {
+      cpu->a[rnum-8] = EXTEND_WORD(cpu->a[rnum-8]&0xffff);
+    } else { 
+      cpu->d[rnum] = EXTEND_WORD(cpu->d[rnum]&0xffff);
+    }
+  }
+
+  cpu->instr_data_ea_addr += cpu->instr_data_step;
+  cpu->instr_data_word_pos++;
+}
+
+static void adjust_register(struct cpu *cpu, WORD op)
+{
+  /* Add or subtract EA register when post-inc or pre-dec, except when
+   * EA register was fetched from memory during the instruction
+   */
+  if(EA_MODE_AINC(op) && !EA_REG_IN_RMASK(cpu->instr_data_ea_reg, cpu->instr_data_fetch[0])) {
+    cpu->a[cpu->instr_data_ea_reg] += cpu->instr_data_word_count * 2;
+  } else if(EA_MODE_ADEC(op)) {
+    cpu->a[cpu->instr_data_ea_reg] -= cpu->instr_data_word_count * 2;
   }
 }
 
 static void movem(struct cpu *cpu, WORD op)
 {
-  int rmask;
+  switch(cpu->instr_state) {
 
-  ENTER;
 
-  rmask = bus_read_word(cpu->pc);
-  cpu->pc += 2;
+    /* Initial state 
+     * Read rmask word
+     * Calculate number of words of EA to fetch
+     * Wait 4 cycles
+     */
+  case INSTR_STATE_NONE: 
+    cpu->instr_data_fetch[0] = fetch_word(cpu);
+    cpu->instr_data_word_count = EA_FETCH_COUNT(op);
+    cpu->instr_data_word_pos = 0;
 
-  switch((op&0x38)>>3) {
-  case 2:
-    ADD_CYCLE(8);
-    break;
-  case 3:
-    ADD_CYCLE(8);
-    break;
-  case 4:
-    ADD_CYCLE(8);
-    break;
-  case 5:
-    ADD_CYCLE(12);
-    break;
-  case 6:
-    ADD_CYCLE(14);
-    break;
-  case 7:
-    if((op&7) == 0) {
-      ADD_CYCLE(12);
-    } else if((op&7) == 1) {
-      ADD_CYCLE(16);
-    } else if((op&7) == 2) {
-      ADD_CYCLE(12);
-    } else if((op&7) == 3) {
-      ADD_CYCLE(14);
+    /* If there are EA words to fetch, go to EA fetch state, 
+     * otherwise everything is fetched, and can be parsed
+     */
+    if(cpu->instr_data_word_count > 0) {
+      set_state(cpu, MOVEM_EA_FETCH);
+    } else {
+      set_state(cpu, MOVEM_PARSE);
     }
+    ADD_CYCLE(4);
     break;
-  }
 
-  if(op&0x400) {
+    
+    /* Fetch one word for EA, remain in state if there
+     * are more words to fetch
+     */
+  case MOVEM_EA_FETCH:
+    cpu->instr_data_fetch[cpu->instr_data_word_pos + 1] = fetch_word(cpu);
+    cpu->instr_data_word_pos++;
+    /* Still EA to fetch, keep current state, otherwise move on to parse */
+    if(cpu->instr_data_word_pos >= cpu->instr_data_word_count) {
+      set_state(cpu, MOVEM_PARSE);
+    }
+    ADD_CYCLE(4);
+    break;
+
+    
+    /* Parse instruction
+     * Wait 4 cycles
+     */
+  case MOVEM_PARSE:
+    parse(cpu, op);
+    if(MOVEM_MEMTOREG(op)) {
+      set_state(cpu, MOVEM_READ);
+    } else {
+      set_state(cpu, MOVEM_WRITE);
+    }
+    ADD_CYCLE(4);
+    break;
+
+    
+    /* Read/write word
+     * Wait 4 cycles
+     * If wordcount > 0, remain in the same state,
+     * otherwise go to finished state
+     */
+  case MOVEM_WRITE:
+    write_word(cpu);
+    if(cpu->instr_data_word_pos >= cpu->instr_data_word_count) {
+      adjust_register(cpu, op);
+      set_state(cpu, INSTR_STATE_FINISHED);
+    }
+    ADD_CYCLE(4);
+    break;
+  case MOVEM_READ:
+    read_word(cpu);
+    if(cpu->instr_data_word_pos >= cpu->instr_data_word_count) {
+      set_state(cpu, MOVEM_EXTRA_READ);
+    }
+    ADD_CYCLE(4);
+    break;
+
+    
+    /* During a Mem to Reg operation, MOVEM does an extra read
+     * at the end of the sequence, which must be done, because
+     * it can actually cause a BUS ERROR even though it will never
+     * populate any register
+     */
+  case MOVEM_EXTRA_READ:
+    bus_read_word(cpu->instr_data_ea_addr);
+    adjust_register(cpu, op);
+    set_state(cpu, INSTR_STATE_FINISHED);
     ADD_CYCLE(4);
   }
-  
-  if(op&0x40) {
-    movem_l(cpu, op, rmask);
-  } else {
-    movem_w(cpu, op, rmask);
-  }
-  cpu->instr_state = INSTR_STATE_FINISHED;
 }
 
 static void rmask_print(struct cprint *cprint, int rmask)

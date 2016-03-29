@@ -527,46 +527,27 @@ void ea_write_long(struct cpu *cpu, int mode, LONG data)
   }
 }
 
-LONG ea_get_addr(struct cpu *cpu, int mode)
+LONG ea_get_addr(struct cpu *cpu, int op)
 {
   ENTER;
 
-  switch((mode&0x38)>>3) {
+  switch((op&0x38)>>3) {
   case 0:
     return 0;
   case 1:
     return 0;
-  case 2:
-    ADD_CYCLE_EA(4);
-    return ea_addr_010(cpu, mode&0x7);
-  case 3: /* only for MOVEM */
-    ADD_CYCLE_EA(4);
-    return ea_addr_010(cpu, mode&0x7);
-  case 4: /* only for MOVEM */
-    ADD_CYCLE_EA(4);
-    return ea_addr_010(cpu, mode&0x7);
-  case 5:
-    if(cpu->cyclecomp) {
-      ADD_CYCLE_EA(6);
-    } else {
-      ADD_CYCLE_EA(8);
-    }
-    return ea_addr_101(cpu, mode&0x7);
-  case 6:
-    if(cpu->cyclecomp) {
-      ADD_CYCLE_EA(10);
-    } else {
-      ADD_CYCLE_EA(12);
-    }
-    return ea_addr_110(cpu, mode&0x7);
-  case 7:
-    if(cpu->cyclecomp) {
-      ADD_CYCLE_EA(-2);
-    }
-    if((mode&0x7) == 3) {
-      ADD_CYCLE_EA(2);
-    }
-    return ea_addr_111(cpu, mode&0x7);
+  case 2: /* (Ar) */
+    return cpu->a[op&0x7];
+  case 3: /* (Ar)+ */
+    return cpu->a[op&0x7];
+  case 4: /* -(Ar) */
+    return cpu->a[op&0x7] - ((op&0x40) >> 4);
+  case 5: /* x(Ar) */
+    return ea_addr_101(cpu, op&0x7);
+  case 6: /* x(Ar,Dy) */
+    return ea_addr_110(cpu, op&0x7);
+  case 7: /* (xxx).W, (xxx).L, x(PC), x(PC, Dy) */
+    return ea_addr_111(cpu, op&0x7);
   }
   return 0;
 }

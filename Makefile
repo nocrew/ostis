@@ -90,5 +90,8 @@ include cpuinstr/cpuinstr.mk
 include debug/debug.mk
 include tests/tests.mk
 
+TAGS: $(EMU_SRC) $(CPU_SRC) $(DEBUG_SRC)
+	etags $^
+
 clean::
-	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test ostis-prof
+	rm -f *.o *.d *~ $(PARSERSRC) expr.tab.h ostis ostis-gdb ostis-test ostis-prof TAGS

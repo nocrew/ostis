@@ -42,11 +42,13 @@ DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS)
 
 LIB=$(LIBCPU) $(LIBCPUINSTR) $(LIBDEBUG) `sdl2-config --libs` `pkg-config SDL2_image --libs` 
 
+-include config.mk
+
 all:	default
 
 -include $(EMU_SRC:.c=.d)
 
-%.o:	%.c Makefile cpu/cpu.mk debug/debug.mk
+%.o:	%.c Makefile cpu/cpu.mk debug/debug.mk config.mk
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
 default:

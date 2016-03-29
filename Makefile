@@ -73,18 +73,6 @@ $(PARSERSRC): $(PARSERFILE)
 	$(LEX) $(PARSER).l
 	$(YACC) -b $(PARSER) --name-prefix=$(PARSER) $(PARSER).y
 
-# $(YSRC): $(YACCFILE)
-#	$(YACC) $<
-
-# $(LOBJ): $(LSRC) $(YSRC)
-#	$(CC) $(CFLAGS) -c $<
-
-# $(YOBJ): $(YSRC)
-# 	$(CC) $(CFLAGS) -c $<
-
-# $(LSRC): $(LEXFILE) expr.tab.h
-#	$(LEX) $<
-
 include cpu/cpu.mk
 include cpuinstr/cpuinstr.mk
 include debug/debug.mk

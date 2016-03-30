@@ -6,7 +6,7 @@
 
 static void movem_w(struct cpu *cpu, WORD op, int rmask)
 {
-  WORD d;
+  LONG d;
   LONG a;
   int i,savecycle,rev,inc,cnt;
 

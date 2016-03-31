@@ -1,0 +1,7 @@
+sudo: required
+dist: trusty
+language: c
+install:
+  - sudo apt-get update  -yqqm
+  - sudo apt-get install -ym libsdl2-dev libsdl2-image-dev flex bison
+script: make

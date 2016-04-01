@@ -153,7 +153,11 @@ void screen_init()
 			      mon.width,
 			      mon.height,
 			      SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    screen = SDL_CreateRGBSurface(0, mon.columns, mon.lines,
+    // NOTE: We always allocate memory for 501 lines, in case someone
+    // decides to use a colour monitor, but switch to high resolution
+    // near the end of the screen.  In that case, we'd try to output
+    // 501 lines and overflow the buffer.
+    screen = SDL_CreateRGBSurface(0, mon.columns, 501,
 				  24, rmask, gmask, bmask, amask);
     renderer = SDL_CreateRenderer(window, -1, 0);
     screen_window_id = SDL_GetWindowID(window);

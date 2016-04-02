@@ -1406,7 +1406,7 @@ void cpu_init_clocked()
   rtr_init((void *)instr_clocked, (void *)instr_print);
   
   and_init((void *)instr_clocked, (void *)instr_print);
-  exg_init((void *)instr_clocked, (void *)instr_print); /* overlaps and_init */
+  exg_instr_init((void *)instr_clocked, (void *)instr_print); /* overlaps and_init */
   andi_init((void *)instr_clocked, (void *)instr_print);
   andi_to_sr_init((void *)instr_clocked, (void *)instr_print); /* overlaps andi_init */
   andi_to_ccr_init((void *)instr_clocked, (void *)instr_print);

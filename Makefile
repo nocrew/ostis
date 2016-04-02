@@ -38,7 +38,7 @@ LIBDEBUG=debug/libdebug.a
 LIBTESTS=tests/libtests.a
 
 DEPS = $(EMU_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBCPUINSTR)
-DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS)
+DEPS_TEST = $(EMU_TEST_OBJ) $(LIBCPU) $(LIBDEBUG) $(PARSEROBJ) $(LIBTESTS) $(LIBCPUINSTR)
 
 LIB=$(LIBCPU) $(LIBCPUINSTR) $(LIBDEBUG) `sdl2-config --libs` `pkg-config SDL2_image --libs` 
 
@@ -80,7 +80,7 @@ include cpuinstr/cpuinstr.mk
 include debug/debug.mk
 include tests/tests.mk
 
-TAGS: $(EMU_SRC) $(CPU_SRC) $(DEBUG_SRC)
+TAGS: $(EMU_SRC) $(CPU_SRC) $(DEBUG_SRC) $(CPUINSTR_SRC)
 	etags $^
 
 clean::

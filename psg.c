@@ -28,11 +28,11 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <SDL.h>
 #include "common.h"
 #include "floppy.h"
 #include "mmu.h"
 #include "state.h"
-#include <SDL.h>
 #include "diag.h"
 
 #define PSGSIZE 256

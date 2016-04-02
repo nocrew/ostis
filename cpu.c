@@ -18,6 +18,8 @@
 #include "tests/test_main.h"
 #endif
 
+#define PREVIOUS_INSTR_FINISHED(cpu) (cpu->instr_state < 0)
+
 struct cpu *cpu;
 
 struct cpubrk {
@@ -217,6 +219,18 @@ int cpu_step_instr(int trace)
 #if TEST_BUILD
     test_call_hooks(TEST_HOOK_BEFORE_INSTR, cpu);
 #endif
+    if(cprint_all) {
+      struct cprint *cprint;
+      cprint = cprint_instr(cpu->pc);
+      fprintf(stderr, "DEBUG-ASM: [%ld] %04x %06X      %s %s\n",
+              cpu->cycle,
+              cpu->sr,
+              cpu->pc,
+              cprint->instr,
+              cprint->data);
+      free(cprint);
+    }
+
     op = fetch_instr(cpu);
 
     if(instr[op] == default_instr) {
@@ -226,17 +240,6 @@ int cpu_step_instr(int trace)
 
     cpu->cyclecomp = 0;
     cpu->icycle = 0;
-
-    if(cprint_all) {
-      struct cprint *cprint;
-      cprint = cprint_instr(cpu->pc-2);
-      fprintf(stderr, "DEBUG-ASM: %04x %06X      %s %s",
-             cpu->sr,
-             cpu->pc-2,
-             cprint->instr,
-             cprint->data);
-      free(cprint);
-    }
 
     if(cpu->sr&0x8000) {
       cpu_set_exception(VEC_TRACE);
@@ -248,13 +251,6 @@ int cpu_step_instr(int trace)
 #endif
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
-  }
-  if(cprint_all) {
-    int cnt = cpu->icycle;
-    if(cnt&3) {
-      cnt = (cnt&0xfffffffc)+4;
-    }
-    fprintf(stderr, "    [%d => %d]\n", cpu->icycle, cnt);
   }
   cpu_do_cycle(cpu->icycle);
   cpu_check_for_pending_interrupts();
@@ -465,7 +461,7 @@ void cpu_set_sr(WORD sr)
       cpu->a[7] = cpu->ssp;
     }
   }
-  
+
   cpu->sr = sr;
 }
 
@@ -631,29 +627,29 @@ void cpu_print_status(int which_pc)
     pc = last_pc;
   }
   
-  printf("A:  ");
+  fprintf(stderr, "A:  ");
   for(i=0;i<4;i++)
-    printf("%08x ", cpu->a[i]);
-  printf("\nA:  ");
+    fprintf(stderr, "%08x ", cpu->a[i]);
+  fprintf(stderr, "\nA:  ");
   for(i=4;i<8;i++)
-    printf("%08x ", cpu->a[i]);
-  printf("\n\n");
-  printf("D:  ");
+    fprintf(stderr, "%08x ", cpu->a[i]);
+  fprintf(stderr, "\n\n");
+  fprintf(stderr, "D:  ");
   for(i=0;i<4;i++)
-    printf("%08x ", cpu->d[i]);
-  printf("\nD:  ");
+    fprintf(stderr, "%08x ", cpu->d[i]);
+  fprintf(stderr, "\nD:  ");
   for(i=4;i<8;i++)
-    printf("%08x ", cpu->d[i]);
-  printf("\n");
+    fprintf(stderr, "%08x ", cpu->d[i]);
+  fprintf(stderr, "\n");
 
-  printf("PC: %08x  USP: %08x  SSP: %08x\n", pc, cpu->usp, cpu->ssp);
-  printf("SR: %04x\n", cpu->sr);
-  printf("C:  %lld\n", (long long)cpu->cycle);
-  printf("BUS: %08x\n", bus_read_long(8));
+  fprintf(stderr, "PC: %08x  USP: %08x  SSP: %08x\n", pc, cpu->usp, cpu->ssp);
+  fprintf(stderr, "SR: %04x\n", cpu->sr);
+  fprintf(stderr, "C:  %lld\n", (long long)cpu->cycle);
+  fprintf(stderr, "BUS: %08x\n", bus_read_long(8));
 
   for(i=0;i<256;i++) {
     if(exception_pending[i]) {
-      printf("Pending exception: %d [%04x]\n", i, i*4);
+      fprintf(stderr, "Pending exception: %d [%04x]\n", i, i*4);
     }
   }
 }
@@ -969,19 +965,7 @@ static void cpu_fetch_instr()
 {
   cpu->current_instr = fetch_instr(cpu);
   cpu->icycle = 0;
-}
-
-/* Separate cycle for movem for the moment. This will go away. */
-void cpu_do_clocked_cycle(LONG cnt)
-{
-  int i;
-
-  for(i = 0; i < cnt; i++) {
-    glue_clock();
-    mmu_clock();
-    shifter_clock();
-    cpu->cycle++;
-  }
+  cpu->cyclecomp = 0;
 }
 
 /* The cycle delay for exceptions work slightly different to the old code,
@@ -1007,7 +991,7 @@ static void cpu_trigger_exception_full_stacked(int vnum)
   bus_write_word(cpu->a[7], bus_error_flags);
   cpu->pc = bus_read_long(4*vnum);
   cpu_clr_exception(vnum);
-  cpu->icycle += 50;
+  ADD_CYCLE(50);
 }
 
 static void cpu_trigger_exception_general(int vnum)
@@ -1024,7 +1008,7 @@ static void cpu_trigger_exception_general(int vnum)
   cpu_exception_reset_sr();
   cpu->pc = bus_read_long(4*vnum);
   cpu_clr_exception(vnum);
-  cpu->icycle += 34;
+  ADD_CYCLE(34);
 }
 
 static void cpu_trigger_exception_interrupt(int vnum)
@@ -1046,7 +1030,7 @@ static void cpu_trigger_exception_interrupt(int vnum)
     cpu->sr = (cpu->sr&0xf0ff)|(inum<<8);
     cpu->pc = bus_read_long(4*vnum);
     cpu_clr_exception(vnum);
-    cpu->icycle += 48;
+    ADD_CYCLE(48);
   } else {
     cpu->a[7] -= 4;
     bus_write_long(cpu->a[7], cpu->pc);
@@ -1057,7 +1041,7 @@ static void cpu_trigger_exception_interrupt(int vnum)
     cpu->pc = bus_read_long(4*interrupt_autovector[inum]);
     interrupt_autovector[inum] = -1;
     cpu_clr_exception(vnum);
-    cpu->icycle += 24;
+    ADD_CYCLE(24);
   }
 }
 
@@ -1066,13 +1050,13 @@ static void cpu_trigger_exception(int vnum)
   cpu->stopped = 0;
 
   if(vnum == 2 || vnum == 3) {
-    cpu_exception_full_stacked(vnum);
+    cpu_trigger_exception_full_stacked(vnum);
   } else if(vnum == 4) {
-    cpu_exception_general(4);
+    cpu_trigger_exception_general(4);
   } else if(vnum >= 25 && vnum <= 31) {
-    cpu_exception_interrupt(vnum);
+    cpu_trigger_exception_interrupt(vnum);
   } else {
-    cpu_exception_general(vnum);
+    cpu_trigger_exception_general(vnum);
   }
 }
 
@@ -1084,8 +1068,10 @@ static void cpu_trigger_exceptions()
 
   /* If we get Bus Error, just ignore everything else. Same for Address Error */
   if(exception_pending[VEC_BUSERR]) {
+    printf("DEBUG: Triggering BUS ERROR\n");
     cpu_trigger_exception(VEC_BUSERR);
   } else if(exception_pending[VEC_ADDRERR]) {
+    printf("DEBUG: Triggering ADDRESS ERROR\n");
     cpu_trigger_exception(VEC_ADDRERR);
   } else {
     /* We check for trace, interrupt, illegal and priv in that order,
@@ -1112,34 +1098,74 @@ static void cpu_trigger_exceptions()
   }
 }
 
+static int cpu_new_instr(int cpu_run_state)
+{
+  cpu_trigger_exceptions();
+
+  cpu->instr_state = INSTR_STATE_NONE;
+  if(cprint_all) {
+    struct cprint *cprint;
+    cprint = cprint_instr(cpu->pc);
+    fprintf(stderr, "DEBUG-ASM: [%ld] %04x %06X      %s %s\n",
+            cpu->cycle,
+            cpu->sr,
+            cpu->pc,
+            cprint->instr,
+            cprint->data);
+    free(cprint);
+  }
+  cpu_fetch_instr();
+  return CPU_OK;
+}
+
+static int cpu_instr_done(int cpu_run_state)
+{
+  int ret;
+  
+  if(cpu_run_state == CPU_TRACE_SINGLE) {
+    enter_debugger_after_instr = CPU_TRACE_SINGLE;
+  } else if(cpu_dec_breakpoint(cpu->pc, cpu_run_state)) {
+    enter_debugger_after_instr = CPU_BREAKPOINT;
+  } else if(cpu_dec_watchpoint(cpu_run_state)) {
+    enter_debugger_after_instr = CPU_WATCHPOINT;
+  }
+
+  if(enter_debugger_after_instr) {
+    ret = enter_debugger_after_instr;
+    enter_debugger_after_instr = 0;
+    return ret;
+  }
+  return CPU_OK;
+}
+
 static int cpu_step_cycle(int cpu_run_state)
 {
+  int ret = CPU_OK;
+  
   /* If icycle is positive, the previous instruction has not yet
    * used up all the cycles it's supposed to use, so decrement
    * the counter and exit
    */
+  //  printf("DEBUG: [%ld %d %ld] Cycles\n", cpu->cycle, cpu->icycle, cpu->cycle&3);
   if(cpu->icycle > 0) {
     cpu->icycle--;
     return CPU_OK;
   }
 
   /* A new instruction will only start on multiple of 4 cycles, so if
-   * that is not the cas, exit and let it increment up to the proper point
+   * that is not the case, exit and let it increment up to the proper point
    */
   if((cpu->cycle&3) != 0) {
+    //    printf("DEBUG: [%ld %ld] Non-4c align\n", cpu->cycle, cpu->cycle&3);
     return CPU_OK;
   }
 
-  /* Check if an exception is in the way, and set things up to run that instead
-   * of the next instruction.
-   */
-  cpu_trigger_exceptions();
-
-  /* If the cpu is still stopped (STOP instruction) after having checked for
-   * exceptions, there obviously were none to trigger, so there is no instruction
-   * to run
+  /* If the cpu is still stopped (STOP instruction) just check for exceptions,
+   * or return without doing anything.
    */
   if(cpu->stopped) {
+    cpu_trigger_exceptions();
+
     return CPU_OK;
   }
 
@@ -1150,13 +1176,14 @@ static int cpu_step_cycle(int cpu_run_state)
     return INSTR_STATE_FINISHED;
   }
 
-  /* Every instruction is initiated with the state NONE. If the instruction is a
-   * properly clocked one, it will change the state as needed.
-   * This is broken for now.
-   */
-  cpu->instr_state = INSTR_STATE_NONE;
-  cpu_fetch_instr();
-  
+  if(PREVIOUS_INSTR_FINISHED(cpu)) {
+    /* Every instruction is initiated with the state NONE. If the instruction is a
+     * properly clocked one, it will change the state as needed.
+     * This is broken for now.
+     */
+    ret = cpu_new_instr(cpu_run_state);
+  }
+
   /* Since the cpu struct includes the current instruction opcode now, passing 
    * it separately is somewhat unnecessary, and can be removed once the instructions
    * have been rewritten to be clocked
@@ -1171,15 +1198,18 @@ static int cpu_step_cycle(int cpu_run_state)
   if(cpu->icycle > 0) {
     cpu->icycle--;
   }
+  //  if(cpu->instr_state != INSTR_STATE_NONE) {
+  //    cpu->icycle--;
+  //  }
 
   /* When the clocked instruction is set to its finished state, this is returned, and
    * special End-of-instruction things can be applied
    */
   if(cpu->instr_state == INSTR_STATE_FINISHED) {
-    return INSTR_STATE_FINISHED;
+    ret = INSTR_STATE_FINISHED;
   }
-
-  return CPU_OK;
+  
+  return ret;
 }
 
 /* cpu_clock() will be replacing cpu_step_cycle() when the 
@@ -1194,21 +1224,17 @@ static int cpu_clock(int cpu_run_state)
   int ret;
   
   ret = cpu_step_cycle(cpu_run_state);
-  
+
   /* INSTR_STATE_FINISHED should be returned whenever the last step of a cycle
    * was finishing the run of an instruction.
    * In this case the cycle counter is not updated. Instead there is one loop
    * to handle things where the code might return to the debugger */
-  
-  if(ret == INSTR_STATE_FINISHED) {
-    if(cpu_run_state == CPU_TRACE_SINGLE) return CPU_TRACE_SINGLE;
-    if(cpu_dec_breakpoint(cpu->pc, cpu_run_state)) return CPU_BREAKPOINT;
-    if(cpu_dec_watchpoint(cpu_run_state)) return CPU_WATCHPOINT;
-    if(enter_debugger_after_instr) {
-      enter_debugger_after_instr = 0;
-      return CPU_BREAKPOINT;
-    }
-    return CPU_OK;
+
+  if(ret == INSTR_STATE_FINISHED && cpu->icycle == 0) {
+    /* Check if an exception is in the way, and set things up to run that instead
+     * of the next instruction.
+     */
+    return cpu_instr_done(cpu_run_state);
   } else {
     glue_clock();
     mmu_clock();
@@ -1223,12 +1249,20 @@ static int cpu_clock(int cpu_run_state)
  * This needs to be done in a better way really soon */
 int cpu_step_instr_clocked(int cpu_run_state)
 {
-  int ret = CPU_OK;
+  int instr_finished = 0;
+  int instr_finishing = 0;
+  int ret;
   
-  while(ret == CPU_OK) {
+  while(!instr_finished) {
     ret = cpu_clock(cpu_run_state);
+    if(!instr_finishing && ret != CPU_OK) {
+      instr_finishing = 1;
+    }
+    if(instr_finishing && cpu->icycle == 0) {
+      instr_finished = 1;
+    }
   }
-  return ret;
+  return CPU_TRACE_SINGLE;
 }
 
 /* The clocked equivalent version of cpu_run 
@@ -1274,7 +1308,10 @@ int cpu_run_clocked(int cpu_run_state)
       // This seems to be a good compromise between responsiveness and performance.
       counter = 1000;
     }
-    if(ret != CPU_OK) {
+    if(cpu_run_state == CPU_DEBUG_RUN &&
+       ret != CPU_OK && ret != CPU_BREAKPOINT && ret != CPU_WATCHPOINT) {
+      /* Ignore this, just to make sure the next condition is not triggered */
+    } else if(ret != CPU_OK) {
       stop = ret;
       break;
     }
@@ -1301,6 +1338,7 @@ void cpu_init_clocked()
   cpu->cycle = 0;
   cpu->icycle = 0;
   cpu->stopped = 0;
+  cpu->instr_state = INSTR_STATE_NONE;
 
   for(i=0;i<65536;i++) {
     instr_clocked[i] = default_instr;
@@ -1421,5 +1459,9 @@ void cpu_init_clocked()
   instr_print[0x4e7b] = illegal_instr_print;
 
   instr_clocked[0x42c0] = illegal_instr;
+
+#if TEST_BUILD
+  test_cpu_init((void *)instr_clocked, (void *)instr_print);
+#endif
 }
 

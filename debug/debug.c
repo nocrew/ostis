@@ -90,6 +90,9 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
   case SDLK_TAB:
     win_cycle_selected();
     break;
+  case SDLK_PRINTSCREEN:
+    cprint_all = !cprint_all;
+    break;
   case SDLK_UP:
     win_move_window(MOVE_UP, k.mod&KMOD_SHIFT);
     break;
@@ -169,6 +172,8 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
 	win_set_message("Breakpoint");
       } else if(ret == CPU_WATCHPOINT) {
 	win_set_message("Watchpoint");
+      } else {
+        printf("DEBUG: Run Return %d\n", ret);
       }
       win_move_window_to_pc();
     } else if(k.mod & KMOD_ALT) {

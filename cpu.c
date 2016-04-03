@@ -14,6 +14,7 @@
 #include "instr.h"
 #include "instr_clocked.h"
 #include "state.h"
+#include "diag.h"
 #if TEST_BUILD
 #include "tests/test_main.h"
 #endif
@@ -33,6 +34,8 @@ struct cpuwatch {
   char *cond;
   int cnt;
 };
+
+HANDLE_DIAGNOSTICS(cpu)
 
 static int cpu_dec_breakpoint(LONG addr, int trace);
 static int cpu_dec_watchpoint(int trace);
@@ -357,6 +360,9 @@ void cpu_do_cycle(LONG cnt)
   if(cnt&3) {
     cnt = (cnt&0xfffffffc)+4;
   }
+  // All intermediate operations inside an instruction take an even
+  // amount of cycles.
+  ASSERT((cnt & 1) == 0);
 
   cpu->clock = cpu->cycle;
   for(i = 0; i < cnt; i++) {
@@ -1146,17 +1152,15 @@ static int cpu_step_cycle(int cpu_run_state)
    * used up all the cycles it's supposed to use, so decrement
    * the counter and exit
    */
-  //  printf("DEBUG: [%ld %d %ld] Cycles\n", cpu->cycle, cpu->icycle, cpu->cycle&3);
   if(cpu->icycle > 0) {
     cpu->icycle--;
     return CPU_OK;
   }
 
-  /* A new instruction will only start on multiple of 4 cycles, so if
+  /* A new instruction will only start on multiple of 2 cycles, so if
    * that is not the case, exit and let it increment up to the proper point
    */
-  if((cpu->cycle&3) != 0) {
-    //    printf("DEBUG: [%ld %ld] Non-4c align\n", cpu->cycle, cpu->cycle&3);
+  if((cpu->cycle&1) != 0) {
     return CPU_OK;
   }
 
@@ -1332,6 +1336,8 @@ void cpu_init_clocked()
   if(!cpu) {
     exit(-2);
   }
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 
   cpu_do_reset();
   cpu->debug_halted = 0;

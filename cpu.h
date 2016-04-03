@@ -91,11 +91,13 @@ extern struct cpu *cpu;
 extern int cprint_all;
 
 #if 0
-#define ADD_CYCLE(x) do { printf("DEBUG: CPU: [%s:%d] Add %d cycles\n", __FILE__, __LINE__, x); cpu->icycle += x; } while(0);
+#define ADD_CYCLE(x) do { printf("DEBUG: CPU: [%s:%d] Add %d cycles\n", __FILE__, __LINE__, x); cpu->icycle += x; } while(0)
 #else
-#define ADD_CYCLE(x) do { cpu->icycle += x; } while(0);
+#define ADD_CYCLE(x) do { cpu->icycle += x; } while(0)
 #endif
 #define MAX_CYCLE 8012800
+
+#define BUS_ADD_CYCLE(x) do { if(clocked_cpu) ADD_CYCLE(x); } while(0)
 
 #define MSKT 0x8000
 #define MSKS 0x2000

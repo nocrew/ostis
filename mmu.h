@@ -54,6 +54,12 @@ void bus_write_long(LONG, LONG);
 
 extern int mmu_print_state;
 
+#define MMU_WAIT_STATES()			\
+  do {						\
+    if((cpu->clock & 3) != 0)			\
+      BUS_ADD_CYCLE(2);				\
+  } while(0)
+
 void mmu_clock(void);
 void mmu_de(int);
 void mmu_vsync(void);

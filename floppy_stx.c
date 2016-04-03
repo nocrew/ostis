@@ -290,7 +290,7 @@ static void load_track(struct floppy *fl, FILE *fp)
   BYTE data[50000];
   BYTE *fuzzy_pos;
   BYTE *data_pos;
-  int track_image_offset = 0;
+  int track_image_offset __attribute__((unused)) = 0;
   int i;
 
   if(fread(header, 16, 1, fp) != 1) {

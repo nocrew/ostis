@@ -1159,9 +1159,19 @@ static int cpu_step_cycle(int cpu_run_state)
 
   /* A new instruction will only start on multiple of 2 cycles, so if
    * that is not the case, exit and let it increment up to the proper point
+   *
+   * Until all instructions handle their own prefetch (of the next instruction)
+   * completely as a state of its own, this needs special treatment to make
+   * instructions default to 4c alignment execution.
    */
-  if((cpu->cycle&1) != 0) {
-    return CPU_OK;
+  if(cpu->has_prefetched) {
+    if((cpu->cycle&1) != 0) {
+      return CPU_OK;
+    }
+  } else {
+    if((cpu->cycle&3) != 0) {
+      return CPU_OK;
+    }
   }
 
   /* If the cpu is still stopped (STOP instruction) just check for exceptions,

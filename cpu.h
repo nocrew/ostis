@@ -97,6 +97,8 @@ extern int cprint_all;
 #endif
 #define MAX_CYCLE 8012800
 
+#define BUS_ADD_CYCLE(x) do { if(clocked_cpu) ADD_CYCLE(x); } while(0)
+
 #define MSKT 0x8000
 #define MSKS 0x2000
 #define MSKX 0x10

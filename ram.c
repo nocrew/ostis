@@ -25,6 +25,7 @@ static BYTE *real(LONG addr)
 static BYTE ram_read_byte(LONG addr)
 {
   if(addr > RAM_PHYSMAX) return 0;
+  MMU_WAIT_STATES();
   return *(real(addr));
 }
 
@@ -35,6 +36,7 @@ WORD ram_read_word(LONG addr)
 
 static void ram_write_byte(LONG addr, BYTE data)
 {
+  MMU_WAIT_STATES();
   *(real(addr)) = data;
 }
 

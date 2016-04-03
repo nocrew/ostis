@@ -106,6 +106,8 @@ static void shifter_set_resolution(BYTE data)
 
 static BYTE shifter_read_byte(LONG addr)
 {
+  MMU_WAIT_STATES();
+
   switch(addr) {
   case 0xff8260:
     return resolution;
@@ -130,6 +132,9 @@ static WORD shifter_read_word(LONG addr)
 static void shifter_write_byte(LONG addr, BYTE data)
 {
   WORD tmp;
+
+  MMU_WAIT_STATES();
+
   switch(addr) {
   case 0xff8260:
     shifter_set_resolution(data);

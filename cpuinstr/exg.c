@@ -6,22 +6,17 @@
 
 static void exg(struct cpu *cpu, WORD op)
 {
-  static uint32_t start;
   LONG t;
   int rx,ry;
 
   ENTER;
 
-  if(cpu->instr_state == INSTR_STATE_NONE) {
-    start = cpu->cycle;
+  switch(cpu->instr_state) {
+  case INSTR_STATE_NONE:
     cpu->instr_state = EXG_IN_PROGRESS;
-  }
-
-  switch(cpu->cycle - start) {
-  case 0:
     cpu_prefetch();
     break;
-  case 4:
+  case EXG_IN_PROGRESS:
     rx = (op&0xe00)>>9;
     ry = (op&7);
     switch(op&0xf8) {

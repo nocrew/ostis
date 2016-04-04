@@ -4,9 +4,10 @@
 #include "mmu.h"
 
 #define BCC_NOT_TAKEN   1
-#define BSR_PUSH        2
-#define BCC_PREFETCH_1  3
-#define BCC_PREFETCH_2  4
+#define BSR_PUSH_1      2
+#define BSR_PUSH_2      3
+#define BCC_PREFETCH_1  4
+#define BCC_PREFETCH_2  5
 
 static void bcc(struct cpu *cpu, WORD op)
 {
@@ -38,7 +39,7 @@ static void bcc(struct cpu *cpu, WORD op)
     case 1: /* BSR */
       saved_pc = cpu->pc;
       cpu->pc += o;
-      cpu->instr_state = BSR_PUSH;
+      cpu->instr_state = BSR_PUSH_1;
       break;
     case 2: /* BHI */
       if(!CHKC && !CHKZ) {
@@ -161,10 +162,15 @@ static void bcc(struct cpu *cpu, WORD op)
     else
       cpu->instr_state = BCC_PREFETCH_2;
     break;
-  case BSR_PUSH:
-    ADD_CYCLE(8);
+  case BSR_PUSH_1:
+    ADD_CYCLE(4);
     cpu->a[7] -= 4;
-    bus_write_long(cpu->a[7], saved_pc);
+    bus_write_word(cpu->a[7], saved_pc >> 16);
+    cpu->instr_state = BSR_PUSH_2;
+    break;
+  case BSR_PUSH_2:
+    ADD_CYCLE(4);
+    bus_write_word(cpu->a[7] + 2, saved_pc);
     cpu->instr_state = BCC_PREFETCH_1;
     break;
   case BCC_PREFETCH_1:

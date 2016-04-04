@@ -1159,8 +1159,13 @@ static int cpu_step_cycle(int cpu_run_state)
 
   /* A new instruction will only start on multiple of 2 cycles, so if
    * that is not the case, exit and let it increment up to the proper point
+   *
+   * Until all instructions handle their own prefetch (of the next instruction)
+   * completely as a state of its own, this needs to do 4c align, so while
+   * this is a temporary revert, it is necessary until prefetch is done
+   * the right way.
    */
-  if((cpu->cycle&1) != 0) {
+  if((cpu->cycle&3) != 0) {
     return CPU_OK;
   }
 

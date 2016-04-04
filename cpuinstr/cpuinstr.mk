@@ -8,7 +8,7 @@
 #     eori_to_sr.c rol.c roxl.c not.c ror.c neg.c subi.c move_to_ccr.c	\
 #     ori_to_ccr.c addx.c cmpm.c subx.c eori_to_ccr.c negx.c linea.c	\
 #     roxr.c bchg.c abcd.c stop.c sbcd.c tas.c andi_to_ccr.c rtr.c)
-CPUINSTR_SRC=$(addprefix cpuinstr/,bcc.c clr.c exg.c movem.c)
+CPUINSTR_SRC=$(addprefix cpuinstr/,bcc.c clr.c cmp.c exg.c movem.c)
 CPUINSTR_OBJ=$(CPUINSTR_SRC:.c=.o)
 
 -include $(CPUINSTR_SRC:.c=.d)

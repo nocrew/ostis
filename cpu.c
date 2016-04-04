@@ -1383,7 +1383,7 @@ void cpu_init_clocked()
   scc_init((void *)instr_clocked, (void *)instr_print);
   dbcc_init((void *)instr_clocked, (void *)instr_print);
 
-  clr_init((void *)instr_clocked, (void *)instr_print);
+  clr_instr_init((void *)instr_clocked, (void *)instr_print);
   cmpa_init((void *)instr_clocked, (void *)instr_print);
 
   asl_init((void *)instr_clocked, (void *)instr_print);

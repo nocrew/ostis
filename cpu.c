@@ -481,9 +481,6 @@ void cpu_init()
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 
   cpu = xmalloc(sizeof(struct cpu));
-  if(!cpu) {
-    exit(-2);
-  }
 
   cpu_do_reset();
   cpu->debug_halted = 0;
@@ -1330,9 +1327,6 @@ void cpu_init_clocked()
   int i;
 
   cpu = xmalloc(sizeof(struct cpu));
-  if(!cpu) {
-    exit(-2);
-  }
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 

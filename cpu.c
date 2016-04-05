@@ -80,17 +80,11 @@ static void illegal_instr(struct cpu *cpu, WORD op)
 
 static WORD fetch_instr(struct cpu *cpu)
 {
-  WORD op;
   last_pc = cpu->pc;
   ASSERT(cpu->has_prefetched == 1);
-  if(cpu->has_prefetched) {
-    cpu->has_prefetched = 0;
-    cpu->pc += 2;
-    return cpu->prefetched_instr;
-  }
-  op = bus_read_word(cpu->pc);
+  cpu->has_prefetched = 0;
   cpu->pc += 2;
-  return op;
+  return cpu->prefetched_instr;
 }
 
 static void cpu_exception_reset_sr()

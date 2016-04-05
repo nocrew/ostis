@@ -52,14 +52,16 @@ static void not(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     not_b(cpu, op);
-    return;
+    break;
   case 1:
     not_w(cpu, op);
-    return;
+    break;
   case 2:
     not_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *not_print(LONG addr, WORD op)

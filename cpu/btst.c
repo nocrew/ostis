@@ -48,6 +48,7 @@ static void btst(struct cpu *cpu, WORD op)
     btst_r(cpu, (op&0xe00)>>9, op&0x3f);
     break;
   }
+  cpu_prefetch();
 }
 
 static struct cprint *btst_print(LONG addr, WORD op)

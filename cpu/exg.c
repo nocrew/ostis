@@ -27,6 +27,7 @@ static void exg(struct cpu *cpu, WORD op)
   }
 
   ADD_CYCLE(6);
+  cpu_prefetch();
 }
 
 static struct cprint *exg_print(LONG addr, WORD op)

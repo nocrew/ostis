@@ -15,6 +15,7 @@
 #define MOVEM_WRITE      3
 #define MOVEM_READ       4
 #define MOVEM_EXTRA_READ 5
+#define MOVEM_PREFETCH   6
 
 #define EA_REG_IN_RMASK(rnum, rmask) (rmask&(1<<(rnum+8)))
 
@@ -265,7 +266,7 @@ static void movem(struct cpu *cpu, WORD op)
     write_word(cpu);
     if(cpu->instr_data_word_pos >= cpu->instr_data_word_count) {
       adjust_register(cpu, op);
-      set_state(cpu, INSTR_STATE_FINISHED);
+      set_state(cpu, MOVEM_PREFETCH);
     }
     ADD_CYCLE(4);
     break;
@@ -286,8 +287,15 @@ static void movem(struct cpu *cpu, WORD op)
   case MOVEM_EXTRA_READ:
     bus_read_word(cpu->instr_data_ea_addr);
     adjust_register(cpu, op);
+    set_state(cpu, MOVEM_PREFETCH);
+    ADD_CYCLE(4);
+    break;
+
+  case MOVEM_PREFETCH:
+    cpu_prefetch();
     set_state(cpu, INSTR_STATE_FINISHED);
     ADD_CYCLE(4);
+    break;
   }
 }
 

@@ -52,14 +52,15 @@ static void cmpi(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     cmpi_b(cpu, op&0x3f);
-    return;
+    break;
   case 1:
     cmpi_w(cpu, op&0x3f);
-    return;
+    break;
   case 2:
     cmpi_l(cpu, op&0x3f);
-    return;
+    break;
   }
+  cpu_prefetch();
 }
 
 static struct cprint *cmpi_print(LONG addr, WORD op)

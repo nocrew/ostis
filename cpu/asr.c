@@ -107,6 +107,7 @@ static void asr(struct cpu *cpu, WORD op)
   } else {
     asr_i(cpu, op);
   }
+  cpu_prefetch();
 }
 
 static struct cprint *asr_print(LONG addr, WORD op)

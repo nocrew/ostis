@@ -109,14 +109,16 @@ static void addx(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     addx_b(cpu, op);
-    return;
+    break;
   case 1:
     addx_w(cpu, op);
-    return;
+    break;
   case 2:
     addx_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *addx_print(LONG addr, WORD op)

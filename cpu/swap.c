@@ -11,6 +11,7 @@ static void swap(struct cpu *cpu, WORD op)
   cpu->d[r] = ((cpu->d[r]&0xffff0000)>>16)|((cpu->d[r]&0xffff)<<16);
   ADD_CYCLE(4);
   cpu_set_flags_move(cpu, cpu->d[r]&0x80000000, cpu->d[r]);
+  cpu_prefetch();
 }
 
 static struct cprint *swap_print(LONG addr, WORD op)

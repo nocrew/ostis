@@ -82,6 +82,7 @@ static WORD fetch_instr(struct cpu *cpu)
 {
   WORD op;
   last_pc = cpu->pc;
+  ASSERT(cpu->has_prefetched == 1);
   if(cpu->has_prefetched) {
     cpu->has_prefetched = 0;
     cpu->pc += 2;
@@ -101,7 +102,6 @@ static void cpu_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -123,7 +123,6 @@ static void cpu_exception_general(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -145,7 +144,6 @@ static void cpu_exception_interrupt(int vnum)
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
-  cpu_clear_prefetch();
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
@@ -184,6 +182,8 @@ static void cpu_do_exception(int vnum)
   } else {
     cpu_exception_general(vnum);
   }
+  cpu_clear_prefetch();
+  cpu_prefetch();
 }
 
 static void cpu_do_reset(void)
@@ -198,6 +198,8 @@ static void cpu_do_reset(void)
   cpu->has_prefetched = 0;
   cpu->ipl1 = 0;
   cpu->ipl2 = 0;
+
+  cpu_prefetch();
 
   for(i=0;i<256;i++) {
     exception_pending[i] = 0;
@@ -246,6 +248,7 @@ int cpu_step_instr(int trace)
     test_call_hooks(TEST_HOOK_AFTER_INSTR, cpu);
 #endif
   } else {
+    cpu_clear_prefetch();
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
   }
   CLOCK("Instruction took %d cycles", cpu->icycle);
@@ -467,6 +470,7 @@ void cpu_set_sr(WORD sr)
 void cpu_prefetch()
 {
   CLOCK("Prefetch");
+  ASSERT(cpu->has_prefetched == 0);
   cpu->prefetched_instr = bus_read_word(cpu->pc);
   cpu->has_prefetched = 1;
 }
@@ -978,7 +982,6 @@ static void cpu_trigger_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -1000,7 +1003,6 @@ static void cpu_trigger_exception_general(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -1022,7 +1024,6 @@ static void cpu_trigger_exception_interrupt(int vnum)
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
-  cpu_clear_prefetch();
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
@@ -1060,6 +1061,8 @@ static void cpu_trigger_exception(int vnum)
   } else {
     cpu_trigger_exception_general(vnum);
   }
+  cpu_clear_prefetch();
+  cpu_prefetch();
 }
 
 static void cpu_trigger_exceptions()

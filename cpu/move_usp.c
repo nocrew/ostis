@@ -13,6 +13,7 @@ static void move_usp(struct cpu *cpu, WORD op)
       cpu->usp = cpu->a[op&7];
     }
     ADD_CYCLE(4);
+    cpu_prefetch();
   } else {
     cpu_set_exception(8);
   }

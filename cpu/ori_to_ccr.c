@@ -13,6 +13,7 @@ static void ori_to_ccr(struct cpu *cpu, WORD op)
   d = bus_read_word(cpu->pc)&0x1f;
   cpu->pc += 2;
   cpu_set_sr(cpu->sr|d);
+  cpu_prefetch();
 }
 
 static struct cprint *ori_to_ccr_print(LONG addr, WORD op)

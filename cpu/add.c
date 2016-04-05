@@ -81,14 +81,16 @@ static void add(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     add_b(cpu, op);
-    return;
+    break;
   case 1:
     add_w(cpu, op);
-    return;
+    break;
   case 2:
     add_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *add_print(LONG addr, WORD op)

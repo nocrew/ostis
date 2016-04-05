@@ -11,6 +11,7 @@ static void jmp(struct cpu *cpu, WORD op)
   cpu->cyclecomp = 1;
   cpu->pc = ea_get_addr(cpu, op&0x3f);
   cprint_set_label(cpu->pc, NULL);
+  cpu_prefetch();
 }
 
 static struct cprint *jmp_print(LONG addr, WORD op)

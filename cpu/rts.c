@@ -10,6 +10,7 @@ static void rts(struct cpu *cpu, WORD op)
   cpu->pc = bus_read_long(cpu->a[7]);
   cpu->a[7] += 4;
   ADD_CYCLE(16);
+  cpu_prefetch();
 }
 
 static struct cprint *rts_print(LONG addr, WORD op)

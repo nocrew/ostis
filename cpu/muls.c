@@ -27,6 +27,7 @@ static void muls(struct cpu *cpu, WORD op)
     }
   }
   cpu_set_flags_move(cpu, r&0x80000000, r);
+  cpu_prefetch();
 }
 
 static struct cprint *muls_print(LONG addr, WORD op)

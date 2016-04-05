@@ -23,13 +23,13 @@ void bcc(struct cpu *cpu, WORD op)
   case 0: /* BRA */
     ADD_CYCLE(10);
     cpu->pc += o;
-    return;
+    break;
   case 1: /* BSR */
     ADD_CYCLE(18);
     cpu->a[7] -= 4;
     bus_write_long(cpu->a[7], cpu->pc);
     cpu->pc += o;
-    return;
+    break;
   case 2: /* BHI */
     if(!CHKC && !CHKZ) {
       ADD_CYCLE(10);
@@ -38,7 +38,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 3: /* BLS */
     if(CHKC || CHKZ) {
       ADD_CYCLE(10);
@@ -47,7 +47,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 4: /* BCC */
     if(!CHKC) {
       ADD_CYCLE(10);
@@ -56,7 +56,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 5: /* BCS */
     if(CHKC) {
       ADD_CYCLE(10);
@@ -65,7 +65,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 6: /* BNE */
     if(!CHKZ) {
       ADD_CYCLE(10);
@@ -74,7 +74,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 7: /* BEQ */
     if(CHKZ) {
       ADD_CYCLE(10);
@@ -83,7 +83,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 8: /* BVC */
     if(!CHKV) {
       ADD_CYCLE(10);
@@ -92,7 +92,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 9: /* BVS */
     if(CHKV) {
       ADD_CYCLE(10);
@@ -101,7 +101,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 10: /* BPL */
     if(!CHKN) {
       ADD_CYCLE(10);
@@ -110,7 +110,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 11: /* BMI */
     if(CHKN) {
       ADD_CYCLE(10);
@@ -119,7 +119,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 12: /* BGE */
     if((CHKN && CHKV) || (!CHKN && !CHKV)) {
       ADD_CYCLE(10);
@@ -128,7 +128,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 13: /* BLT */
     if((CHKN && !CHKV) || (!CHKN && CHKV)) {
       ADD_CYCLE(10);
@@ -137,7 +137,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 14: /* BGT */
     if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
       ADD_CYCLE(10);
@@ -146,7 +146,7 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   case 15: /* BLE */
     if(CHKZ || (CHKN && !CHKV) || (!CHKN && CHKV)) {
       ADD_CYCLE(10);
@@ -155,8 +155,9 @@ void bcc(struct cpu *cpu, WORD op)
       ADD_CYCLE(8);
       if(w) ADD_CYCLE(4);
     }
-    return;
+    break;
   }
+  cpu_prefetch();
 }
 
 static struct cprint *bcc_print(LONG addr, WORD op)

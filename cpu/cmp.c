@@ -47,14 +47,15 @@ static void cmp(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     cmp_b(cpu, r, op&0x3f);
-    return;
+    break;
   case 1:
     cmp_w(cpu, r, op&0x3f);
-    return;
+    break;
   case 2:
     cmp_l(cpu, r, op&0x3f);
-    return;
+    break;
   }
+  cpu_prefetch();
 }
 
 static struct cprint *cmp_print(LONG addr, WORD op)

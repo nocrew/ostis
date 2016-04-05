@@ -39,6 +39,8 @@ static void clr(struct cpu *cpu, WORD op)
     break;
   }
   cpu_set_flags_clr(cpu);
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *clr_print(LONG addr, WORD op)

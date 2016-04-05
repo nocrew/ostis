@@ -92,6 +92,8 @@ static void rol(struct cpu *cpu, WORD op)
   } else {
     rol_i(cpu, op);
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *rol_print(LONG addr, WORD op)

@@ -16,6 +16,7 @@ static void andi_to_ccr(struct cpu *cpu, WORD op)
   sr = cpu->sr;
   sr = (sr&0xff00)|((sr&0xff)&d);
   cpu_set_sr(sr);
+  cpu_prefetch();
 }
 
 static struct cprint *andi_to_ccr_print(LONG addr, WORD op)

@@ -16,6 +16,7 @@ static void lea(struct cpu *cpu, WORD op)
   if((op&0x38) == 0x30 || (op&0x3f) == 0x3b) {
     ADD_CYCLE(4);
   }
+  cpu_prefetch();
 }
 
 static struct cprint *lea_print(LONG addr, WORD op)

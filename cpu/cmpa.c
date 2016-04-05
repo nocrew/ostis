@@ -21,6 +21,7 @@ static void cmpa(struct cpu *cpu, WORD op)
   }
   r = d-s;
   cpu_set_flags_cmp(cpu, s&0x80000000, d&0x80000000, r&0x80000000, r);
+  cpu_prefetch();
 }
 
 static struct cprint *cmpa_print(LONG addr, WORD op)

@@ -136,6 +136,7 @@ static void asl(struct cpu *cpu, WORD op)
   } else {
     asl_i(cpu, op);
   }
+  cpu_prefetch();
 }
 
 static struct cprint *asl_print(LONG addr, WORD op)

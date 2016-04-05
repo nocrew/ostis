@@ -6,6 +6,7 @@ static void nop(struct cpu *cpu, WORD op)
   ENTER;
 
   ADD_CYCLE(4);
+  cpu_prefetch();
 }
 
 static struct cprint *nop_print(LONG addr, WORD op)

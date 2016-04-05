@@ -16,6 +16,7 @@ static void unlk(struct cpu *cpu, WORD op)
   cpu->a[7] += 4;
 
   ADD_CYCLE(12);
+  cpu_prefetch();
 }
 
 static struct cprint *unlk_print(LONG addr, WORD op)

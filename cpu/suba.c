@@ -27,6 +27,7 @@ static void suba(struct cpu *cpu, WORD op)
     if(s&0x8000) s |= 0xffff0000;
   }
   cpu->a[r] = cpu->a[r]-s;
+  cpu_prefetch();
 }
 
 static struct cprint *suba_print(LONG addr, WORD op)

@@ -92,6 +92,7 @@ static void ror(struct cpu *cpu, WORD op)
   } else {
     ror_i(cpu, op);
   }
+  cpu_prefetch();
 }
 
 static struct cprint *ror_print(LONG addr, WORD op)

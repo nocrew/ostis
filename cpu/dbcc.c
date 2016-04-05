@@ -19,90 +19,105 @@ void dbcc(struct cpu *cpu, WORD op)
   switch((op&0xf00)>>8) {
   case 0: /* DBT */
     ADD_CYCLE(12);
+    cpu_prefetch();
     return;
   case 1: /* DBF/DBRA */
     break;
   case 2: /* DBHI */
     if(!CHKC && !CHKZ) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 3: /* DBLS */
     if(CHKC || CHKZ) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 4: /* DBCC */
     if(!CHKC) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 5: /* DBCS */
     if(CHKC) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 6: /* DBNE */
     if(!CHKZ) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 7: /* DBEQ */
     if(CHKZ) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 8: /* DBVC */
     if(!CHKV) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 9: /* DBVS */
     if(CHKV) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 10: /* DBPL */
     if(!CHKN) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 11: /* DBMI */
     if(CHKN) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 12: /* DBGE */
     if((CHKN && CHKV) || (!CHKN && !CHKV)) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 13: /* DBLT */
     if((CHKN && !CHKV) || (!CHKN && CHKV)) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 14: /* DBGT */
     if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
   case 15: /* DBLE */
     if(CHKZ || (CHKN && !CHKV) || (!CHKN && CHKV)) {
       ADD_CYCLE(12);
+      cpu_prefetch();
       return;
     }
     break;
@@ -115,6 +130,7 @@ void dbcc(struct cpu *cpu, WORD op)
     cpu->d[r] |= 0xffff;
     ADD_CYCLE(14);
   }
+  cpu_prefetch();
 }
 
 static struct cprint *dbcc_print(LONG addr, WORD op)

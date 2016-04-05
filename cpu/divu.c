@@ -27,6 +27,7 @@ static void divu(struct cpu *cpu, WORD op)
     cpu->d[reg] = r;
   }
   ADD_CYCLE(136);
+  cpu_prefetch();
 }
 
 static struct cprint *divu_print(LONG addr, WORD op)

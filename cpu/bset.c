@@ -56,6 +56,8 @@ static void bset(struct cpu *cpu, WORD op)
     bset_r(cpu, (op&0xe00)>>9, op&0x3f);
     break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *bset_print(LONG addr, WORD op)

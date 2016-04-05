@@ -37,14 +37,15 @@ static void tst(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     tst_b(cpu, op);
-    return;
+    break;
   case 1:
     tst_w(cpu, op);
-    return;
+    break;
   case 2:
     tst_l(cpu, op);
-    return;
+    break;
   }
+  cpu_prefetch();
 }
 
 static struct cprint *tst_print(LONG addr, WORD op)

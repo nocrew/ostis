@@ -9,10 +9,49 @@
 #define BCC_PREFETCH_1  4
 #define BCC_PREFETCH_2  5
 
+// Only call with cc = 2-15.
+static int condition_true(int cc)
+{
+  switch(cc) {
+  case 2: /* BHI */
+    return !CHKC && !CHKZ;
+  case 3: /* BLS */
+    return CHKC || CHKZ;
+  case 4: /* BCC */
+    return !CHKC;
+  case 5: /* BCS */
+    return CHKC;
+  case 6: /* BNE */
+    return !CHKZ;
+  case 7: /* BEQ */
+    return CHKZ;
+  case 8: /* BVC */
+    return !CHKV;
+  case 9: /* BVS */
+    return CHKV;
+  case 10: /* BPL */
+    return !CHKN;
+  case 11: /* BMI */
+    return CHKN;
+  case 12: /* BGE */
+    return (CHKN && CHKV) || (!CHKN && !CHKV);
+  case 13: /* BLT */
+    return (CHKN && !CHKV) || (!CHKN && CHKV);
+  case 14: /* BGT */
+    return (CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ);
+  case 15: /* BLE */
+    return CHKZ || (CHKN && !CHKV) || (!CHKN && CHKV);
+  default:
+    // It's an error to get here.
+    return 0;
+  }
+}
+
 static void bcc(struct cpu *cpu, WORD op)
 {
   static SLONG o;
   static int w;
+  int cc ;
 
   ENTER;
   
@@ -30,7 +69,8 @@ static void bcc(struct cpu *cpu, WORD op)
       w = 1;
     }
 
-    switch((op&0xf00)>>8) {
+    cc = (op&0xf00)>>8;
+    switch(cc) {
     case 0: /* BRA */
       cpu->pc += o;
       cpu->instr_state = BCC_PREFETCH_1;
@@ -38,112 +78,8 @@ static void bcc(struct cpu *cpu, WORD op)
     case 1: /* BSR */
       cpu->instr_state = BSR_PUSH_1;
       break;
-    case 2: /* BHI */
-      if(!CHKC && !CHKZ) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 3: /* BLS */
-      if(CHKC || CHKZ) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 4: /* BCC */
-      if(!CHKC) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 5: /* BCS */
-      if(CHKC) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 6: /* BNE */
-      if(!CHKZ) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 7: /* BEQ */
-      if(CHKZ) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 8: /* BVC */
-      if(!CHKV) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 9: /* BVS */
-      if(CHKV) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 10: /* BPL */
-      if(!CHKN) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 11: /* BMI */
-      if(CHKN) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 12: /* BGE */
-      if((CHKN && CHKV) || (!CHKN && !CHKV)) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 13: /* BLT */
-      if((CHKN && !CHKV) || (!CHKN && CHKV)) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 14: /* BGT */
-      if((CHKN && CHKV && !CHKZ) || (!CHKN && !CHKV && !CHKZ)) {
-        cpu->instr_state = BCC_PREFETCH_1;
-        cpu->pc += o;
-      } else {
-        cpu->instr_state = BCC_NOT_TAKEN;
-      }
-      break;
-    case 15: /* BLE */
-      if(CHKZ || (CHKN && !CHKV) || (!CHKN && CHKV)) {
+    default:
+      if(condition_true(cc)) {
         cpu->instr_state = BCC_PREFETCH_1;
         cpu->pc += o;
       } else {

@@ -11,9 +11,8 @@
 
 static void bcc(struct cpu *cpu, WORD op)
 {
-  SLONG o;
+  static SLONG o;
   static int w;
-  static int saved_pc;
 
   ENTER;
   
@@ -37,8 +36,6 @@ static void bcc(struct cpu *cpu, WORD op)
       cpu->instr_state = BCC_PREFETCH_1;
       break;
     case 1: /* BSR */
-      saved_pc = cpu->pc;
-      cpu->pc += o;
       cpu->instr_state = BSR_PUSH_1;
       break;
     case 2: /* BHI */
@@ -165,13 +162,14 @@ static void bcc(struct cpu *cpu, WORD op)
   case BSR_PUSH_1:
     ADD_CYCLE(4);
     cpu->a[7] -= 4;
-    bus_write_word(cpu->a[7], saved_pc >> 16);
+    bus_write_word(cpu->a[7], cpu->pc >> 16);
     cpu->instr_state = BSR_PUSH_2;
     break;
   case BSR_PUSH_2:
     ADD_CYCLE(4);
-    bus_write_word(cpu->a[7] + 2, saved_pc);
+    bus_write_word(cpu->a[7] + 2, cpu->pc);
     cpu->instr_state = BCC_PREFETCH_1;
+    cpu->pc += o;
     break;
   case BCC_PREFETCH_1:
     ADD_CYCLE(4);

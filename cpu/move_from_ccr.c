@@ -10,6 +10,7 @@ static void move_from_ccr(struct cpu *cpu, WORD op)
 
   ADD_CYCLE(8); /* really 6 for EA==reg, but that will be 8 anyway */
   ea_write_word(cpu, op&0x3f, cpu->sr&0xff);
+  cpu_prefetch();
 }
 
 static void move_from_ccr_print(struct cpu *cpu, WORD op)

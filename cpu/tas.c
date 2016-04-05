@@ -16,6 +16,8 @@ static void tas(struct cpu *cpu, WORD op)
   } else {
     ADD_CYCLE(14);
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *tas_print(LONG addr, WORD op)

@@ -300,7 +300,7 @@ void shift_rr(void)
 
 #define CASE(N, X) case N: X; break
 
-/* SHFITER STATE MACHINE
+/* SHIFTER STATE MACHINE
  *
  * This implementation is split in two parts: one handles the rotating
  * registers, RR, and the other handles the internal registers, IR.
@@ -313,7 +313,7 @@ void shift_rr(void)
  * The IR part only runs when the DE signal from the GLUE is active.
  * To make this work, there must be a 5-cycle delay from the start of
  * DE until the IR parts starts running, and a equal delay from the
- * end of DE until he IR pars pauses.
+ * end of DE until he IR part pauses.
  *
  * The two parts must be synchronised, so that a copy from the IR
  * registers to the RR registers happen at the right time.

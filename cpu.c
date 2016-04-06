@@ -233,6 +233,12 @@ int cpu_step_instr(int trace)
               cprint->data);
       free(cprint);
     }
+    if(mmu_device->verbosity >= LEVEL_TRACE) {
+      struct cprint *cprint;
+      cprint = cprint_instr(cpu->pc);
+      TRACE("%06X %s %s", cpu->pc, cprint->instr, cprint->data);
+      free(cprint);
+    }
 
     op = fetch_instr(cpu);
 
@@ -255,6 +261,7 @@ int cpu_step_instr(int trace)
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
   }
+  CLOCK("Instruction took %d cycles", cpu->icycle);
   cpu_do_cycle(cpu->icycle);
   cpu_check_for_pending_interrupts();
 
@@ -358,6 +365,7 @@ void cpu_do_cycle(LONG cnt)
   int i;
 
   if(cnt&3) {
+    CLOCK("Wait states: %d", 4-(cnt&3));
     cnt = (cnt&0xfffffffc)+4;
   }
   // All intermediate operations inside an instruction take an even
@@ -485,6 +493,8 @@ void cpu_clear_prefetch()
 void cpu_init()
 {
   int i;
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 
   cpu = xmalloc(sizeof(struct cpu));
   if(!cpu) {
@@ -1120,6 +1130,12 @@ static int cpu_new_instr(int cpu_run_state)
             cprint->data);
     free(cprint);
   }
+  if(mmu_device->verbosity >= LEVEL_TRACE) {
+    struct cprint *cprint;
+    cprint = cprint_instr(cpu->pc);
+    TRACE("%06X %s %s", cpu->pc, cprint->instr, cprint->data);
+    free(cprint);
+  }
   cpu_fetch_instr();
   return CPU_OK;
 }
@@ -1166,6 +1182,7 @@ static int cpu_step_cycle(int cpu_run_state)
    * the right way.
    */
   if((cpu->cycle&3) != 0) {
+    CLOCK("Wait states: 1");
     return CPU_OK;
   }
 

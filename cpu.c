@@ -1433,7 +1433,7 @@ void cpu_init_clocked()
   eori_to_sr_init((void *)instr_clocked, (void *)instr_print); /* overlaps eori_init */
   eori_to_ccr_init((void *)instr_clocked, (void *)instr_print);
 
-  cmp_init((void *)instr_clocked, (void *)instr_print); /* overlaps eor_init */
+  cmp_instr_init((void *)instr_clocked, (void *)instr_print); /* overlaps eor_init */
   cmpm_init((void *)instr_clocked, (void *)instr_print);
 
   trap_init((void *)instr_clocked, (void *)instr_print);

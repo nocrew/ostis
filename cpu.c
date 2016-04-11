@@ -1262,11 +1262,11 @@ static int cpu_clock(int cpu_run_state)
      */
     return cpu_instr_done(cpu_run_state);
   } else {
-    cpu->clock = cpu->cycle;
     glue_clock();
     mmu_clock();
     shifter_clock();
     cpu->cycle++;
+    cpu->clock = cpu->cycle;
   }
   
   return ret;

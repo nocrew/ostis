@@ -3,6 +3,7 @@
 #include "common.h"
 #include "cpu.h"
 #include "mmu.h"
+#include "diag.h"
 
 #define MAXDIAG 10000
 
@@ -35,7 +36,7 @@ static void add_module(char *module_str)
   
   if(module_str[0] == '-') {
     if(!strchr(module_str, ':')) {
-      new->verbosity_limit = 1;
+      new->verbosity_limit = LEVEL_FATAL;
     } else {
       printf("ERROR! Cannot have both -ID and explicit level at once\n");
       exit(-1);
@@ -48,8 +49,8 @@ static void add_module(char *module_str)
     tmp[0] = '\0';
     tmp++;
     new->verbosity_limit = atoi(tmp);
-    if(new->verbosity_limit < 1) {
-      new->verbosity_limit = 1;
+    if(new->verbosity_limit < LEVEL_FATAL) {
+      new->verbosity_limit = LEVEL_FATAL;
     }
   }
   new->id = module_str;
@@ -103,7 +104,7 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
 
   if(device == NULL) {
     id = "";
-    verbosity = 3;
+    verbosity = LEVEL_WARN;
   } else {
     id = device->id;
     verbosity = device->verbosity;
@@ -122,9 +123,9 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
   }
   
   fprintf(stderr, "%s", level_name[level]);
-  if(level == 6) {
+  if(level == LEVEL_TRACE) {
     fprintf(stderr, " [$%06x]", cpu->pc);
-  } else if(level == 7) {
+  } else if(level == LEVEL_CLOCK) {
     fprintf(stderr, " [%010u]", cpu->clock);
   }
   fprintf(stderr, ": ");
@@ -137,7 +138,7 @@ void print_diagnostic(int level, struct mmu *device, const char *format, ...)
   fputc('\n', stderr);
 
   // Fatal error, abort immediately.
-  if(level == 1)
+  if(level == LEVEL_FATAL)
     exit(1);
 }
 

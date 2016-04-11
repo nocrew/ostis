@@ -113,7 +113,7 @@ static void mmu_send_bus_error(int reading, LONG addr)
   }
   
   DEBUG("BUS ERROR at 0x%08x", addr);
-  if(mmu_device->verbosity > 4)
+  if(mmu_device->verbosity > LEVEL_INFO)
     cpu_print_status(CPU_USE_LAST_PC);
 
   cpu_set_bus_error(flags, addr);
@@ -138,7 +138,7 @@ static void mmu_send_address_error(int reading, LONG addr)
   }
   
   DEBUG("ADDRESS ERROR at 0x%08x", addr);
-  if(mmu_device->verbosity > 4)
+  if(mmu_device->verbosity > LEVEL_INFO)
     cpu_print_status(CPU_USE_LAST_PC);
   
   cpu_set_address_error(flags, addr);

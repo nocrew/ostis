@@ -16,22 +16,33 @@
 extern void diag_set_module_levels(char *);
 extern void print_diagnostic(int, struct mmu *, const char *, ...);
 
+#define LEVEL_FATAL  1
+#define LEVEL_ERROR  2
+#define LEVEL_WARN   3
+#define LEVEL_INFO   4
+#define LEVEL_DEBUG  5
+#define LEVEL_TRACE  6
+#define LEVEL_CLOCK  7
+
+#define PRINT_DIAG(LEVEL, FORMAT, ...) \
+  print_diagnostic(LEVEL_##LEVEL, mmu_device, FORMAT, ##__VA_ARGS__)
+
 // Panic, we're about to die!
-#define FATAL(FORMAT, ...)  print_diagnostic(1, mmu_device, FORMAT, ##__VA_ARGS__)
+#define FATAL(FORMAT, ...)  PRINT_DIAG(FATAL, FORMAT, ##__VA_ARGS__)
 // Serous error, but we can proceed.
-#define ERROR(FORMAT, ...)  print_diagnostic(2, mmu_device, FORMAT, ##__VA_ARGS__)
+#define ERROR(FORMAT, ...)  PRINT_DIAG(ERROR, FORMAT, ##__VA_ARGS__)
 // Problem, alert the user.
-#define WARN(FORMAT, ...)   print_diagnostic(3, mmu_device, FORMAT, ##__VA_ARGS__)
+#define WARN(FORMAT, ...)   PRINT_DIAG(WARN, FORMAT, ##__VA_ARGS__)
 // No problem, but user may want to know.
-#define INFO(FORMAT, ...)   print_diagnostic(4, mmu_device, FORMAT, ##__VA_ARGS__)
+#define INFO(FORMAT, ...)   PRINT_DIAG(INFO, FORMAT, ##__VA_ARGS__)
 // Step-by-step description of internal mechanisms.
-#define DEBUG(FORMAT, ...)  print_diagnostic(5, mmu_device, FORMAT, ##__VA_ARGS__)
+#define DEBUG(FORMAT, ...)  PRINT_DIAG(DEBUG, FORMAT, ##__VA_ARGS__)
 
 #ifdef DBG
 // Feel free to call this just about CPU instruction.
-#define TRACE(FORMAT, ...)  print_diagnostic(6, mmu_device, FORMAT, ##__VA_ARGS__)
+#define TRACE(FORMAT, ...)  PRINT_DIAG(TRACE, FORMAT, ##__VA_ARGS__)
 // Feel free to call this just about every clock cycle.
-#define CLOCK(FORMAT, ...)  print_diagnostic(7, mmu_device, FORMAT, ##__VA_ARGS__)
+#define CLOCK(FORMAT, ...)  PRINT_DIAG(CLOCK, FORMAT, ##__VA_ARGS__)
 
 #define ASSERT(CONDITION)				\
   do {							\

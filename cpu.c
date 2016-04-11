@@ -1118,6 +1118,9 @@ static int cpu_new_instr(int cpu_run_state)
 {
   cpu_trigger_exceptions();
 
+  CLOCK("Instruction took %d cycles", (int)(cpu->cycle - cpu->start_cycle));
+
+  cpu->start_cycle = cpu->cycle;
   cpu->instr_state = INSTR_STATE_NONE;
   if(cprint_all) {
     struct cprint *cprint;

@@ -34,6 +34,12 @@ WORD ram_read_word(LONG addr)
   return (ram_read_byte(addr)<<8)|ram_read_byte(addr+1);
 }
 
+WORD ram_read_word_shifter(LONG addr)
+{
+  if(addr > RAM_PHYSMAX) return 0;
+  return (*real(addr) << 8) + *real(addr+1);
+}
+
 static void ram_write_byte(LONG addr, BYTE data)
 {
   MMU_WAIT_STATES();

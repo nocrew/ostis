@@ -555,7 +555,7 @@ void mmu_clock(void)
   // MMU can only access RAM at cycle 2 within a bus cycle.
   if((clock & 3) == 2 && (load & -4) == 0) {
     CLOCK("LOAD");
-    shifter_load(ram_read_word(scrptr));
+    shifter_load(ram_read_word_shifter(scrptr));
     scrptr += 2;
     load = de ? 4 : -1;
   }

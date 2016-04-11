@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
       prefs_set("cartimage", optarg);
       break;
     case OPT_FORCE_EXTREME_DISASM:
-      cprint_all = 1;
+      diag_set_module_levels("CPU0:6");
       break;
     case OPT_CROP_SCREEN:
       crop_screen = 1;

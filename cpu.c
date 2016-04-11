@@ -52,8 +52,6 @@ static int bus_error_address = 0;
 static LONG last_pc = 0;
 static int reset_cpu = 0;
 
-int cprint_all = 0;
-
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
 static instr_t *instr_clocked[65536];
@@ -222,15 +220,10 @@ int cpu_step_instr(int trace)
 #if TEST_BUILD
     test_call_hooks(TEST_HOOK_BEFORE_INSTR, cpu);
 #endif
-    if(cprint_all) {
+    if(mmu_device->verbosity >= LEVEL_TRACE) {
       struct cprint *cprint;
       cprint = cprint_instr(cpu->pc);
-      fprintf(stderr, "DEBUG-ASM: [%ld] %04x %06X      %s %s\n",
-              cpu->cycle,
-              cpu->sr,
-              cpu->pc,
-              cprint->instr,
-              cprint->data);
+      TRACE("%06X %s %s", cpu->pc, cprint->instr, cprint->data);
       free(cprint);
     }
 
@@ -255,6 +248,7 @@ int cpu_step_instr(int trace)
   } else {
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
   }
+  CLOCK("Instruction took %d cycles", cpu->icycle);
   cpu_do_cycle(cpu->icycle);
   cpu_check_for_pending_interrupts();
 
@@ -358,6 +352,7 @@ void cpu_do_cycle(LONG cnt)
   int i;
 
   if(cnt&3) {
+    CLOCK("Wait states: %d", 4-(cnt&3));
     cnt = (cnt&0xfffffffc)+4;
   }
   // All intermediate operations inside an instruction take an even
@@ -485,6 +480,8 @@ void cpu_clear_prefetch()
 void cpu_init()
 {
   int i;
+
+  HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 
   cpu = xmalloc(sizeof(struct cpu));
   if(!cpu) {
@@ -1108,16 +1105,14 @@ static int cpu_new_instr(int cpu_run_state)
 {
   cpu_trigger_exceptions();
 
+  CLOCK("Instruction took %d cycles", (int)(cpu->cycle - cpu->start_cycle));
+
+  cpu->start_cycle = cpu->cycle;
   cpu->instr_state = INSTR_STATE_NONE;
-  if(cprint_all) {
+  if(mmu_device->verbosity >= LEVEL_TRACE) {
     struct cprint *cprint;
     cprint = cprint_instr(cpu->pc);
-    fprintf(stderr, "DEBUG-ASM: [%ld] %04x %06X      %s %s\n",
-            cpu->cycle,
-            cpu->sr,
-            cpu->pc,
-            cprint->instr,
-            cprint->data);
+    TRACE("%06X %s %s", cpu->pc, cprint->instr, cprint->data);
     free(cprint);
   }
   cpu_fetch_instr();
@@ -1166,6 +1161,7 @@ static int cpu_step_cycle(int cpu_run_state)
    * the right way.
    */
   if((cpu->cycle&3) != 0) {
+    CLOCK("Wait states: 1");
     return CPU_OK;
   }
 
@@ -1245,11 +1241,11 @@ static int cpu_clock(int cpu_run_state)
      */
     return cpu_instr_done(cpu_run_state);
   } else {
-    cpu->clock = cpu->cycle;
     glue_clock();
     mmu_clock();
     shifter_clock();
     cpu->cycle++;
+    cpu->clock = cpu->cycle;
   }
   
   return ret;

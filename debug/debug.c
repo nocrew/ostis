@@ -10,6 +10,7 @@
 #include "cprint.h"
 #include "mfp.h"
 #include "ikbd.h"
+#include "diag.h"
 
 #define VIEW_DISPLAY 0
 #define VIEW_DEBUG   1
@@ -91,7 +92,8 @@ static int debug_do_key_normal(SDL_KeyboardEvent key)
     win_cycle_selected();
     break;
   case SDLK_PRINTSCREEN:
-    cprint_all = !cprint_all;
+    // TODO: toggle this state.
+    diag_set_module_levels("CPU0:6");
     break;
   case SDLK_UP:
     win_move_window(MOVE_UP, k.mod&KMOD_SHIFT);

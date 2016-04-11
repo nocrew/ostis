@@ -10,6 +10,7 @@
 #include "mfp.h"
 #include "state.h"
 #include "screen.h"
+#include "diag.h"
 
 static struct state *laststate;
 
@@ -91,7 +92,8 @@ static int event_key(SDL_KeyboardEvent key, int state)
       }
     } else {
       if(state == EVENT_RELEASE) {
-        cprint_all = !cprint_all;
+	// TODO: toggle this state.
+	diag_set_module_levels("CPU0:6");
       }
     }
   } else if(k.sym == SDLK_F12) {

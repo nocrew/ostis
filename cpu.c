@@ -52,8 +52,6 @@ static int bus_error_address = 0;
 static LONG last_pc = 0;
 static int reset_cpu = 0;
 
-int cprint_all = 0;
-
 typedef void instr_t(struct cpu *, WORD);
 static instr_t *instr[65536];
 static instr_t *instr_clocked[65536];
@@ -222,17 +220,6 @@ int cpu_step_instr(int trace)
 #if TEST_BUILD
     test_call_hooks(TEST_HOOK_BEFORE_INSTR, cpu);
 #endif
-    if(cprint_all) {
-      struct cprint *cprint;
-      cprint = cprint_instr(cpu->pc);
-      fprintf(stderr, "DEBUG-ASM: [%ld] %04x %06X      %s %s\n",
-              cpu->cycle,
-              cpu->sr,
-              cpu->pc,
-              cprint->instr,
-              cprint->data);
-      free(cprint);
-    }
     if(mmu_device->verbosity >= LEVEL_TRACE) {
       struct cprint *cprint;
       cprint = cprint_instr(cpu->pc);
@@ -1122,17 +1109,6 @@ static int cpu_new_instr(int cpu_run_state)
 
   cpu->start_cycle = cpu->cycle;
   cpu->instr_state = INSTR_STATE_NONE;
-  if(cprint_all) {
-    struct cprint *cprint;
-    cprint = cprint_instr(cpu->pc);
-    fprintf(stderr, "DEBUG-ASM: [%ld] %04x %06X      %s %s\n",
-            cpu->cycle,
-            cpu->sr,
-            cpu->pc,
-            cprint->instr,
-            cprint->data);
-    free(cprint);
-  }
   if(mmu_device->verbosity >= LEVEL_TRACE) {
     struct cprint *cprint;
     cprint = cprint_instr(cpu->pc);

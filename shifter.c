@@ -22,6 +22,7 @@
 #include "state.h"
 #include "diag.h"
 #include "glue.h"
+#include "clock.h"
 
 #define SHIFTERSIZE 64
 #define SHIFTERBASE 0xff8240
@@ -312,7 +313,11 @@ void shift_rr(void)
 
 void shifter_clock(void)
 {
-  CLOCK("load_pixels = %d, rr_pixels = %d, loads = %d", load_pixels, rr_pixels, loads);
+  if(counting)
+    load_pixels++;
+  else
+    load_pixels = 4;
+
   res.draw();
 
   if(reload) {
@@ -330,19 +335,22 @@ void shifter_clock(void)
     if(loads == 4) {
       reload = 1;
       load_rr();
-      if(!de) {
-	CLOCK("Not counting");
+      if(!de)
 	counting = 0;
-      }
     }
   }
 
-  if(counting)
-    load_pixels++;
-  else
-    load_pixels = 3;
-
   rr_pixels++;
+}
+
+static void increment_loads(void)
+{
+  loads++;
+}
+
+static void set_counting(void)
+{
+  counting = 1;
 }
 
 void shifter_load(WORD data)
@@ -350,14 +358,14 @@ void shifter_load(WORD data)
   if(loads < 4) {
     CLOCK("LOAD IR%d: %04x", loads, data);
     IR[loads] = data;
-    loads++;
   } else
     CLOCK("LOAD missed: %04x", data);
 
-  if(de) {
-    CLOCK("Counting");
-    counting = 1;
-  }
+  // "Loads" is incremented one cycle after LOAD, and the pixel
+  // counter starts two more cycles after that.
+  clock_delay(0, increment_loads);
+  if(de)
+    clock_delay(2, set_counting);
 }
 
 void shifter_de(int x)

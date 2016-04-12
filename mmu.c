@@ -57,6 +57,7 @@
 #include "ram.h"
 #include "state.h"
 #include "diag.h"
+#include "clock.h"
 
 #define MMUSIZE 64
 #define MMUBASE 0xff8200
@@ -532,16 +533,26 @@ void mmu_do_interrupts(struct cpu *cpu)
 
 static int de = 0;
 static int clock = 0;
-static int load = -1;
+static int load = 0;
+
+static void raise_load(void)
+{
+  load = 1;
+}
+
+static void lower_load(void)
+{
+  load = 0;
+}
 
 void mmu_de(int enable)
 {
   if(enable)
     CLOCK("DE");
-  de = enable;
-  if(de && load < 0)
+  if(enable != de)
     // 3-6 cycle delay from DE to LOAD, depends on the phase of the GLUE clock.
-    load = 6;
+    clock_delay(2, enable ? raise_load : lower_load);
+  de = enable;
 }
 
 void mmu_vsync(void)
@@ -553,12 +564,10 @@ void mmu_vsync(void)
 void mmu_clock(void)
 {
   // MMU can only access RAM at cycle 2 within a bus cycle.
-  if((clock & 3) == 2 && (load & -4) == 0) {
+  if((clock & 3) == 2 && load) {
     CLOCK("LOAD");
     shifter_load(ram_read_word_shifter(scrptr));
     scrptr += 2;
-    load = de ? 4 : -1;
   }
   clock++;
-  load--;
 }

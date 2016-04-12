@@ -7,14 +7,14 @@
 #include "cpu.h"
 #include "mfp.h"
 #include "expr.h"
-#include "shifter.h"
-#include "glue.h"
 #include "mmu.h"
 #include "ikbd.h"
 #include "instr.h"
 #include "instr_clocked.h"
 #include "state.h"
 #include "diag.h"
+#include "clock.h"
+
 #if TEST_BUILD
 #include "tests/test_main.h"
 #endif
@@ -361,9 +361,7 @@ void cpu_do_cycle(LONG cnt)
 
   cpu->clock = cpu->cycle;
   for(i = 0; i < cnt; i++) {
-    glue_clock();
-    mmu_clock();
-    shifter_clock();
+    clock_step();
     cpu->clock++;
   }
 
@@ -1241,9 +1239,7 @@ static int cpu_clock(int cpu_run_state)
      */
     return cpu_instr_done(cpu_run_state);
   } else {
-    glue_clock();
-    mmu_clock();
-    shifter_clock();
+    clock_step();
     cpu->cycle++;
     cpu->clock = cpu->cycle;
   }

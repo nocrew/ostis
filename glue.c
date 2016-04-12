@@ -113,7 +113,7 @@ static void hsync(const char *message)
 static void mode_50(void)
 {
   switch(counter) {
-  CASE( 30, shifter_blank(0));
+  CASE( 28, shifter_blank(0));
   CASE( 54, counter_end = 512);
   CASE( 56, h = 1; cpu_ipl1());
   CASE(256, if(line == 312) cpu_ipl2());
@@ -133,10 +133,9 @@ static void mode_50(void)
 static void mode_60(void)
 {
   switch(counter) {
-  CASE( 30, shifter_blank(0));
-  CASE( 52, h = 1);
+  CASE( 24, shifter_blank(0));
+  CASE( 52, h = 1;  cpu_ipl1());
   CASE( 54, counter_end = 508);
-  CASE( 56, cpu_ipl1());
   CASE(256, if(line == 263) cpu_ipl2());
   CASE(372, h = 0);
   CASE(400, if(v) mfp_do_timerb_event(cpu)); //Should be 372
@@ -154,9 +153,8 @@ static void mode_60(void)
 static void mode_71(void)
 {
   switch(counter) {
-  CASE(  4, h = 1);
+  CASE(  4, h = 1; cpu_ipl1());
   CASE( 54, counter_end = 224);
-  CASE( 56, cpu_ipl1());
   CASE( 80, if(line == 500) cpu_ipl2());
   CASE(164, h = 0; if(v) mfp_do_timerb_event(cpu));
   //   184, blank on

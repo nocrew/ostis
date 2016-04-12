@@ -22,6 +22,7 @@
 #include "state.h"
 #include "diag.h"
 #include "glue.h"
+#include "clock.h"
 
 #define SHIFTERSIZE 64
 #define SHIFTERBASE 0xff8240
@@ -59,10 +60,14 @@ static struct resolution_data res_data[] = {
 
 static WORD IR[4];
 static WORD RR[4];
-static int ir_data = -1;
-static unsigned ir_clock = 0;
-static unsigned rr_clock = 0;
+static int de = 0;
 static int blank = 0;
+static int loads = 0;
+static int reload = 0;
+static int load_pixels = 4;
+static int rr_pixels = 0;
+static int counting = 0;
+
 static char de_history[16]; // Better go with power of two.
 
 static long palette_r[16];
@@ -266,15 +271,6 @@ static void shifter_draw_high(void)
   }
 }
 
-static void load_ir(void)
-{
-  if (ir_data >= 0) {
-    CLOCK("Load IR%d: %04x", (ir_clock >> 2) & 3, ir_data);
-    IR[(ir_clock >> 2) & 3] = ir_data;
-    ir_data = -1;
-  }
-}
-
 static void load_rr(void)
 {
   memcpy(RR, IR, sizeof RR);
@@ -283,7 +279,7 @@ static void load_rr(void)
 
 void shift_rr(void)
 {
-  if(res.bitplanes == 2 && (rr_clock & 15) == 4) {
+  if(res.bitplanes == 2 && rr_pixels == 7) {
     RR[0] = RR[2];
     RR[1] = RR[3];
     RR[2] = 0;
@@ -298,64 +294,84 @@ void shift_rr(void)
   }
 }
 
-#define CASE(N, X) case N: X; break
-
 /* SHIFTER STATE MACHINE
  *
- * This implementation is split in two parts: one handles the rotating
- * registers, RR, and the other handles the internal registers, IR.
+ * The shifter has two sets of registers: the rotating registers, RR,
+ * and the internal registers, IR.
  *
- * The RR part runs continuously.  The registers shift out pixels
- * every clock cycle.  In high and medium resolution, the higher-
- * numbered registers are copied to the lower-numbered every 4 or 8
- * cycles, respectively.
+ * The RR registers shift out pixels every clock cycle.  In high and
+ * medium resolution, the higher-numbered registers are copied to the
+ * lower-numbered every 4 or 8 cycles, respectively.
  *
- * The IR part only runs when the DE signal from the GLUE is active.
- * To make this work, there must be a 5-cycle delay from the start of
- * DE until the IR parts starts running, and a equal delay from the
- * end of DE until he IR part pauses.
+ * One IR register is loaded every time the MMU raises load.  When
+ * four IR registers have been loaded, they are copied to the RR
+ * registers.
  *
- * The two parts must be synchronised, so that a copy from the IR
- * registers to the RR registers happen at the right time.
+ * These two processes must be synchronised, so that a copy from the
+ * IR registers to the RR registers happens at the right time.
  */
 
 void shifter_clock(void)
 {
-  // RR part: check every four cycles whether copying needs to happen.
-  if((rr_clock & 3) == 0) {
-    shift_rr();
-  }
-
-  // IR part: check every four cycles whether the MMU has provided any
-  // data and raised LOAD.  Every sixteen cycles, copy all IR registers
-  // to RR.
-  switch(ir_clock & 15) {
-    CASE( 3, load_ir());
-    CASE( 7, load_ir());
-    CASE(11, load_ir());
-    CASE(15, load_ir(); load_rr());
-  }
+  if(counting)
+    load_pixels++;
+  else
+    load_pixels = 4;
 
   res.draw();
 
-  // Check if the DE was active five cycles back; if so increment the
-  // RR clock counter.
-  if(de_history[(rr_clock - 5) % sizeof de_history]) {
-    ir_clock++;
+  if(reload) {
+    reload = 0;
+    loads = 0;
   }
-  rr_clock++;
+
+  if((rr_pixels & 3) == 3) {
+    shift_rr();
+  }
+
+  if(load_pixels == 15) {
+    load_pixels = -1;
+    rr_pixels = -1;
+    if(loads == 4) {
+      reload = 1;
+      load_rr();
+      if(!de)
+	counting = 0;
+    }
+  }
+
+  rr_pixels++;
+}
+
+static void increment_loads(void)
+{
+  loads++;
+}
+
+static void set_counting(void)
+{
+  counting = 1;
 }
 
 void shifter_load(WORD data)
 {
-  CLOCK("LOAD: %04x", data);
-  ir_data = data;
+  if(loads < 4) {
+    CLOCK("LOAD IR%d: %04x", loads, data);
+    IR[loads] = data;
+  } else
+    CLOCK("LOAD missed: %04x", data);
+
+  // "Loads" is incremented one cycle after LOAD, and the pixel
+  // counter starts two more cycles after that.
+  clock_delay(0, increment_loads);
+  if(de)
+    clock_delay(2, set_counting);
 }
 
 void shifter_de(int x)
 {
-  // Save the state if the DE signal in a circular buffer.
-  de_history[rr_clock % sizeof de_history] = x;
+  de = x;
+  CLOCK("DE = %d", de);
 }
 
 void shifter_blank(int x)

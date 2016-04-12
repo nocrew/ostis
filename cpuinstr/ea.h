@@ -71,9 +71,9 @@ static LONG ea_addr(struct cpu *cpu, int size, WORD mode, WORD *words)
   if(EA_MODE_AROF(mode)) {
     addr += EXTEND_BY2L(words[0]&0xff);
     if(words[0]&0x8000) {
-      disp = cpu->a[words[0]&0x7000];
+      disp = cpu->a[(words[0]&0x7000)>>12];
     } else {
-      disp = cpu->d[words[0]&0x7000];
+      disp = cpu->d[(words[0]&0x7000)>>12];
     }
     if(words[0]&0x800) {
       disp = EXTEND_WORD(disp&0xffff);
@@ -85,9 +85,9 @@ static LONG ea_addr(struct cpu *cpu, int size, WORD mode, WORD *words)
     addr = cpu->pc;
     addr += EXTEND_BY2L(words[0]&0xff);
     if(words[0]&0x8000) {
-      disp = cpu->a[words[0]&0x7000];
+      disp = cpu->a[(words[0]&0x7000)>>12];
     } else {
-      disp = cpu->d[words[0]&0x7000];
+      disp = cpu->d[(words[0]&0x7000)>>12];
     }
     if(words[0]&0x800) {
       disp = EXTEND_WORD(disp&0xffff);

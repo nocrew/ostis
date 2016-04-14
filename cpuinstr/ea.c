@@ -1,14 +1,11 @@
 #include "cpu.h"
 #include "ea.h"
+#include "ucode.h"
 
-static int ea_cycles;
 static LONG ea_address;
 static LONG ea_data;
 static LONG ea_mask;
 static WORD (*ea_read)(LONG);
-
-typedef void (*uop_t)(void);
-static uop_t *ea_upc;
 
 static LONG sign_ext_8(BYTE x)
 {
@@ -110,7 +107,7 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     break;
   case 2:
     size = 4;
-    long_cycles = 4;
+    long_cycles = 2;
     break;
   }
 
@@ -119,83 +116,67 @@ void ea_begin_read(struct cpu *cpu, WORD op)
 
   switch(mode) {
   case 0x00:
-    ea_cycles = 0;
     ea_data = cpu->d[reg];
+    ujump(0, 0);
     break;
   case 0x08:
-    ea_cycles = 0;
     ea_data = cpu->a[reg];
+    ujump(0, 0);
     break;
   case 0x10:
-    ea_cycles = 4 + long_cycles; // nr(nr)
     ea_data = ea_read(cpu->a[reg]);
     ea_address = cpu->a[reg] + 2;
-    ea_upc = indirect_uops;
+    ujump(indirect_uops, 2 + long_cycles); // nr(nr)
     break;
   case 0x18:
-    ea_cycles = 4 + long_cycles; // nr(nr)
     ea_data = ea_read(cpu->a[reg]);
     ea_address = cpu->a[reg] + 2;
     cpu->a[reg] += size;
-    ea_upc = indirect_uops;
+    ujump(indirect_uops, 2 + long_cycles); // nr(nr);
     break;
   case 0x20:
-    ea_cycles = 6 + long_cycles; // nnr(nr)
     cpu->a[reg] -= size;
     ea_address = cpu->a[reg];
-    ea_upc = predecrement_uops;
+    ujump(predecrement_uops, 3 + long_cycles); // nnr(nr);
     break;
   case 0x28:
-    ea_cycles = 8 + long_cycles; // npnr(nr)
     ea_address = cpu->a[reg] + sign_ext_16(fetch());
-    ea_upc = displacement_uops;
+    ujump(displacement_uops, 4 + long_cycles); // npnr(nr);
     break;
   case 0x30:
-    ea_cycles = 10 + long_cycles; // nnpnr(nr)
     ea_address = cpu->a[reg];
-    ea_upc = index_uops;
+    ujump(index_uops, 5 + long_cycles); // nnpnr(nr);
     break;
   case 0x38:
-    ea_cycles = 8 + long_cycles; // npnr(nr)
     ea_data = sign_ext_16(fetch());
-    ea_upc = absolute_uops + 2;
+    ujump(absolute_uops + 2, 4 + long_cycles); // npnr(nr)
     break;
   case 0x39:
-    ea_cycles = 12 + long_cycles; // npnpnr(nr)
     ea_data = fetch();
-    ea_upc = absolute_uops;
+    ujump(absolute_uops, 6 + long_cycles); // npnpnr(nr);
     break;
   case 0x3A:
-    ea_cycles = 8 + long_cycles; // npnr(nr)
     ea_address = cpu->pc;
     ea_address += sign_ext_16(fetch());
-    ea_upc = displacement_uops;
+    ujump(displacement_uops, 4 + long_cycles); // npnr(nr)
     break;
   case 0x3B:
-    ea_cycles = 10 + long_cycles; // nnpnr(nr)
     ea_address = cpu->pc;
-    ea_upc = index_uops;
+    ujump(index_uops, 5 + long_cycles); // nnpnr(nr)
     break;
   case 0x3C:
-    ea_cycles = 4 + long_cycles; // np(np)
     ea_data = fetch();
-    ea_upc = immediate_uops;
+    ujump(immediate_uops, 2 + long_cycles); // np(np)
     break;
   }
 }
 
 int ea_step(LONG *operand)
 {
-  if(ea_cycles == 0) {
+  if(ustep()) {
     *operand = ea_data & ea_mask;
     return 1;
   }
 
-  ea_cycles--;
-  if((ea_cycles & 1) == 0) {
-    (*ea_upc)();
-    ea_upc++;
-  }
-  
   return 0;
 }

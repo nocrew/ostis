@@ -345,7 +345,7 @@ void shifter_clock(void)
 
 static void increment_loads(void)
 {
-  loads++;
+  loads = MIN(4, loads + 1);
 }
 
 static void set_counting(void)

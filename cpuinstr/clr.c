@@ -3,38 +3,37 @@
 #include "cprint.h"
 #include "ea.h"
 
-#define CLR_PREFETCH  1
-#define CLR_WRITE     2
+#define CLR_READ      1
+#define CLR_PREFETCH  2
+#define CLR_WRITE     3
 
 static void clr(struct cpu *cpu, WORD op)
 {
+  LONG operand;
   ENTER;
 
   switch(cpu->instr_state) {
   case INSTR_STATE_NONE:
-    switch((op&0xc0)>>6) {
-    case 0: ea_read_byte(cpu, op&0x3f, 1); break;
-    case 1: ea_read_word(cpu, op&0x3f, 1); break;
-    case 2: ea_read_long(cpu, op&0x3f, 1); break;
-    }
-    cpu->instr_state = CLR_PREFETCH;
-    break;
+    ea_begin_read(cpu, op);
+    cpu->instr_state = CLR_READ;
+    // Fall through.
+  case CLR_READ:
+    if(!ea_step(&operand)) {
+      ADD_CYCLE(2);
+      break;
+    } else
+      cpu->instr_state = CLR_PREFETCH;
+    // Fall through.
   case CLR_PREFETCH:
     ADD_CYCLE(4);
     cpu->instr_state = CLR_WRITE;
+    ea_begin_modify(cpu, op, 0, 0, 2, 0, 0);
     break;
   case CLR_WRITE:
-    switch((op&0xc0)>>6) {
-    case 0: ea_write_byte(cpu, op&0x3f, 0); break;
-    case 1: ea_write_word(cpu, op&0x3f, 0); break;
-    case 2:
-      ea_write_long(cpu, op&0x3f, 0);
-      // Clearing a data register takes two additional cycles.
-      if(((op&0x38)>>3) == 0)
-	ADD_CYCLE(2);
-      break;
-    }
-    cpu->instr_state = INSTR_STATE_FINISHED;
+    if(ea_step(&operand)) {
+      cpu->instr_state = INSTR_STATE_FINISHED;
+    } else
+      ADD_CYCLE(2);
     cpu_set_flags_clr(cpu);
     break;
   }

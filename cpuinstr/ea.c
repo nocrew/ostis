@@ -6,6 +6,7 @@ static LONG ea_address;
 static LONG ea_data;
 static LONG ea_mask;
 static WORD (*ea_read)(LONG);
+static void (*ea_write)(LONG, WORD);
 
 static LONG sign_ext_8(BYTE x)
 {
@@ -25,9 +26,14 @@ static LONG sign_ext_16(BYTE x)
   return x;
 }
 
-static WORD ea_byte(LONG address)
+static WORD read_byte(LONG address)
 {
   return bus_read_byte(address);
+}
+
+static void write_byte(LONG address, WORD data)
+{
+  bus_write_byte(address, data);
 }
 
 static WORD fetch(void)
@@ -47,6 +53,14 @@ static void r(void)
 {
   ea_data = (ea_data << 16) + ea_read(ea_address);
   ea_address += 2;
+}
+
+// Write to memory.
+static void w(void)
+{
+  ea_address -= 2;
+  ea_write(ea_address, ea_data);
+  ea_data >>= 16;
 }
 
 // Fetch from program.
@@ -105,7 +119,7 @@ void ea_begin_read(struct cpu *cpu, WORD op)
   case 0:
     size = (reg == 7 ? 2 : 1); // SP should get even, not mad
     ea_mask = 0xff;
-    ea_read = ea_byte;
+    ea_read = read_byte;
     break;
   case 1:
     size = 2;
@@ -167,6 +181,84 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     break;
   case 0x3C:
     ujump(immediate_uops, 2 + long_cycles); // np(np)
+    break;
+  }
+}
+
+static uop_t write_reg_uops[] = { n, n, n };
+static uop_t write_mem_uops[] = { w, n, w, n };
+
+void ea_begin_modify(struct cpu *cpu, WORD op, LONG data, int c1, int c2, int c3, int c4)
+{
+  //						Byte/Word	Long
+  //						Dn, An, Mem	Dn, An, Mem
+  // EORI, ORI, ANDI, SUBI, ADDI		0   -   nw	nn  -   nwnW
+  // BCHG, BSET					-   -   nw	n/nn-   -
+  // BCLR					-   -   nw	nn/nnn- -
+  // CLR, NEGX, NEG, NOT			0   -   nw	n   -   nwnW
+  // NBCD					n   -   nw	-   -   -
+  // ADDQ, SUBQ					0   nn  nw	nn  nn  nwnw
+  // Scc					0/n -   nw	-   -   -
+  // AND, OR, ADD, SUB				0   -   nw	n/nn-   nwnW
+  // ADDA, SUBA					-   nn  -	-   n/nn-
+  // EOR					0   -   nw	nn  -   nwnW
+  // shift					n   -	nw	nn  -   -
+
+  int mode = op & 0x3f;
+  int long_cycles = 0;
+
+  ea_data = 0;
+  ea_write = bus_write_word;
+
+  switch((op >> 6) & 3) {
+  case 0:
+    ea_write = write_byte;
+    break;
+  case 2:
+    long_cycles = 2;
+    break;
+  }
+
+  if(mode < 0x38)
+    mode &= 0x38;
+
+  switch(mode) {
+  case 0x00:
+    switch((op >> 6) & 3) {
+    case 0:
+      cpu->d[op & 7] = (cpu->d[op & 7] & 0xffffff00) + (data & 0xff);
+      break;
+    case 1:
+      cpu->d[op & 7] = (cpu->d[op & 7] & 0xffff0000) + (data & 0xffff);
+      break;
+    case 2:
+      cpu->d[op & 7] = data;
+      break;
+    }
+    ujump(write_reg_uops, long_cycles ? c2 : c1);
+    break;
+  case 0x08:
+    switch((op >> 6) & 3) {
+    case 1:
+      cpu->a[op & 7] = sign_ext_16(data);
+      break;
+    case 2:
+      cpu->a[op & 7] = data;
+      break;
+    }
+    ujump(write_reg_uops, long_cycles ? c4 : c3);
+    break;
+  case 0x10:
+  case 0x18:
+  case 0x20:
+  case 0x28:
+  case 0x30:
+  case 0x38:
+  case 0x39:
+  case 0x3A:
+  case 0x3B:
+    ea_data = data;
+    ujump(write_mem_uops, 2 + long_cycles);
     break;
   }
 }

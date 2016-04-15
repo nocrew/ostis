@@ -1,713 +1,293 @@
-#include "common.h"
+/*
+ * EA calculation and operand access state machine.
+ *
+ * The primary entry points are:
+ * - ea_begin_read - start a read operation.
+ * - ea_begin_modify - start a write operation to the same location as
+ *   the previous read operation.
+ * - ea_begin_write - start a new write operation.
+ *
+ * After this, the ea_step function should be called to advance the
+ * state machine.  It returns 1 when the calculation has finished.
+ * May return immediately for i.e. register accesses which takes 0
+ * cycles.
+ */
+
 #include "cpu.h"
-#include "cprint.h"
-#include "mmu.h"
 #include "ea.h"
+#include "ucode.h"
 
-static int rmw = 0;
-static int ea_prefetch_before_write = 0;
-static int last_register_change = 0;
+static LONG ea_address;
+static LONG ea_data;
+static LONG ea_mask;
+static WORD (*ea_read)(LONG);
+static void (*ea_write)(LONG, WORD);
 
-static BYTE ea_read_000_b(struct cpu *cpu, int reg)
+static LONG sign_ext_8(LONG x)
 {
-  return cpu->d[reg]&MASK_B;
+  if(x & 0x80)
+    x |= 0xffffff00;
+  else
+    x &= 0xff;
+  return x;
 }
 
-static WORD ea_read_000_w(struct cpu *cpu, int reg)
+static LONG sign_ext_16(LONG x)
 {
-  return cpu->d[reg]&MASK_W;
+  if(x & 0x8000)
+    x |= 0xffff0000;
+  else
+    x &= 0xffff;
+  return x;
 }
 
-static LONG ea_read_000_l(struct cpu *cpu, int reg)
+static WORD read_byte(LONG address)
 {
-  return cpu->d[reg]&MASK_L;
+  return bus_read_byte(address);
 }
 
-static void ea_write_000_b(struct cpu *cpu, int reg, BYTE data)
+static void write_byte(LONG address, WORD data)
 {
-  cpu->d[reg] = (cpu->d[reg]&0xffffff00)|data;
+  bus_write_byte(address, data);
 }
 
-static void ea_write_000_w(struct cpu *cpu, int reg, WORD data)
+static WORD fetch(void)
 {
-  cpu->d[reg] = (cpu->d[reg]&0xffff0000)|data;
-}
-
-static void ea_write_000_l(struct cpu *cpu, int reg, LONG data)
-{
-  cpu->d[reg] = data;
-}
-
-static BYTE ea_read_001_b(struct cpu *cpu, int reg)
-{
-  return cpu->a[reg]&MASK_B;
-}
-
-static WORD ea_read_001_w(struct cpu *cpu, int reg)
-{
-  return cpu->a[reg]&MASK_W;
-}
-
-static LONG ea_read_001_l(struct cpu *cpu, int reg)
-{
-  return cpu->a[reg]&MASK_L;
-}
-
-static LONG ea_addr_010(struct cpu *cpu, int reg)
-{
-  return cpu->a[reg];
-}
-
-static LONG ea_addr_011(struct cpu *cpu, int reg, int size)
-{
-  if(rmw) {
-    if((size == 1) && (reg == 7)) size = 2;
-    return cpu->a[reg];
-  } else {
-    if((size == 1) && (reg == 7)) size = 2; /* SP should get mad, not even */
-    cpu->a[reg]+=size;
-    last_register_change = size;
-    return cpu->a[reg]-size;
-  }
-}
-
-static LONG ea_addr_100(struct cpu *cpu, int reg, int size)
-{
-  if(rmw) {
-    if((size == 1) && (reg == 7)) size = 2;
-    return cpu->a[reg]-size;
-  } else {
-    if((size == 1) && (reg == 7)) size = 2; /* SP should get mad, not even */
-    cpu->a[reg]-=size;
-    last_register_change = -size;
-    return cpu->a[reg];
-  }
-}
-
-static LONG ea_addr_101(struct cpu *cpu, int reg)
-{
-  int o;
-
-  o = bus_read_word(cpu->pc);
-  if(o&0x8000) o |= 0xffff0000;
-
-  if(!rmw) {
-    cpu->pc += 2;
-  }
-  return cpu->a[reg]+o;
-}
-
-static LONG ea_addr_110(struct cpu *cpu, int reg)
-{
-  int d,o,r,a,rs;
-
-  d = bus_read_word(cpu->pc);
-  if(!rmw) {
-    cpu->pc += 2;
-  }
-  a = d&0x8000;
-  r = (d&0x7000)>>12;
-  rs = (d&0x800);
-  d = d&0xff;
-  if(d&0x80) d |= 0xffffff00;
-  if(rs) {
-    if(a)
-      o = cpu->a[r];
-    else
-      o = cpu->d[r];
-  } else {
-    if(a)
-      o = cpu->a[r]&0xffff;
-    else
-      o = cpu->d[r]&0xffff;
-    if(o&0x8000) o |= 0xffff0000;
-  }
-  return cpu->a[reg]+o+d;
-}
-
-static LONG ea_addr_111_pcxn(struct cpu *cpu)
-{
-  int d,o,r,a,rs;
-
-  d = bus_read_word(cpu->pc);
+  LONG addr = cpu->pc;
   cpu->pc += 2;
-  a = d&0x8000;
-  r = (d&0x7000)>>12;
-  rs = (d&0x800);
-  d = d&0xff;
-  if(d&0x80) d |= 0xffffff00;
-  if(rs) {
-    if(a)
-      o = cpu->a[r];
-    else
-      o = cpu->d[r];
-  } else {
-    if(a)
-      o = cpu->a[r]&0xffff;
-    else
-      o = cpu->d[r]&0xffff;
-    if(o&0x8000) o |= 0xffff0000;
-  }
-  return cpu->pc+o+d-2;
+  return bus_read_word(addr);
 }
 
-static LONG ea_addr_111(struct cpu *cpu, int reg)
+// Do nothing.
+static void n(void)
 {
-  LONG a;
-
-  switch(reg) {
-  case 0:
-    ADD_CYCLE_EA(8);
-    a = bus_read_word(cpu->pc);
-    if(a&0x8000) a |= 0xffff0000;
-    if(!rmw) {
-      cpu->pc += 2;
-    }
-    return a;
-  case 1:
-    ADD_CYCLE_EA(12);
-    a = bus_read_long(cpu->pc);
-    if(!rmw) {
-      cpu->pc += 4;
-    }
-    return a;
-  case 2:
-    ADD_CYCLE_EA(8);
-    a = bus_read_word(cpu->pc);
-    if(a&0x8000) a |= 0xffff0000;
-    cpu->pc += 2;
-    return a+cpu->pc-2;
-  case 3:
-    ADD_CYCLE_EA(10);
-    return ea_addr_111_pcxn(cpu);
-  case 4:
-    return 0;
-  case 5:
-    return 0;
-  case 6:
-    return 0;
-  case 7:
-    return 0;
-  }
-  return 0;
 }
 
-BYTE ea_read_byte(struct cpu *cpu, int mode, int noupdate)
+// Read from memory.
+static void r(void)
 {
-  LONG addr;
-  BYTE i;
-  BYTE value;
-
-  if(noupdate) rmw = 1;
-
-  switch((mode&0x38)>>3) {
-  case 0:
-    rmw = 0;
-    return ea_read_000_b(cpu, mode&0x7);
-    break;
-  case 1:
-    rmw = 0;
-    return ea_read_001_b(cpu, mode&0x7);
-    break;
-  case 2:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_010(cpu, mode&0x7);
-    break;
-  case 3:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_011(cpu, mode&0x7, 1);
-    break;
-  case 4:
-    ADD_CYCLE_EA(6);
-    addr = ea_addr_100(cpu, mode&0x7, 1);
-    break;
-  case 5:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_101(cpu, mode&0x7);
-    break;
-  case 6:
-    ADD_CYCLE_EA(10);
-    addr = ea_addr_110(cpu, mode&0x7);
-    break;
-  case 7:
-    if((mode&0x7) == 4) {
-      ADD_CYCLE_EA(4);
-      i = bus_read_word(cpu->pc)&0xff;
-      cpu->pc += 2;
-      rmw = 0;
-      return i;
-    } else {
-      addr = ea_addr_111(cpu, mode&0x7);
-    }
-    break;
-  default:
-    addr = 0;
-  }
-  rmw = 0;
-  value = bus_read_byte(addr);
-  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
-    cpu->a[mode&0x7] -= last_register_change;
-  }
-  return value;
+  ea_data = (ea_data << 16) + ea_read(ea_address);
+  ea_address += 2;
 }
 
-WORD ea_read_word(struct cpu *cpu, int mode, int noupdate)
+// Write to memory.
+static void w(void)
 {
-  LONG addr;
-  WORD i;
-  WORD value;
+  ea_address -= 2;
+  ea_write(ea_address, ea_data);
+  ea_data >>= 16;
+}
 
-  if(noupdate) rmw = 1;
+// Fetch from program.
+static void p(void)
+{
+  ea_data = (ea_data << 16) + fetch();
+}
 
-  switch((mode&0x38)>>3) {
+static void a(void)
+{
+  ea_address = ea_data;
+}
+
+static void sa(void)
+{
+  ea_address += sign_ext_16(ea_data);
+}
+
+static void idx(void)
+{
+  int reg = (ea_data >> 12) & 7;
+  int offset;
+
+  ea_address += sign_ext_8(ea_data);
+
+  if(ea_data & 0x8000)
+    offset = cpu->a[reg];
+  else
+    offset = cpu->d[reg];
+  if((ea_data & 0x800) == 0)
+    offset = sign_ext_16(offset);
+    
+  ea_address += offset;
+}
+
+static uop_t indirect_uops[] = { r, n, r, n };
+static uop_t predecrement_uops[] = { n, r, n, r, n };
+static uop_t displacement_uops[] = { p, sa, r, n, r, n };
+static uop_t index_uops[] = { n, p, idx, r, n, r, n };
+static uop_t absolute_short_uops[] = { p, sa, r, n, r, n };
+static uop_t absolute_long_uops[] = { p, n, p, a, r, n, r, n };
+static uop_t immediate_uops[] = { p, n, p, n };
+
+void ea_begin_read(struct cpu *cpu, WORD op)
+{
+  int reg = op & 7;
+  int mode = op & 0x3f;
+  int long_cycles = 0;
+  int size = 0;
+
+  ea_data = 0;
+  ea_mask = ~0;
+  ea_read = bus_read_word;
+
+  switch((op >> 6) & 3) {
   case 0:
-    rmw = 0;
-    return ea_read_000_w(cpu, mode&0x7);
+    size = (reg == 7 ? 2 : 1); // SP should get even, not mad
+    ea_mask = 0xff;
+    ea_read = read_byte;
     break;
   case 1:
-    rmw = 0;
-    return ea_read_001_w(cpu, mode&0x7);
+    size = 2;
+    ea_mask = 0xffff;
     break;
   case 2:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_010(cpu, mode&0x7);
+    size = 4;
+    long_cycles = 2;
     break;
-  case 3:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_011(cpu, mode&0x7, 2);
-    break;
-  case 4:
-    ADD_CYCLE_EA(6);
-    addr = ea_addr_100(cpu, mode&0x7, 2);
-    break;
-  case 5:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_101(cpu, mode&0x7);
-    break;
-  case 6:
-    ADD_CYCLE_EA(10);
-    addr = ea_addr_110(cpu, mode&0x7);
-    break;
-  case 7:
-    if((mode&0x7) == 4) {
-      ADD_CYCLE_EA(4);
-      i = bus_read_word(cpu->pc);
-      cpu->pc += 2;
-      rmw = 0;
-      return i;
-    } else {
-      addr = ea_addr_111(cpu, mode&0x7);
-    }
-    break;
-  default:
-    addr = 0;
   }
-  rmw = 0;
-  value = bus_read_word(addr);
-  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
-    cpu->a[mode&0x7] -= last_register_change;
+
+  if(mode < 0x38)
+    mode &= 0x38;
+
+  switch(mode) {
+  case 0x00:
+    ea_data = cpu->d[reg];
+    ujump(0, 0);
+    break;
+  case 0x08:
+    ea_data = cpu->a[reg];
+    ujump(0, 0);
+    break;
+  case 0x10:
+    ea_address = cpu->a[reg];
+    ujump(indirect_uops, 2 + long_cycles); // nr(nr)
+    break;
+  case 0x18:
+    ea_address = cpu->a[reg];
+    cpu->a[reg] += size;
+    ujump(indirect_uops, 2 + long_cycles); // nr(nr);
+    break;
+  case 0x20:
+    cpu->a[reg] -= size;
+    ea_address = cpu->a[reg];
+    ujump(predecrement_uops, 3 + long_cycles); // nnr(nr);
+    break;
+  case 0x28:
+    ea_address = cpu->a[reg];
+    ujump(displacement_uops, 4 + long_cycles); // npnr(nr);
+    break;
+  case 0x30:
+    ea_address = cpu->a[reg];
+    ujump(index_uops, 5 + long_cycles); // nnpnr(nr);
+    break;
+  case 0x38:
+    ea_address = 0;
+    ujump(absolute_short_uops, 4 + long_cycles); // npnr(nr)
+    break;
+  case 0x39:
+    ujump(absolute_long_uops, 6 + long_cycles); // npnpnr(nr);
+    break;
+  case 0x3A:
+    ea_address = cpu->pc;
+    ujump(displacement_uops, 4 + long_cycles); // npnr(nr)
+    break;
+  case 0x3B:
+    ea_address = cpu->pc;
+    ujump(index_uops, 5 + long_cycles); // nnpnr(nr)
+    break;
+  case 0x3C:
+    ujump(immediate_uops, 2 + long_cycles); // np(np)
+    break;
   }
-  return value;
 }
 
-LONG ea_read_long(struct cpu *cpu, int mode, int noupdate)
+static uop_t write_reg_uops[] = { n, n, n };
+static uop_t write_mem_uops[] = { w, n, w, n };
+
+// dw, dl, aw, al are the number of additional microcycles needed to
+// write a data or address register with a word or a long.
+void ea_begin_modify(struct cpu *cpu, WORD op, LONG data,
+		     int dw, int dl, int aw, int al)
 {
-  LONG addr;
-  LONG i;
-  LONG value;
+  //						Byte/Word	Long
+  //						Dn, An, Mem	Dn, An, Mem
+  // EORI, ORI, ANDI, SUBI, ADDI		0   -   nw	nn  -   nwnW
+  // BCHG, BSET					-   -   nw	n/nn-   -
+  // BCLR					-   -   nw	nn/nnn- -
+  // CLR, NEGX, NEG, NOT			0   -   nw	n   -   nwnW
+  // NBCD					n   -   nw	-   -   -
+  // ADDQ, SUBQ					0   nn  nw	nn  nn  nwnw
+  // Scc					0/n -   nw	-   -   -
+  // AND, OR, ADD, SUB				0   -   nw	n/nn-   nwnW
+  // ADDA, SUBA					-   nn  -	-   n/nn-
+  // EOR					0   -   nw	nn  -   nwnW
+  // shift					n   -	nw	nn  -   -
 
-  if(noupdate) rmw = 1;
+  int mode = op & 0x3f;
+  int long_cycles = 0;
 
-  switch((mode&0x38)>>3) {
+  ea_data = 0;
+  ea_write = bus_write_word;
+
+  switch((op >> 6) & 3) {
   case 0:
-    rmw = 0;
-    return ea_read_000_l(cpu, mode&0x7);
-    break;
-  case 1:
-    rmw = 0;
-    return ea_read_001_l(cpu, mode&0x7);
+    ea_write = write_byte;
     break;
   case 2:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_010(cpu, mode&0x7);
+    long_cycles = 2;
     break;
-  case 3:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_011(cpu, mode&0x7, 4);
-    break;
-  case 4:
-    ADD_CYCLE_EA(10);
-    addr = ea_addr_100(cpu, mode&0x7, 4);
-    break;
-  case 5:
-    ADD_CYCLE_EA(12);
-    addr = ea_addr_101(cpu, mode&0x7);
-    break;
-  case 6:
-    ADD_CYCLE_EA(14);
-    addr = ea_addr_110(cpu, mode&0x7);
-    break;
-  case 7:
-    if((mode&0x7) == 4) {
-      ADD_CYCLE_EA(8);
-      i = bus_read_long(cpu->pc);
-      cpu->pc += 4;
-      rmw = 0;
-      return i;
-    } else {
-      ADD_CYCLE_EA(4);
-      addr = ea_addr_111(cpu, mode&0x7);
+  }
+
+  if(mode < 0x38)
+    mode &= 0x38;
+
+  switch(mode) {
+  case 0x00:
+    switch((op >> 6) & 3) {
+    case 0:
+      cpu->d[op & 7] = (cpu->d[op & 7] & 0xffffff00) + (data & 0xff);
+      break;
+    case 1:
+      cpu->d[op & 7] = (cpu->d[op & 7] & 0xffff0000) + (data & 0xffff);
+      break;
+    case 2:
+      cpu->d[op & 7] = data;
+      break;
     }
+    ujump(write_reg_uops, long_cycles ? dl : dw);
     break;
-  default:
-    addr = 0;
-  }
-  rmw = 0;
-  value = bus_read_long(addr);
-  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
-    cpu->a[mode&0x7] -= last_register_change;
-  }
-  return value;
-}
-
-void ea_write_byte(struct cpu *cpu, int mode, BYTE data)
-{
-  LONG addr;
-
-  rmw = 0;
-
-  switch((mode&0x38)>>3) {
-  case 0:
-    ea_write_000_b(cpu, mode&0x7, data);
-    return;
-  case 1:
-    return;
-  case 2:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_010(cpu, mode&0x7);
-    break;
-  case 3:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_011(cpu, mode&0x7, 1);
-    break;
-  case 4:
-    if(cpu->cyclecomp) {
-      ADD_CYCLE_EA(4);
-    } else {
-      ADD_CYCLE_EA(6);
+  case 0x08:
+    switch((op >> 6) & 3) {
+    case 1:
+      cpu->a[op & 7] = sign_ext_16(data);
+      break;
+    case 2:
+      cpu->a[op & 7] = data;
+      break;
     }
-    addr = ea_addr_100(cpu, mode&0x7, 1);
+    ujump(write_reg_uops, long_cycles ? al : aw);
     break;
-  case 5:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_101(cpu, mode&0x7);
+  case 0x10:
+  case 0x18:
+  case 0x20:
+  case 0x28:
+  case 0x30:
+  case 0x38:
+  case 0x39:
+  case 0x3A:
+  case 0x3B:
+    ea_data = data;
+    ujump(write_mem_uops, 2 + long_cycles);
     break;
-  case 6:
-    ADD_CYCLE_EA(10);
-    addr = ea_addr_110(cpu, mode&0x7);
-    break;
-  case 7:
-    addr = ea_addr_111(cpu, mode&0x7);
-    break;
-  default:
-    addr = 0;
-  }
-  if(ea_prefetch_before_write) {
-    cpu_prefetch();
-    ea_clear_prefetch_before_write();
-  }
-  bus_write_byte(addr, data);
-  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
-    cpu->a[mode&0x7] -= last_register_change;
   }
 }
 
-void ea_write_word(struct cpu *cpu, int mode, WORD data)
+int ea_step(LONG *operand)
 {
-  LONG addr;
-
-  rmw = 0;
-
-  switch((mode&0x38)>>3) {
-  case 0:
-    ea_write_000_w(cpu, mode&0x7, data);
-    return;
-  case 1:
-    return;
-  case 2:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_010(cpu, mode&0x7);
-    break;
-  case 3:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_011(cpu, mode&0x7, 2);
-    break;
-  case 4:
-    if(cpu->cyclecomp) {
-      ADD_CYCLE_EA(4);
-    } else {
-      ADD_CYCLE_EA(6);
-    }
-    addr = ea_addr_100(cpu, mode&0x7, 2);
-    break;
-  case 5:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_101(cpu, mode&0x7);
-    break;
-  case 6:
-    ADD_CYCLE_EA(10);
-    addr = ea_addr_110(cpu, mode&0x7);
-    break;
-  case 7:
-    addr = ea_addr_111(cpu, mode&0x7);
-    break;
-  default:
-    addr = 0;
-  }
-  if(ea_prefetch_before_write) {
-    cpu_prefetch();
-    ea_clear_prefetch_before_write();
-  }
-  bus_write_word(addr, data);
-  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
-    cpu->a[mode&0x7] -= last_register_change;
-  }
-}
-
-void ea_write_long(struct cpu *cpu, int mode, LONG data)
-{
-  LONG addr;
-
-  rmw = 0;
-
-  switch((mode&0x38)>>3) {
-  case 0:
-    ea_write_000_l(cpu, mode&0x7, data);
-    return;
-  case 1:
-    return;
-  case 2:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_010(cpu, mode&0x7);
-    break;
-  case 3:
-    ADD_CYCLE_EA(8);
-    addr = ea_addr_011(cpu, mode&0x7, 4);
-    break;
-  case 4:
-    if(cpu->cyclecomp) {
-      ADD_CYCLE_EA(8);
-    } else {
-      ADD_CYCLE_EA(10);
-    }
-    addr = ea_addr_100(cpu, mode&0x7, 4);
-    break;
-  case 5:
-    ADD_CYCLE_EA(12);
-    addr = ea_addr_101(cpu, mode&0x7);
-    break;
-  case 6:
-    ADD_CYCLE_EA(14);
-    addr = ea_addr_110(cpu, mode&0x7);
-    break;
-  case 7:
-    ADD_CYCLE_EA(4);
-    addr = ea_addr_111(cpu, mode&0x7);
-    break;
-  default:
-    addr = 0;
-  }
-  if(ea_prefetch_before_write) {
-    cpu_prefetch();
-    ea_clear_prefetch_before_write();
-  }
-  bus_write_long(addr, data);
-  if(cpu_full_stacked_exception_pending() && (((mode&0x38)>>3) == 3 || ((mode&0x38)>>3) == 4)) {
-    cpu->a[mode&0x7] -= last_register_change;
-  }
-}
-
-LONG ea_get_addr(struct cpu *cpu, int op)
-{
-  ENTER;
-
-  switch((op&0x38)>>3) {
-  case 0:
-    return 0;
-  case 1:
-    return 0;
-  case 2: /* (Ar) */
-    return cpu->a[op&0x7];
-  case 3: /* (Ar)+ */
-    return cpu->a[op&0x7];
-  case 4: /* -(Ar) */
-    return cpu->a[op&0x7] - ((op&0x40) >> 4);
-  case 5: /* x(Ar) */
-    return ea_addr_101(cpu, op&0x7);
-  case 6: /* x(Ar,Dy) */
-    return ea_addr_110(cpu, op&0x7);
-  case 7: /* (xxx).W, (xxx).L, x(PC), x(PC, Dy) */
-    return ea_addr_111(cpu, op&0x7);
-  }
-  return 0;
-}
-
-static void ea_print_111(struct cprint *cprint, int mode, int size)
-{
-  LONG a;
-  int d,r,l;
-  char *str = cprint->data;
-  LONG addr = cprint->addr + cprint->size;
-
-  switch(mode&0x7) {
-  case 0:
-    a = bus_read_word_print(addr);
-    if(a&0x8000) a |= 0xffff0000;
-    cprint_set_label(a, NULL);
-    if(cprint_find_label(a)) {
-      sprintf(str, "%s%s.W", str, cprint_find_label(a));
-    } else {
-      sprintf(str, "%s$%x.W", str, a);
-    }
-    cprint->size += 2;
-    return;
-  case 1:
-    a = bus_read_long_print(addr);
-    cprint_set_label(a, NULL);
-    if(cprint_find_label(a)) {
-      sprintf(str, "%s%s", str, cprint_find_label(a));
-    } else {
-      sprintf(str, "%s$%x", str, a);
-    }
-    cprint->size += 4;
-    return;
-  case 2:
-    a = bus_read_word_print(addr);
-    if(a&0x8000) a |= 0xffff0000;
-    a += addr;
-    cprint_set_label(a, NULL);
-    if(cprint_find_label(a)) {
-      sprintf(str, "%s%s(PC)", str, cprint_find_label(a));
-    } else {
-      sprintf(str, "%s$%x(PC)", str, a);
-    }
-    cprint->size += 2;
-    return;
-  case 3:
-    a = bus_read_word_print(addr);
-    d = a&0x8000;
-    r = (a&0x7000)>>12;
-    l = a&0x800;
-    if(a&0x80) a |= 0xffffff00;
-    sprintf(str, "%s%d(PC, %c%d.%c)", str, a, d?'A':'D', r, l?'L':'W');
-    cprint->size += 2;
-    return;
-  case 4:
-    if(size == 0) {
-      sprintf(str, "%s#$%x", str, bus_read_word_print(addr)&0xff);
-      cprint->size += 2;
-      return;
-    } else if(size == 1) {
-      sprintf(str, "%s#$%x", str, bus_read_word_print(addr));
-      cprint->size += 2;
-      return;
-    } else {
-      sprintf(str, "%s#$%x", str, bus_read_long_print(addr));
-      cprint->size += 4;
-      return;
-    }
-  default:
-    return;
-  }
-}
-
-void ea_print(struct cprint *cprint, int mode, int size)
-{
-  int o;
-  char *str = cprint->data;
-  LONG addr = cprint->addr + cprint->size;
-
-  switch((mode&0x38)>>3) {
-  case 0:
-    sprintf(str,"%sD%d", str, mode&0x7);
-    return;
-  case 1:
-    sprintf(str, "%sA%d", str, mode&0x7);
-    return;
-  case 2:
-    sprintf(str, "%s(A%d)", str, mode&0x7);
-    return;
-  case 3:
-    sprintf(str, "%s(A%d)+", str, mode&0x7);
-    return;
-  case 4:
-    sprintf(str, "%s-(A%d)", str, mode&0x7);
-    return;
-  case 5:
-    o = bus_read_word_print(addr);
-    if(o&0x8000) o |= 0xffff0000;
-    if(o > 127)
-      sprintf(str, "%s$%x(A%d)", str, o, mode&0x7);
-    else
-      sprintf(str, "%s%d(A%d)", str, o, mode&0x7);
-    cprint->size += 2;
-    return;
-  case 6:
-    o = bus_read_byte_print(addr+1)&0xff;
-    if(o&0x80) o |= 0xffffff00;
-    sprintf(str, "%s%d(A%d,%c%d.%c)",
-	    str, 
-	    o,
-	    mode&0x7,
-	    (bus_read_byte_print(addr)&0x80)?'A':'D',
-	    (bus_read_byte_print(addr)>>4)&0x7,
-	    (bus_read_byte_print(addr)&0x8)?'L':'W');
-    cprint->size += 2;
-    return;
-  case 7:
-    ea_print_111(cprint, mode, size);
-    return;
-  default:
-    return;
-  }
-}
-
-int ea_valid(int mode, int mask)
-{
-  int m,r;
-
-  m = (mode&0x38)>>3;
-  r = mode&7;
-
-  if((m == 1) && (mask&EA_INVALID_A)) {
-    return 0;
-  } else if((m == 0) && (mask&EA_INVALID_D)) {
-    return 0;
-  } else if((m == 3) && (mask&EA_INVALID_INC)) {
-    return 0;
-  } else if((m == 4) && (mask&EA_INVALID_DEC)) {
-    return 0;
-  } else if(m != 7) {
+  if(ustep()) {
+    *operand = ea_data & ea_mask;
     return 1;
-  } else if(m == 7) {
-    if((r == 4) && (mask&EA_INVALID_I)) {
-      return 0;
-    } else if(((r == 2) || (r == 3)) && (mask&EA_INVALID_PC)) {
-      return 0;
-    } else if(r < 5) {
-      return 1;
-    }
   }
 
   return 0;
-}
-
-void ea_set_prefetch_before_write()
-{
-  ea_prefetch_before_write = 1;
-}
-
-void ea_clear_prefetch_before_write()
-{
-  ea_prefetch_before_write = 1;
 }

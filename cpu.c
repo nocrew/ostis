@@ -1069,10 +1069,10 @@ static void cpu_trigger_exceptions()
 
   /* If we get Bus Error, just ignore everything else. Same for Address Error */
   if(exception_pending[VEC_BUSERR]) {
-    printf("DEBUG: Triggering BUS ERROR\n");
+    TRACE("Triggering BUS ERROR");
     cpu_trigger_exception(VEC_BUSERR);
   } else if(exception_pending[VEC_ADDRERR]) {
-    printf("DEBUG: Triggering ADDRESS ERROR\n");
+    TRACE("Triggering ADDRESS ERROR");
     cpu_trigger_exception(VEC_ADDRERR);
   } else {
     /* We check for trace, interrupt, illegal and priv in that order,

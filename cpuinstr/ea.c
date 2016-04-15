@@ -166,6 +166,7 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     ujump(index_uops, 5 + long_cycles); // nnpnr(nr);
     break;
   case 0x38:
+    ea_address = 0;
     ujump(absolute_short_uops, 4 + long_cycles); // npnr(nr)
     break;
   case 0x39:

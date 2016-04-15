@@ -60,6 +60,11 @@ static void a(void)
   ea_address = ea_data;
 }
 
+static void sa(void)
+{
+  ea_address += sign_ext_16(ea_data);
+}
+
 static void idx(void)
 {
   int reg = (ea_data >> 12) & 7;
@@ -77,12 +82,13 @@ static void idx(void)
   ea_address += offset;
 }
 
-static uop_t indirect_uops[] = { n, r, n };
-static uop_t predecrement_uops[] = { r, n, r, n };
-static uop_t displacement_uops[] = { n, r, n, r, n };
-static uop_t index_uops[] = { p, idx, r, n, r, n };
-static uop_t absolute_uops[] = { n, p, a, r, n, r, n };
-static uop_t immediate_uops[] = { n, p, n };
+static uop_t indirect_uops[] = { r, n, r, n };
+static uop_t predecrement_uops[] = { n, r, n, r, n };
+static uop_t displacement_uops[] = { p, sa, r, n, r, n };
+static uop_t index_uops[] = { n, p, idx, r, n, r, n };
+static uop_t absolute_short_uops[] = { p, sa, r, n, r, n };
+static uop_t absolute_long_uops[] = { p, n, p, a, r, n, r, n };
+static uop_t immediate_uops[] = { p, n, p, n };
 
 void ea_begin_read(struct cpu *cpu, WORD op)
 {
@@ -95,7 +101,7 @@ void ea_begin_read(struct cpu *cpu, WORD op)
   ea_mask = ~0;
   ea_read = bus_read_word;
 
-  switch(op & 0xc0) {
+  switch((op >> 6) & 3) {
   case 0:
     size = (reg == 7 ? 2 : 1); // SP should get even, not mad
     ea_mask = 0xff;
@@ -124,13 +130,11 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     ujump(0, 0);
     break;
   case 0x10:
-    ea_data = ea_read(cpu->a[reg]);
-    ea_address = cpu->a[reg] + 2;
+    ea_address = cpu->a[reg];
     ujump(indirect_uops, 2 + long_cycles); // nr(nr)
     break;
   case 0x18:
-    ea_data = ea_read(cpu->a[reg]);
-    ea_address = cpu->a[reg] + 2;
+    ea_address = cpu->a[reg];
     cpu->a[reg] += size;
     ujump(indirect_uops, 2 + long_cycles); // nr(nr);
     break;
@@ -140,7 +144,7 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     ujump(predecrement_uops, 3 + long_cycles); // nnr(nr);
     break;
   case 0x28:
-    ea_address = cpu->a[reg] + sign_ext_16(fetch());
+    ea_address = cpu->a[reg];
     ujump(displacement_uops, 4 + long_cycles); // npnr(nr);
     break;
   case 0x30:
@@ -148,16 +152,13 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     ujump(index_uops, 5 + long_cycles); // nnpnr(nr);
     break;
   case 0x38:
-    ea_data = sign_ext_16(fetch());
-    ujump(absolute_uops + 2, 4 + long_cycles); // npnr(nr)
+    ujump(absolute_short_uops, 4 + long_cycles); // npnr(nr)
     break;
   case 0x39:
-    ea_data = fetch();
-    ujump(absolute_uops, 6 + long_cycles); // npnpnr(nr);
+    ujump(absolute_long_uops, 6 + long_cycles); // npnpnr(nr);
     break;
   case 0x3A:
     ea_address = cpu->pc;
-    ea_address += sign_ext_16(fetch());
     ujump(displacement_uops, 4 + long_cycles); // npnr(nr)
     break;
   case 0x3B:
@@ -165,7 +166,6 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     ujump(index_uops, 5 + long_cycles); // nnpnr(nr)
     break;
   case 0x3C:
-    ea_data = fetch();
     ujump(immediate_uops, 2 + long_cycles); // np(np)
     break;
   }

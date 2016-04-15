@@ -1,3 +1,18 @@
+/*
+ * EA calculation and operand access state machine.
+ *
+ * The primary entry points are:
+ * - ea_begin_read - start a read operation.
+ * - ea_begin_modify - start a write operation to the same location as
+ *   the previous read operation.
+ * - ea_begin_write - start a new write operation.
+ *
+ * After this, the ea_step function should be called to advance the
+ * state machine.  It returns 1 when the calculation has finished.
+ * May return immediately for i.e. register accesses which takes 0
+ * cycles.
+ */
+
 #include "cpu.h"
 #include "ea.h"
 #include "ucode.h"
@@ -189,7 +204,10 @@ void ea_begin_read(struct cpu *cpu, WORD op)
 static uop_t write_reg_uops[] = { n, n, n };
 static uop_t write_mem_uops[] = { w, n, w, n };
 
-void ea_begin_modify(struct cpu *cpu, WORD op, LONG data, int c1, int c2, int c3, int c4)
+// dw, dl, aw, al are the number of additional microcycles needed to
+// write a data or address register with a word or a long.
+void ea_begin_modify(struct cpu *cpu, WORD op, LONG data,
+		     int dw, int dl, int aw, int al)
 {
   //						Byte/Word	Long
   //						Dn, An, Mem	Dn, An, Mem
@@ -236,7 +254,7 @@ void ea_begin_modify(struct cpu *cpu, WORD op, LONG data, int c1, int c2, int c3
       cpu->d[op & 7] = data;
       break;
     }
-    ujump(write_reg_uops, long_cycles ? c2 : c1);
+    ujump(write_reg_uops, long_cycles ? dl : dw);
     break;
   case 0x08:
     switch((op >> 6) & 3) {
@@ -247,7 +265,7 @@ void ea_begin_modify(struct cpu *cpu, WORD op, LONG data, int c1, int c2, int c3
       cpu->a[op & 7] = data;
       break;
     }
-    ujump(write_reg_uops, long_cycles ? c4 : c3);
+    ujump(write_reg_uops, long_cycles ? al : aw);
     break;
   case 0x10:
   case 0x18:

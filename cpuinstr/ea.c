@@ -8,7 +8,7 @@ static LONG ea_mask;
 static WORD (*ea_read)(LONG);
 static void (*ea_write)(LONG, WORD);
 
-static LONG sign_ext_8(BYTE x)
+static LONG sign_ext_8(LONG x)
 {
   if(x & 0x80)
     x |= 0xffffff00;
@@ -17,7 +17,7 @@ static LONG sign_ext_8(BYTE x)
   return x;
 }
 
-static LONG sign_ext_16(BYTE x)
+static LONG sign_ext_16(LONG x)
 {
   if(x & 0x8000)
     x |= 0xffff0000;

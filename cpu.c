@@ -1448,7 +1448,7 @@ void cpu_init_clocked()
   linea_init((void *)instr_clocked, (void *)instr_print);
   linef_init((void *)instr_clocked, (void *)instr_print);
 
-  not_init((void *)instr_clocked, (void *)instr_print);
+  not_instr_init((void *)instr_clocked, (void *)instr_print);
   neg_init((void *)instr_clocked, (void *)instr_print);
   negx_init((void *)instr_clocked, (void *)instr_print);
 

@@ -1450,7 +1450,7 @@ void cpu_init_clocked()
 
   not_instr_init((void *)instr_clocked, (void *)instr_print);
   neg_instr_init((void *)instr_clocked, (void *)instr_print);
-  negx_init((void *)instr_clocked, (void *)instr_print);
+  negx_instr_init((void *)instr_clocked, (void *)instr_print);
 
   stop_init((void *)instr_clocked, (void *)instr_print);
 

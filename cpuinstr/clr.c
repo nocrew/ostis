@@ -18,11 +18,12 @@ static void clr(struct cpu *cpu, WORD op)
     cpu->instr_state = CLR_READ;
     // Fall through.
   case CLR_READ:
-    if(!ea_step(&operand)) {
+    if(ea_done(&operand))
+      cpu->instr_state = CLR_PREFETCH;
+    else {
       ADD_CYCLE(2);
       break;
-    } else
-      cpu->instr_state = CLR_PREFETCH;
+    }
     // Fall through.
   case CLR_PREFETCH:
     ADD_CYCLE(4);
@@ -30,7 +31,7 @@ static void clr(struct cpu *cpu, WORD op)
     ea_begin_modify(cpu, op, 0, 0, 2, 0, 0);
     break;
   case CLR_WRITE:
-    if(ea_step(&operand)) {
+    if(ea_done(&operand)) {
       cpu->instr_state = INSTR_STATE_FINISHED;
     } else
       ADD_CYCLE(2);

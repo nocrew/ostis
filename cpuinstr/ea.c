@@ -7,7 +7,7 @@
  *   the previous read operation.
  * - ea_begin_write - start a new write operation.
  *
- * After this, the ea_step function should be called to advance the
+ * After this, the ea_done function should be called to advance the
  * state machine.  It returns 1 when the calculation has finished.
  * May return immediately for i.e. register accesses which takes 0
  * cycles.
@@ -282,7 +282,7 @@ void ea_begin_modify(struct cpu *cpu, WORD op, LONG data,
   }
 }
 
-int ea_step(LONG *operand)
+int ea_done(LONG *operand)
 {
   if(ustep()) {
     *operand = ea_data & ea_mask;

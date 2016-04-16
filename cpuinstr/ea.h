@@ -121,6 +121,6 @@ void ea_clear_prefetch_before_write();
 void ea_begin_read(struct cpu *cpu, WORD op);
 void ea_begin_write(struct cpu *cpu, WORD op);
 void ea_begin_modify(struct cpu *cpu, WORD op, LONG data, int, int, int, int);
-int ea_step(LONG *);
+int ea_done(LONG *);
 
 #endif

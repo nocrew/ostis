@@ -2,6 +2,7 @@
  * EA calculation and operand access state machine.
  *
  * The primary entry points are:
+ * - ea_begin_address - just calculate the effective address.
  * - ea_begin_read - start a read operation.
  * - ea_begin_modify - start a write operation to the same location as
  *   the previous read operation.
@@ -115,9 +116,49 @@ static uop_t indirect_uops[] = { r, n, r, n };
 static uop_t predecrement_uops[] = { n, r, n, r, n };
 static uop_t displacement_uops[] = { p, sa, r, n, r, n };
 static uop_t index_uops[] = { n, p, idx, r, n, r, n };
+static uop_t lea_index_uops[] = { n, p, idx, n };
 static uop_t absolute_short_uops[] = { p, sa, r, n, r, n };
 static uop_t absolute_long_uops[] = { p, n, p, a, r, n, r, n };
 static uop_t immediate_uops[] = { p, n, p, n };
+
+void ea_begin_address(struct cpu *cpu, WORD op)
+{
+  int reg = op & 7;
+  int mode = op & 0x3f;
+
+  if(mode < 0x38)
+    mode &= 0x38;
+
+  switch(mode) {
+  case 0x10:
+    ea_address = cpu->a[reg];
+    ujump(0, 0);
+    break;
+  case 0x28:
+    ea_address = cpu->a[reg];
+    ujump(displacement_uops, 2);
+    break;
+  case 0x30:
+    ea_address = cpu->a[reg];
+    ujump(lea_index_uops, 4);
+    break;
+  case 0x38:
+    ea_address = 0;
+    ujump(absolute_short_uops, 2);
+    break;
+  case 0x39:
+    ujump(absolute_long_uops, 4);
+    break;
+  case 0x3A:
+    ea_address = cpu->pc;
+    ujump(displacement_uops, 2);
+    break;
+  case 0x3B:
+    ea_address = cpu->pc;
+    ujump(lea_index_uops, 4);
+    break;
+  }
+}
 
 void ea_begin_read(struct cpu *cpu, WORD op)
 {
@@ -290,4 +331,9 @@ int ea_done(LONG *operand)
   }
 
   return 0;
+}
+
+LONG ea_get_address(void)
+{
+  return ea_address;
 }

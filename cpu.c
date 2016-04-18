@@ -1362,7 +1362,7 @@ void cpu_init_clocked()
   subx_init((void *)instr_clocked, (void *)instr_print);
   sbcd_init((void *)instr_clocked, (void *)instr_print);
 
-  lea_init((void *)instr_clocked, (void *)instr_print);
+  lea_instr_init((void *)instr_clocked, (void *)instr_print);
   pea_init((void *)instr_clocked, (void *)instr_print);
 
   jmp_init((void *)instr_clocked, (void *)instr_print);
@@ -1448,9 +1448,9 @@ void cpu_init_clocked()
   linea_init((void *)instr_clocked, (void *)instr_print);
   linef_init((void *)instr_clocked, (void *)instr_print);
 
-  not_init((void *)instr_clocked, (void *)instr_print);
-  neg_init((void *)instr_clocked, (void *)instr_print);
-  negx_init((void *)instr_clocked, (void *)instr_print);
+  not_instr_init((void *)instr_clocked, (void *)instr_print);
+  neg_instr_init((void *)instr_clocked, (void *)instr_print);
+  negx_instr_init((void *)instr_clocked, (void *)instr_print);
 
   stop_init((void *)instr_clocked, (void *)instr_print);
 

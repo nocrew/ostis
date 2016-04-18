@@ -26,19 +26,21 @@ static void (*ea_write)(LONG, WORD);
 
 static LONG sign_ext_8(LONG x)
 {
-  if(x & 0x80)
+  if(x & 0x80) {
     x |= 0xffffff00;
-  else
+  } else {
     x &= 0xff;
+  }
   return x;
 }
 
 static LONG sign_ext_16(LONG x)
 {
-  if(x & 0x8000)
+  if(x & 0x8000) {
     x |= 0xffff0000;
-  else
+  } else {
     x &= 0xffff;
+  }
   return x;
 }
 
@@ -102,12 +104,14 @@ static void idx(void)
 
   ea_address += sign_ext_8(ea_data);
 
-  if(ea_data & 0x8000)
+  if(ea_data & 0x8000) {
     offset = cpu->a[reg];
-  else
+  } else {
     offset = cpu->d[reg];
-  if((ea_data & 0x800) == 0)
+  }
+  if((ea_data & 0x800) == 0) {
     offset = sign_ext_16(offset);
+  }
     
   ea_address += offset;
 }
@@ -126,8 +130,9 @@ void ea_begin_address(struct cpu *cpu, WORD op)
   int reg = op & 7;
   int mode = op & 0x3f;
 
-  if(mode < 0x38)
+  if(mode < 0x38) {
     mode &= 0x38;
+  }
 
   switch(mode) {
   case 0x10:
@@ -187,8 +192,9 @@ void ea_begin_read(struct cpu *cpu, WORD op)
     break;
   }
 
-  if(mode < 0x38)
+  if(mode < 0x38) {
     mode &= 0x38;
+  }
 
   switch(mode) {
   case 0x00:
@@ -279,8 +285,9 @@ void ea_begin_modify(struct cpu *cpu, WORD op, LONG data,
     break;
   }
 
-  if(mode < 0x38)
+  if(mode < 0x38) {
     mode &= 0x38;
+  }
 
   switch(mode) {
   case 0x00:

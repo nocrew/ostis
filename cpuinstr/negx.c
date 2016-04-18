@@ -18,25 +18,28 @@ static void negx(struct cpu *cpu, WORD op)
     cpu->instr_state = NEGX_READ;
     // Fall through.
   case NEGX_READ:
-    if(ea_done(&operand))
-      cpu->instr_state = NEGX_PREFETCH;
-    else {
+    if(!ea_done(&operand)) {
       ADD_CYCLE(2);
       break;
+    } else {
+      cpu->instr_state = NEGX_PREFETCH;
     }
     // Fall through.
   case NEGX_PREFETCH:
     ADD_CYCLE(4);
     cpu->instr_state = NEGX_WRITE;
     operand = -operand;
-    if(CHKX) operand--;
+    if(CHKX) {
+      operand--;
+    }
     ea_begin_modify(cpu, op, operand, 0, 2, 0, 0);
     break;
   case NEGX_WRITE:
     if(ea_done(&operand)) {
       cpu->instr_state = INSTR_STATE_FINISHED;
-    } else
+    } else {
       ADD_CYCLE(2);
+    }
     cpu_set_flags_clr(cpu);
     break;
   }

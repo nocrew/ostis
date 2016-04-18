@@ -31,12 +31,12 @@ static void lea(struct cpu *cpu, WORD op)
     cpu->instr_state = LEA_EA;
     // Fall through.
   case LEA_EA:
-    if(ea_done(&operand)) {
-      cpu->a[(op&0xe00)>>9] = ea_get_address();
-      cpu->instr_state = LEA_PREFETCH;
-    } else {
+    if(!ea_done(&operand)) {
       ADD_CYCLE(2);
       break;
+    } else {
+      cpu->a[(op&0xe00)>>9] = ea_get_address();
+      cpu->instr_state = LEA_PREFETCH;
     }
     // Fall through.
   case LEA_PREFETCH:

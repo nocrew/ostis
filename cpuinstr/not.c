@@ -18,11 +18,11 @@ static void not(struct cpu *cpu, WORD op)
     cpu->instr_state = NOT_READ;
     // Fall through.
   case NOT_READ:
-    if(ea_done(&operand))
-      cpu->instr_state = NOT_PREFETCH;
-    else {
+    if(!ea_done(&operand)) {
       ADD_CYCLE(2);
       break;
+    } else {
+      cpu->instr_state = NOT_PREFETCH;
     }
     // Fall through.
   case NOT_PREFETCH:
@@ -33,8 +33,9 @@ static void not(struct cpu *cpu, WORD op)
   case NOT_WRITE:
     if(ea_done(&operand)) {
       cpu->instr_state = INSTR_STATE_FINISHED;
-    } else
+    } else {
       ADD_CYCLE(2);
+    }
     cpu_set_flags_clr(cpu);
     break;
   }

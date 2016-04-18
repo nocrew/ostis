@@ -20,7 +20,10 @@ static void cmp(struct cpu *cpu, WORD op)
     cpu->instr_state = CMP_READ;
     // Fall through.
   case CMP_READ:
-    if(ea_done(&s)) {
+    if(!ea_done(&s)) {
+      ADD_CYCLE(2);
+      break;
+    } else {
       d = cpu->d[(op&0xe00)>>9];
       r = d-s;
       switch((op&0xc0)>>6) {
@@ -30,17 +33,15 @@ static void cmp(struct cpu *cpu, WORD op)
       }
       cpu_set_flags_cmp(cpu, s&m, d&m, r&m, r);
       cpu->instr_state = CMP_PREFETCH;
-    } else {
-      ADD_CYCLE(2);
-      break;
     }
     // Fall through.
   case CMP_PREFETCH:
     ADD_CYCLE(4);
-    if(((op&0xc0)>>6) == 2)
+    if(((op&0xc0)>>6) == 2) {
       cpu->instr_state = CMP_LONG;
-    else
+    } else {
       cpu->instr_state = INSTR_STATE_FINISHED;
+    }
     break;
   case CMP_LONG:
     ADD_CYCLE(2);

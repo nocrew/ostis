@@ -466,6 +466,7 @@ void cpu_set_sr(WORD sr)
 
 void cpu_prefetch()
 {
+  CLOCK("Prefetch");
   cpu->prefetched_instr = bus_read_word(cpu->pc);
   cpu->has_prefetched = 1;
 }

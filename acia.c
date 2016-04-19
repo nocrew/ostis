@@ -70,6 +70,8 @@ static void acia_reset(void)
 static BYTE acia_read_byte(LONG addr)
 {
   BYTE data;
+
+  CLOCK("Wait states: 6");
   cpu_add_extra_cycles(6);
 
   switch(addr) {
@@ -92,6 +94,7 @@ static WORD acia_read_word(LONG addr)
 
 static void acia_write_byte(LONG addr, BYTE data)
 {
+  CLOCK("Wait states: 6");
   cpu_add_extra_cycles(6);
 
   switch(addr) {

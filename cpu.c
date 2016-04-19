@@ -466,6 +466,7 @@ void cpu_set_sr(WORD sr)
 
 void cpu_prefetch()
 {
+  CLOCK("Prefetch");
   cpu->prefetched_instr = bus_read_word(cpu->pc);
   cpu->has_prefetched = 1;
 }
@@ -1158,7 +1159,8 @@ static int cpu_step_cycle(int cpu_run_state)
    * this is a temporary revert, it is necessary until prefetch is done
    * the right way.
    */
-  if((cpu->cycle&3) != 0) {
+  if((cpu->cycle&3) != 0 && cpu->icycle == 0 &&
+     (cpu->instr_state == INSTR_STATE_NONE || PREVIOUS_INSTR_FINISHED(cpu))) {
     CLOCK("Wait states: 1");
     return CPU_OK;
   }

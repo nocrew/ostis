@@ -380,12 +380,16 @@ LONG bus_read_long_print(LONG addr)
 
 BYTE bus_read_byte(LONG addr)
 {
-  return MEM_READ(byte, addr);
+  BYTE data = MEM_READ(byte, addr);
+  CLOCK("Bus read byte: %02x @ %06x", data, addr);
+  return data;
 }
 
 WORD bus_read_word(LONG addr)
 {
-  return MEM_READ(word, addr);
+  WORD data = MEM_READ(word, addr);
+  CLOCK("Bus read word: %04x @ %06x", data, addr);
+  return data;
 }
 
 LONG bus_read_long(LONG addr)
@@ -399,11 +403,13 @@ LONG bus_read_long(LONG addr)
 
 void bus_write_byte(LONG addr, BYTE data)
 {
+  CLOCK("Bus write byte: %02x @ %06x", data, addr);
   MEM_WRITE(byte, addr, data);
 }
 
 void bus_write_word(LONG addr, WORD data)
 {
+  CLOCK("Bus write word: %02x @ %06x", data, addr);
   MEM_WRITE(word, addr, data);
 }
 

@@ -4,6 +4,16 @@
 
 #define EXG_IN_PROGRESS 1
 
+/*
+ * --------------------------------------------------------------------
+ *                   |    Exec Time    |  Data Bus Usage
+ *         EXG       |      INSTR      |    INSTR
+ * ------------------+-----------------+-------------------------------
+ *   .L :            |                 |
+ *     Dx,Dy         |  6(1/0)         |  np       n
+ *     Ax,Ay         |  6(1/0)         |  np       n
+ *     Dx,Ay         |  6(1/0)         |  np       n
+ */
 static void exg(struct cpu *cpu, WORD op)
 {
   LONG t;

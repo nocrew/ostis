@@ -47,6 +47,19 @@ static int condition_true(int cc)
   }
 }
 
+/*
+ * ---------------------------------------------------
+ *                   |  Exec Time  |  Data Bus Usage
+ *         Bcc       |    INSTR    |     INSTR
+ * ------------------+-------------+-----------------
+ * <label> :         |             |
+ *  .B or .S :       |             |
+ *   branch taken    | 10(2/0)     |   n   np np
+ *   branch not taken|  8(1/0)     |  nn      np
+ *  .W :             |             |
+ *   branch taken    | 10(2/0)     |   n   np np
+ *   branch not taken| 12(2/0)     |  nn   np np
+ */
 static void bcc(struct cpu *cpu, WORD op)
 {
   static SLONG o;

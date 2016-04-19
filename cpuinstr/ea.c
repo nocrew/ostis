@@ -56,9 +56,8 @@ static void write_byte(LONG address, WORD data)
 
 static WORD fetch(void)
 {
-  LONG addr = cpu->pc;
-  cpu->pc += 2;
-  return bus_read_word(addr);
+  cpu_prefetch();
+  return fetch_instr(cpu);
 }
 
 // Do nothing.

@@ -75,10 +75,10 @@ static void bcc(struct cpu *cpu, WORD op)
     w = 0;
     o = (SLONG)(SBYTE)(op&0xff);
     if(!o) {
-      o = bus_read_word(cpu->pc);
+      cpu_prefetch();
+      o = fetch_instr(cpu);
       if(o&0x8000) o |= 0xffff0000;
       o -= 2;
-      cpu->pc += 2;
       w = 1;
     }
 
@@ -126,6 +126,7 @@ static void bcc(struct cpu *cpu, WORD op)
     break;
   case BCC_PREFETCH_2:
     ADD_CYCLE(4);
+    cpu_prefetch();
     cpu->instr_state = INSTR_STATE_FINISHED;
     break;
   }

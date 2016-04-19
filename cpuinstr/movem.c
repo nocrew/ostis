@@ -21,11 +21,8 @@
 
 static WORD fetch_word(struct cpu *cpu)
 {
-  WORD data;
-
-  data = bus_read_word(cpu->pc);
-  cpu->pc += 2;
-  return data;
+  cpu_prefetch();
+  return fetch_instr(cpu);
 }
 
 static void set_state(struct cpu *cpu, int state)

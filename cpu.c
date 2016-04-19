@@ -78,7 +78,7 @@ static void illegal_instr(struct cpu *cpu, WORD op)
   cpu_set_exception(4);
 }
 
-static WORD fetch_instr(struct cpu *cpu)
+WORD fetch_instr(struct cpu *cpu)
 {
   last_pc = cpu->pc;
   ASSERT(cpu->has_prefetched == 1);

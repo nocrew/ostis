@@ -57,7 +57,7 @@ extern int mmu_print_state;
 #define MMU_WAIT_STATES()			\
   do {						\
     if(((cpu->clock + cpu->icycle) & 3) != 0) {	\
-      BUS_ADD_CYCLE(2);				\
+      ADD_CYCLE(2);				\
       CLOCK("Wait states: 2");			\
     }						\
   } while(0)

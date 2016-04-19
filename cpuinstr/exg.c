@@ -23,6 +23,7 @@ static void exg(struct cpu *cpu, WORD op)
 
   switch(cpu->instr_state) {
   case INSTR_STATE_NONE:
+    ADD_CYCLE(4);
     cpu->instr_state = EXG_IN_PROGRESS;
     cpu_prefetch();
     break;

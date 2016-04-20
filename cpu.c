@@ -1334,7 +1334,7 @@ void cpu_init_clocked()
   cmpi_init((void *)instr_clocked, (void *)instr_print);
   bcc_instr_init((void *)instr_clocked, (void *)instr_print);
 
-  sub_init((void *)instr_clocked, (void *)instr_print);
+  sub_instr_init((void *)instr_clocked, (void *)instr_print);
   suba_init((void *)instr_clocked, (void *)instr_print);
   subq_init((void *)instr_clocked, (void *)instr_print);
   subi_init((void *)instr_clocked, (void *)instr_print);

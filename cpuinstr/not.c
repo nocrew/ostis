@@ -52,6 +52,7 @@ static void not(struct cpu *cpu, WORD op)
     // Fall through.
   case NOT_PREFETCH:
     ADD_CYCLE(4);
+    cpu_prefetch();
     cpu->instr_state = NOT_WRITE;
     ea_begin_modify(cpu, op, ~operand, 0, 2, 0, 0);
     break;

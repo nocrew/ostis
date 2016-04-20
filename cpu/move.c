@@ -65,14 +65,16 @@ static void move(struct cpu *cpu, WORD op)
   switch((op&0x3000)>>12) {
   case 1: /* BYTE */
     move_b(cpu, src, dst);
-    return;
+    break;
   case 2: /* LONG */
     move_l(cpu, src, dst);
-    return;
+    break;
   case 3: /* WORD */
     move_w(cpu, src, dst);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *move_print(LONG addr, WORD op)

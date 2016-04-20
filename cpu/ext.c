@@ -22,6 +22,7 @@ static void ext(struct cpu *cpu, WORD op)
     cpu_set_flags_move(cpu, d&0x8000, d);
   }
   ADD_CYCLE(4);
+  cpu_prefetch();
 }
 
 static struct cprint *ext_print(LONG addr, WORD op)

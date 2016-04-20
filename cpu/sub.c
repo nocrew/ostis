@@ -82,14 +82,16 @@ static void sub(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     sub_b(cpu, op);
-    return;
+    break;
   case 1:
     sub_w(cpu, op);
-    return;
+    break;
   case 2:
     sub_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *sub_print(LONG addr, WORD op)

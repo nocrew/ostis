@@ -22,6 +22,7 @@ static void adda(struct cpu *cpu, WORD op)
   }
 
   cpu->a[r] += s;
+  cpu_prefetch();
 }
 
 static struct cprint *adda_print(LONG addr, WORD op)

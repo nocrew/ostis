@@ -56,6 +56,8 @@ static void bclr(struct cpu *cpu, WORD op)
     bclr_r(cpu, (op&0xe00)>>9, op&0x3f);
     break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *bclr_print(LONG addr, WORD op)

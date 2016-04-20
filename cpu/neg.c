@@ -61,14 +61,16 @@ static void neg(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     neg_b(cpu, op);
-    return;
+    break;
   case 1:
     neg_w(cpu, op);
-    return;
+    break;
   case 2:
     neg_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *neg_print(LONG addr, WORD op)

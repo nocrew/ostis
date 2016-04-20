@@ -52,6 +52,7 @@ static void negx(struct cpu *cpu, WORD op)
     // Fall through.
   case NEGX_PREFETCH:
     ADD_CYCLE(4);
+    cpu_prefetch();
     cpu->instr_state = NEGX_WRITE;
     operand = -operand;
     if(CHKX) {

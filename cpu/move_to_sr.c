@@ -10,6 +10,7 @@ static void move_to_sr(struct cpu *cpu, WORD op)
   if(cpu->sr&0x2000) {
     ADD_CYCLE(12);
     cpu_set_sr(ea_read_word(cpu, op&0x3f, 0));
+    cpu_prefetch();
   } else {
     cpu_set_exception(8); /* Privilege violation */
   }

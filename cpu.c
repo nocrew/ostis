@@ -78,18 +78,13 @@ static void illegal_instr(struct cpu *cpu, WORD op)
   cpu_set_exception(4);
 }
 
-static WORD fetch_instr(struct cpu *cpu)
+WORD fetch_instr(struct cpu *cpu)
 {
-  WORD op;
   last_pc = cpu->pc;
-  if(cpu->has_prefetched) {
-    cpu->has_prefetched = 0;
-    cpu->pc += 2;
-    return cpu->prefetched_instr;
-  }
-  op = bus_read_word(cpu->pc);
+  ASSERT(cpu->has_prefetched == 1);
+  cpu->has_prefetched = 0;
   cpu->pc += 2;
-  return op;
+  return cpu->prefetched_instr;
 }
 
 static void cpu_exception_reset_sr()
@@ -101,7 +96,6 @@ static void cpu_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -123,7 +117,6 @@ static void cpu_exception_general(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -145,7 +138,6 @@ static void cpu_exception_interrupt(int vnum)
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
-  cpu_clear_prefetch();
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
@@ -184,6 +176,8 @@ static void cpu_do_exception(int vnum)
   } else {
     cpu_exception_general(vnum);
   }
+  cpu_clear_prefetch();
+  cpu_prefetch();
 }
 
 static void cpu_do_reset(void)
@@ -198,6 +192,8 @@ static void cpu_do_reset(void)
   cpu->has_prefetched = 0;
   cpu->ipl1 = 0;
   cpu->ipl2 = 0;
+
+  cpu_prefetch();
 
   for(i=0;i<256;i++) {
     exception_pending[i] = 0;
@@ -246,6 +242,7 @@ int cpu_step_instr(int trace)
     test_call_hooks(TEST_HOOK_AFTER_INSTR, cpu);
 #endif
   } else {
+    cpu_clear_prefetch();
     instr[0x4e71](cpu, 0x4e71); /* Run NOP until STOP is cancelled */
   }
   CLOCK("Instruction took %d cycles", cpu->icycle);
@@ -467,6 +464,7 @@ void cpu_set_sr(WORD sr)
 void cpu_prefetch()
 {
   CLOCK("Prefetch");
+  ASSERT(cpu->has_prefetched == 0);
   cpu->prefetched_instr = bus_read_word(cpu->pc);
   cpu->has_prefetched = 1;
 }
@@ -483,9 +481,6 @@ void cpu_init()
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 
   cpu = xmalloc(sizeof(struct cpu));
-  if(!cpu) {
-    exit(-2);
-  }
 
   cpu_do_reset();
   cpu->debug_halted = 0;
@@ -978,7 +973,6 @@ static void cpu_trigger_exception_full_stacked(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -1000,7 +994,6 @@ static void cpu_trigger_exception_general(int vnum)
 {
   WORD oldsr;
 
-  cpu_clear_prefetch();
   oldsr = cpu->sr;
   cpu_exception_reset_sr();
   cpu->a[7] -= 4;
@@ -1022,7 +1015,6 @@ static void cpu_trigger_exception_interrupt(int vnum)
   if(inum <= IPL) { /* Do not run exception just yet. Leave it pending. */
     return;
   }
-  cpu_clear_prefetch();
   cpu_exception_reset_sr();
   if(interrupt_autovector[inum] == IPL_NO_AUTOVECTOR) {
     cpu->a[7] -= 4;
@@ -1060,6 +1052,8 @@ static void cpu_trigger_exception(int vnum)
   } else {
     cpu_trigger_exception_general(vnum);
   }
+  cpu_clear_prefetch();
+  cpu_prefetch();
 }
 
 static void cpu_trigger_exceptions()
@@ -1148,20 +1142,6 @@ static int cpu_step_cycle(int cpu_run_state)
    */
   if(cpu->icycle > 0) {
     cpu->icycle--;
-    return CPU_OK;
-  }
-
-  /* A new instruction will only start on multiple of 2 cycles, so if
-   * that is not the case, exit and let it increment up to the proper point
-   *
-   * Until all instructions handle their own prefetch (of the next instruction)
-   * completely as a state of its own, this needs to do 4c align, so while
-   * this is a temporary revert, it is necessary until prefetch is done
-   * the right way.
-   */
-  if((cpu->cycle&3) != 0 && cpu->icycle == 0 &&
-     (cpu->instr_state == INSTR_STATE_NONE || PREVIOUS_INSTR_FINISHED(cpu))) {
-    CLOCK("Wait states: 1");
     return CPU_OK;
   }
 
@@ -1333,9 +1313,6 @@ void cpu_init_clocked()
   int i;
 
   cpu = xmalloc(sizeof(struct cpu));
-  if(!cpu) {
-    exit(-2);
-  }
 
   HANDLE_DIAGNOSTICS_NON_MMU_DEVICE(cpu, "CPU0");
 

@@ -12,6 +12,7 @@ static void move_to_ccr(struct cpu *cpu, WORD op)
   ADD_CYCLE(12);
   sr = ea_read_word(cpu, op&0x3f, 0);
   cpu_set_sr((cpu->sr&0xffe0)|(sr&0x1f));
+  cpu_prefetch();
 }
 
 static struct cprint *move_to_ccr_print(LONG addr, WORD op)

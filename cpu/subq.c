@@ -54,6 +54,7 @@ static void subq(struct cpu *cpu, WORD op)
   if(((op&0x38)>>3) == 1) {
     ADD_CYCLE(8);
     cpu->a[op&7] -= s;
+    cpu_prefetch();
     return;
   }
   
@@ -64,14 +65,16 @@ static void subq(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     subq_b(cpu, s, op&0x3f);
-    return;
+    break;
   case 1:
     subq_w(cpu, s, op&0x3f);
-    return;
+    break;
   case 2:
     subq_l(cpu, s, op&0x3f);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *subq_print(LONG addr, WORD op)

@@ -30,6 +30,7 @@ static void divs(struct cpu *cpu, WORD op)
     cpu->d[reg] = r;
   }
   ADD_CYCLE(136);
+  cpu_prefetch();
 }
 
 static struct cprint *divs_print(LONG addr, WORD op)

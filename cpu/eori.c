@@ -65,14 +65,16 @@ static void eori(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     eori_b(cpu, op);
-    return;
+    break;
   case 1:
     eori_w(cpu, op);
-    return;
+    break;
   case 2:
     eori_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *eori_print(LONG addr, WORD op)

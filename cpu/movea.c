@@ -24,6 +24,7 @@ static void movea(struct cpu *cpu, WORD op)
   }
 
   cpu->a[(op&0xe00)>>9] = s;
+  cpu_prefetch();
 }
 
 static struct cprint *movea_print(LONG addr, WORD op)

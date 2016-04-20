@@ -56,6 +56,8 @@ static void bchg(struct cpu *cpu, WORD op)
     bchg_r(cpu, (op&0xe00)>>9, op&0x3f);
     break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *bchg_print(LONG addr, WORD op)

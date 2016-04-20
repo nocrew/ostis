@@ -92,6 +92,8 @@ static void lsl(struct cpu *cpu, WORD op)
   } else {
     lsl_i(cpu, op);
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *lsl_print(LONG addr, WORD op)

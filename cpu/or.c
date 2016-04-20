@@ -70,14 +70,16 @@ static void or(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     or_b(cpu, op);
-    return;
+    break;
   case 1:
     or_w(cpu, op);
-    return;
+    break;
   case 2:
     or_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *or_print(LONG addr, WORD op)

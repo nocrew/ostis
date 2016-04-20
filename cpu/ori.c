@@ -65,14 +65,16 @@ static void ori(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     ori_b(cpu, op);
-    return;
+    break;
   case 1:
     ori_w(cpu, op);
-    return;
+    break;
   case 2:
     ori_l(cpu, op);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *ori_print(LONG addr, WORD op)

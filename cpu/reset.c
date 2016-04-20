@@ -9,6 +9,7 @@ static void reset(struct cpu *cpu, WORD op)
   cpu_reset_out();
 
   ADD_CYCLE(128);
+  cpu_prefetch();
 }
 
 static struct cprint *reset_print(LONG addr, WORD op)

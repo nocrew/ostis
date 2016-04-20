@@ -3,7 +3,7 @@
 #include "cprint.h"
 #include "ea.h"
 
-void scc(struct cpu *cpu, WORD op)
+void scc1(struct cpu *cpu, WORD op)
 {
   int r;
 
@@ -143,6 +143,13 @@ void scc(struct cpu *cpu, WORD op)
   }
   ea_set_prefetch_before_write();
   ea_write_byte(cpu, op&0x3f, 0x00);
+}
+
+void scc(struct cpu *cpu, WORD op)
+{
+  scc1(cpu, op);
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *scc_print(LONG addr, WORD op)

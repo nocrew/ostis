@@ -23,6 +23,7 @@ static void rte(struct cpu *cpu, WORD op)
 #endif
     cpu->pc = pc;
     cpu_set_sr(sr);
+    cpu_prefetch();
   } else {
     cpu_set_exception(8); /* Privilege violation */
   }

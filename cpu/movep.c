@@ -22,6 +22,7 @@ static void movep(struct cpu *cpu, WORD op)
     d = (bus_read_byte(a)<<8)|bus_read_byte(a+2);
     cpu->d[dr] = (cpu->d[dr]&0xffff0000)|(d&0xffff);
     ADD_CYCLE(16);
+    cpu_prefetch();
     return;
   case 1:
     d = ((bus_read_byte(a)<<24)|
@@ -30,6 +31,7 @@ static void movep(struct cpu *cpu, WORD op)
 	 (bus_read_byte(a+6)));
     cpu->d[dr] = d;
     ADD_CYCLE(24);
+    cpu_prefetch();
     return;
   case 2:
     d = cpu->d[dr]&0xffff;

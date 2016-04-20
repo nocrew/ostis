@@ -19,6 +19,7 @@ static void jsr(struct cpu *cpu, WORD op)
   cpu->pc = newpc;
   if(newpc != cpu->a[7] && newpc != (cpu->a[7]+2)) {
     cpu_clear_prefetch();
+    cpu_prefetch();
   }
   cprint_set_label(cpu->pc, NULL);
 }

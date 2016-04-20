@@ -58,6 +58,7 @@ static void addq(struct cpu *cpu, WORD op)
       ADD_CYCLE(4);
     }
     cpu->a[op&7] += s;
+    cpu_prefetch();
     return;
   }
   
@@ -68,14 +69,16 @@ static void addq(struct cpu *cpu, WORD op)
   switch((op&0xc0)>>6) {
   case 0:
     addq_b(cpu, s, op&0x3f);
-    return;
+    break;
   case 1:
     addq_w(cpu, s, op&0x3f);
-    return;
+    break;
   case 2:
     addq_l(cpu, s, op&0x3f);
-    return;
+    break;
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *addq_print(LONG addr, WORD op)

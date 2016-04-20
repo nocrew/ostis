@@ -16,6 +16,7 @@ static void moveq(struct cpu *cpu, WORD op)
   cpu->d[r] = s;
   
   cpu_set_flags_move(cpu, s&0x80, s);
+  cpu_prefetch();
 }
 
 static struct cprint *moveq_print(LONG addr, WORD op)

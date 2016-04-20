@@ -45,6 +45,7 @@ static void sbcd(struct cpu *cpu, WORD op)
     rb = (r%10)|(((r/10)%10)<<4);
     cpu->d[ry] = (cpu->d[ry]&0xffffff00)|rb;
     ADD_CYCLE(6);
+    cpu_prefetch();
   }
 }
 

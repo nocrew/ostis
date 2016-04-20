@@ -66,6 +66,7 @@ static void cmp(struct cpu *cpu, WORD op)
     // Fall through.
   case CMP_PREFETCH:
     ADD_CYCLE(4);
+    cpu_prefetch();
     if(((op&0xc0)>>6) == 2) {
       cpu->instr_state = CMP_LONG;
     } else {

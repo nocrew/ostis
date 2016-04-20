@@ -6,6 +6,10 @@ static void trap(struct cpu *cpu, WORD op)
 {
   ENTER;
 
+  if(clocked_cpu) {
+    ADD_CYCLE(34);
+  }
+
   cpu_set_exception(32+(op&0xf));
 }
 

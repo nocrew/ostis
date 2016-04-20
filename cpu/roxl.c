@@ -181,6 +181,8 @@ static void roxl(struct cpu *cpu, WORD op)
   } else {
     roxl_i(cpu, op);
   }
+  if(!cpu->has_prefetched)
+    cpu_prefetch();
 }
 
 static struct cprint *roxl_print(LONG addr, WORD op)

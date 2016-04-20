@@ -34,7 +34,7 @@
  */
 static void negx(struct cpu *cpu, WORD op)
 {
-  LONG operand;
+  LONG operand, r, m = 0;
   ENTER;
 
   switch(cpu->instr_state) {
@@ -54,11 +54,19 @@ static void negx(struct cpu *cpu, WORD op)
     ADD_CYCLE(4);
     cpu_prefetch();
     cpu->instr_state = NEGX_WRITE;
-    operand = -operand;
+    r = -operand;
     if(CHKX) {
-      operand--;
+      r--;
     }
-    ea_begin_modify(cpu, op, operand, 0, 2, 0, 0);
+    ea_begin_modify(cpu, op, r, 0, 2, 0, 0);
+
+    switch((op&0xc0)>>6) {
+    case 0: m = 0x80; r &= 0xff; break;
+    case 1: m = 0x8000; r &= 0xffff; break;
+    case 2: m = 0x80000000; break;
+    }
+    cpu_set_flags_negx(cpu, operand & m, r & m, r);
+
     break;
   case NEGX_WRITE:
     if(ea_done(&operand)) {
@@ -66,7 +74,6 @@ static void negx(struct cpu *cpu, WORD op)
     } else {
       ADD_CYCLE(2);
     }
-    cpu_set_flags_clr(cpu);
     break;
   }
 }

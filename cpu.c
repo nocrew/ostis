@@ -1334,7 +1334,7 @@ void cpu_init_clocked()
   cmpi_init((void *)instr_clocked, (void *)instr_print);
   bcc_instr_init((void *)instr_clocked, (void *)instr_print);
 
-  sub_init((void *)instr_clocked, (void *)instr_print);
+  sub_instr_init((void *)instr_clocked, (void *)instr_print);
   suba_init((void *)instr_clocked, (void *)instr_print);
   subq_init((void *)instr_clocked, (void *)instr_print);
   subi_init((void *)instr_clocked, (void *)instr_print);
@@ -1367,7 +1367,7 @@ void cpu_init_clocked()
   roxl_init((void *)instr_clocked, (void *)instr_print);
   roxr_init((void *)instr_clocked, (void *)instr_print);
 
-  add_init((void *)instr_clocked, (void *)instr_print);
+  add_instr_init((void *)instr_clocked, (void *)instr_print);
   adda_init((void *)instr_clocked, (void *)instr_print);
   addq_init((void *)instr_clocked, (void *)instr_print);
   addi_init((void *)instr_clocked, (void *)instr_print);

@@ -34,7 +34,7 @@
  */
 static void not(struct cpu *cpu, WORD op)
 {
-  LONG operand, r, m = 0;
+  LONG operand, m = 0;
   ENTER;
 
   switch(cpu->instr_state) {
@@ -57,8 +57,8 @@ static void not(struct cpu *cpu, WORD op)
     ea_begin_modify_ugly(cpu, op, ~operand, 0, 2, 0, 0);
 
     switch((op&0xc0)>>6) {
-    case 0: m = 0x80; r &= 0xff; break;
-    case 1: m = 0x8000; r &= 0xffff; break;
+    case 0: m = 0x80; break;
+    case 1: m = 0x8000; break;
     case 2: m = 0x80000000; break;
     }
     cpu_set_flags_move(cpu, operand & m, operand);

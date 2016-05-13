@@ -54,7 +54,7 @@ static void not(struct cpu *cpu, WORD op)
     ADD_CYCLE(4);
     cpu_prefetch();
     cpu->instr_state = NOT_WRITE;
-    ea_begin_modify(cpu, op, ~operand, 0, 2, 0, 0);
+    ea_begin_modify_ugly(cpu, op, ~operand, 0, 2, 0, 0);
 
     switch((op&0xc0)>>6) {
     case 0: m = 0x80; r &= 0xff; break;

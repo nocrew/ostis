@@ -99,7 +99,7 @@ static void sub(struct cpu *cpu, WORD op)
 
     if(op & 0x100) {
       r = operand - cpu->d[reg];
-      ea_begin_modify(cpu, op, r, 0, long_ops(op), 0, 0);
+      ea_begin_modify_ugly(cpu, op, r, 0, long_ops(op), 0, 0);
       cpu_set_flags_sub(cpu, cpu->d[reg]&m1, operand&m1, r&m1, r&m2);
     } else {
       r = cpu->d[reg] - operand;

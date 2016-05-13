@@ -54,7 +54,7 @@ static void clr(struct cpu *cpu, WORD op)
     ADD_CYCLE(4);
     cpu_prefetch();
     cpu->instr_state = CLR_WRITE;
-    ea_begin_modify(cpu, op, 0, 0, 2, 0, 0);
+    ea_begin_modify_ugly(cpu, op, 0, 0, 2, 0, 0);
     break;
   case CLR_WRITE:
     if(ea_done(&operand)) {

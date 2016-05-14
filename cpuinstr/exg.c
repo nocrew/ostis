@@ -1,8 +1,7 @@
 #include "common.h"
 #include "cpu.h"
 #include "cprint.h"
-
-#define EXG_IN_PROGRESS 1
+#include "ucode.h"
 
 /*
  * --------------------------------------------------------------------
@@ -14,43 +13,44 @@
  *     Ax,Ay         |  6(1/0)         |  np       n
  *     Dx,Ay         |  6(1/0)         |  np       n
  */
-static void exg(struct cpu *cpu, WORD op)
+static void exg_compute(struct cpu *cpu, WORD op)
 {
+  int rx, ry;
   LONG t;
-  int rx,ry;
 
-  ENTER;
-
-  switch(cpu->instr_state) {
-  case INSTR_STATE_NONE:
-    ADD_CYCLE(4);
-    cpu->instr_state = EXG_IN_PROGRESS;
-    cpu_prefetch();
+  rx = (op&0xe00)>>9;
+  ry = (op&7);
+  switch(op&0xf8) {
+  case 0x40: /* Dx,Dy */
+    t = cpu->d[rx];
+    cpu->d[rx] = cpu->d[ry];
+    cpu->d[ry] = t;
     break;
-  case EXG_IN_PROGRESS:
-    rx = (op&0xe00)>>9;
-    ry = (op&7);
-    switch(op&0xf8) {
-    case 0x40: /* Dx,Dy */
-      t = cpu->d[rx];
-      cpu->d[rx] = cpu->d[ry];
-      cpu->d[ry] = t;
-      break;
-    case 0x48:/* Ax,Ay */
-      t = cpu->a[rx];
-      cpu->a[rx] = cpu->a[ry];
-      cpu->a[ry] = t;
-      break;
-    case 0x88:/* Dx,Ay */
-      t = cpu->d[rx];
-      cpu->d[rx] = cpu->a[ry];
-      cpu->a[ry] = t;
-      break;
-    }
-    ADD_CYCLE(2);
-    cpu->instr_state = INSTR_STATE_FINISHED;
+  case 0x48:/* Ax,Ay */
+    t = cpu->a[rx];
+    cpu->a[rx] = cpu->a[ry];
+    cpu->a[ry] = t;
+    break;
+  case 0x88:/* Dx,Ay */
+    t = cpu->d[rx];
+    cpu->d[rx] = cpu->a[ry];
+    cpu->a[ry] = t;
     break;
   }
+
+  ujump(nop_uops, 1);
+}
+
+static u_sequence exg_seq[] =
+{
+  u_prefetch,
+  exg_compute,
+  u_end_sequence
+};
+
+static void exg(struct cpu *cpu, WORD op)
+{
+  u_start_sequence(exg_seq, cpu, op);
 }
 
 static struct cprint *exg_print(LONG addr, WORD op)

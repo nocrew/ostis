@@ -247,13 +247,18 @@ void ea_begin_read(struct cpu *cpu, WORD op)
   }
 }
 
+void ea_begin_modify(struct cpu *cpu, WORD op)
+{
+  ea_begin_modify_ugly(cpu, op, ea_data, 0, 0, 0, 0);
+}
+
 static uop_t write_reg_uops[] = { n, n, n };
 static uop_t write_mem_uops[] = { w, n, w, n };
 
 // dw, dl, aw, al are the number of additional microcycles needed to
 // write a data or address register with a word or a long.
-void ea_begin_modify(struct cpu *cpu, WORD op, LONG data,
-		     int dw, int dl, int aw, int al)
+void ea_begin_modify_ugly(struct cpu *cpu, WORD op, LONG data,
+			  int dw, int dl, int aw, int al)
 {
   //						Byte/Word	Long
   //						Dn, An, Mem	Dn, An, Mem
@@ -337,6 +342,11 @@ int ea_done(LONG *operand)
   }
 
   return 0;
+}
+
+void ea_set_data(LONG data)
+{
+  ea_data = data;
 }
 
 LONG ea_get_address(void)

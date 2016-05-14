@@ -99,7 +99,7 @@ static void add(struct cpu *cpu, WORD op)
     }
 
     if(op & 0x100) {
-      ea_begin_modify(cpu, op, r, 0, long_ops(op), 0, 0);
+      ea_begin_modify_ugly(cpu, op, r, 0, long_ops(op), 0, 0);
       cpu_set_flags_add(cpu, cpu->d[reg]&m, operand&m, r&m, r);
     } else {
       cpu_set_flags_add(cpu, operand&m, cpu->d[reg]&m, r&m, r);

@@ -2,10 +2,7 @@
 #include "cpu.h"
 #include "cprint.h"
 #include "ea.h"
-
-#define CLR_READ      1
-#define CLR_PREFETCH  2
-#define CLR_WRITE     3
+#include "ucode.h"
 
 /*
  * --------------------------------------------------------------------
@@ -32,39 +29,31 @@
  *     (xxx).W       | 12(1/2) 12(3/0) |      np nR nr | np nw nW
  *     (xxx).L       | 12(1/2) 16(4/0) |   np np nR nr | np nw nW
  */
+
+static void clr_compute(struct cpu *cpu, WORD op)
+{
+  ea_set_data(0);
+  cpu_set_flags_clr(cpu);
+
+  if((op & 0xc38) == 0x800) {
+    ujump(nop_uops, 1);
+  } else {
+    ujump(0, 0);
+  }
+}
+
+static u_sequence clr_seq[] =
+{
+  ea_begin_read,
+  u_prefetch,
+  clr_compute,
+  ea_begin_modify,
+  u_end_sequence
+};
+
 static void clr(struct cpu *cpu, WORD op)
 {
-  LONG operand;
-  ENTER;
-
-  switch(cpu->instr_state) {
-  case INSTR_STATE_NONE:
-    ea_begin_read(cpu, op);
-    cpu->instr_state = CLR_READ;
-    // Fall through.
-  case CLR_READ:
-    if(!ea_done(&operand)) {
-      ADD_CYCLE(2);
-      break;
-    } else {
-      cpu->instr_state = CLR_PREFETCH;
-    }
-    // Fall through.
-  case CLR_PREFETCH:
-    ADD_CYCLE(4);
-    cpu_prefetch();
-    cpu->instr_state = CLR_WRITE;
-    ea_begin_modify(cpu, op, 0, 0, 2, 0, 0);
-    break;
-  case CLR_WRITE:
-    if(ea_done(&operand)) {
-      cpu->instr_state = INSTR_STATE_FINISHED;
-    } else {
-      ADD_CYCLE(2);
-    }
-    cpu_set_flags_clr(cpu);
-    break;
-  }
+  u_start_sequence(clr_seq, cpu, op);
 }
 
 static struct cprint *clr_print(LONG addr, WORD op)

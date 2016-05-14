@@ -121,8 +121,11 @@ void ea_clear_prefetch_before_write();
 void ea_begin_address(struct cpu *cpu, WORD op);
 void ea_begin_read(struct cpu *cpu, WORD op);
 void ea_begin_write(struct cpu *cpu, WORD op);
-void ea_begin_modify(struct cpu *cpu, WORD op, LONG data, int, int, int, int);
+void ea_begin_modify(struct cpu *cpu, WORD op);
 int ea_done(LONG *);
+void ea_begin_modify_ugly(struct cpu *cpu, WORD op, LONG data, int, int, int, int);
+int ea_done(LONG *);
+void ea_set_data(LONG data);
 LONG ea_get_address(void);
 
 #endif
